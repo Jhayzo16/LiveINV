@@ -1,10 +1,10 @@
 # LiveINV
 
-LiveINV is a visual hospital inventory tracking system designed for Tagum Global Medical Center. It combines a 3D hospital topology, interactive floor maps, room-level equipment views, QR-based identification, and a searchable asset registry.
+LiveINV is a visual hospital inventory tracking system designed for Tagum Global Medical Center. It combines a 3D hospital live mapping, interactive floor maps, room-level equipment views, QR-based identification, and a searchable asset registry.
 
 ## Features
 
-- Interactive seven-floor 3D hospital topology
+- Interactive seven-floor 3D hospital live mapping
 - Floor maps with room and equipment interactions
 - Searchable and filterable asset registry
 - Full device records with category-specific equipment previews
