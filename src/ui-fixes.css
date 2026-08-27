@@ -1,0 +1,110 @@
+/* Shared collision guards for text, decorative circles, badges, and icon controls. */
+
+.metric-card {
+  padding-right: 92px;
+}
+
+.metric-card > span,
+.metric-card > b,
+.metric-card > small {
+  position: relative;
+  z-index: 2;
+  width: auto;
+  max-width: 100%;
+  align-self: flex-start;
+  overflow-wrap: anywhere;
+}
+
+.metric-card > i {
+  right: -42px;
+  bottom: -45px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.facility {
+  padding-right: 38px;
+  line-height: 1.45;
+}
+
+.sidebar-toggle {
+  isolation: isolate;
+}
+
+.status-row > span,
+.health-legend > div > span {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+.status-row i,
+.health-legend i,
+.dot,
+.status-badge i,
+.assignment-badge i {
+  flex: 0 0 auto;
+}
+
+.status-badge,
+.assignment-badge,
+.nav-count,
+.priority {
+  flex: 0 0 auto;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.avatar,
+.user-avatar,
+.queue-device > span:first-child,
+.selected-asset > span:first-child,
+.room-count,
+.hospital-controls-hint span,
+.qr-device-icon,
+.assignment-empty > span {
+  flex: 0 0 auto;
+  line-height: 1;
+}
+
+.profile > span:nth-child(2),
+.asset-cell > span,
+.selected-asset > p,
+.queue-device > div,
+.scan-row > div,
+.card-title > div {
+  min-width: 0;
+}
+
+.profile b,
+.profile small,
+.asset-cell b,
+.asset-cell small,
+.selected-asset b,
+.selected-asset small,
+.queue-device b,
+.queue-device small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile b,
+.profile small,
+.asset-cell b,
+.queue-device b {
+  white-space: nowrap;
+}
+
+.card-title > button {
+  flex: 0 0 auto;
+  max-width: 42%;
+  line-height: 1.35;
+  text-align: right;
+  white-space: normal;
+}
+
+@media (max-width: 1300px) {
+  .metric-card {
+    padding-right: 86px;
+  }
+}

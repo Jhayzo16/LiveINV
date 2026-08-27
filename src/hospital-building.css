@@ -1,0 +1,280 @@
+.topology-workspace.hospital-topology-workspace {
+  max-width: 1440px;
+  padding-top: 34px;
+  overflow: visible;
+}
+
+.hospital-topology-workspace .section-heading {
+  position: absolute;
+  z-index: 8;
+  max-width: 470px;
+  pointer-events: none;
+}
+
+.hospital-topology-workspace .section-heading p { max-width: 440px; }
+
+.hospital-3d-shell {
+  position: relative;
+  height: 720px;
+  margin: -8px -20px -25px;
+  overflow: hidden;
+  border: 1px solid #e4eaeb;
+  border-radius: 24px;
+  background: radial-gradient(circle at 53% 45%, #fff 0 18%, #f4f8f8 52%, #edf2f3 100%);
+}
+
+.hospital-canvas-wrap,
+.floor-topology-overlay,
+.topology-connectors,
+.floor-panel-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.hospital-canvas-wrap { z-index: 1; }
+.hospital-canvas-wrap canvas { display: block; width: 100% !important; height: 100% !important; cursor: grab; touch-action: none; }
+.hospital-canvas-wrap canvas:active { cursor: grabbing; }
+
+.floor-topology-overlay { z-index: 4; pointer-events: none; }
+.topology-connectors { z-index: 1; overflow: visible; pointer-events: none; }
+.floor-panel-layer { z-index: 2; pointer-events: none; }
+
+.floor-connector {
+  transition: opacity 140ms ease;
+}
+
+.floor-connector path {
+  fill: none;
+  stroke: #bac7c5;
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  transition: stroke 160ms ease, stroke-width 160ms ease;
+}
+
+.floor-connector .connector-dot { fill: #9cadab; transition: fill 160ms ease, r 160ms ease; }
+.floor-connector .connector-ring { fill: #25a9571a; stroke: #25a95766; stroke-width: 1; }
+.floor-connector.is-active path { stroke: #25a957; stroke-width: 2; }
+.floor-connector.is-active .connector-dot { fill: #1f9c4d; }
+
+.floor-topology-panel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  min-height: 58px;
+  padding: 0;
+  border: 1px solid #dfe7e5;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .94);
+  color: #1c2923;
+  box-shadow: 0 10px 28px rgba(30, 52, 42, .10);
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+  opacity: var(--panel-opacity);
+  transform: translate3d(var(--panel-x), var(--panel-y), 0) perspective(900px) rotateY(var(--panel-tilt)) scale(var(--panel-scale));
+  transform-origin: center;
+  touch-action: none;
+  will-change: transform;
+  transition: transform 120ms linear, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease, opacity 160ms ease;
+}
+
+.floor-topology-panel:hover,
+.floor-topology-panel:focus-visible,
+.floor-topology-panel.is-hovered {
+  z-index: 5;
+  border-color: #83c997;
+  box-shadow: 0 16px 34px rgba(31, 122, 65, .18);
+  outline: none;
+}
+
+.floor-topology-panel.is-selected {
+  z-index: 4;
+  min-height: 58px;
+  border-color: #5fbe7a;
+  background: rgba(242, 252, 245, .97);
+  box-shadow: 0 17px 38px rgba(26, 121, 59, .18);
+}
+
+.floor-topology-panel.is-hovered:not(.is-selected) {
+  min-height: 58px;
+  background: rgba(248, 253, 249, .97);
+}
+
+.floor-panel-main {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.is-selected .floor-panel-main, .is-hovered .floor-panel-main { grid-template-columns: 36px 1fr; }
+.floor-panel-main:focus-visible { outline: 2px solid #2cad5b; outline-offset: -3px; }
+
+.floor-panel-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-content: center;
+  gap: 2px;
+  border-radius: 50%;
+  background: #edf2f1;
+  color: #62716b;
+}
+
+.floor-panel-icon img {
+  width: 20px;
+  height: 20px;
+  display: block;
+  object-fit: contain;
+  opacity: .72;
+  transition: filter 160ms ease, opacity 160ms ease, transform 160ms ease;
+}
+
+.is-selected .floor-panel-icon, .is-hovered .floor-panel-icon { width: 36px; height: 36px; background: #1f9c4d; color: #fff; box-shadow: 0 7px 16px #1f9c4d40; }
+.is-selected .floor-panel-icon img, .is-hovered .floor-panel-icon img,
+.floor-hover-card-heading .floor-panel-icon img { filter: brightness(0) invert(1); opacity: 1; transform: scale(1.04); }
+.floor-panel-copy { min-width: 0; }
+.floor-panel-copy strong { display: block; color: #1d2923; font-family: var(--font-title); font-size: 15px; font-weight: 850; line-height: 1.1; }
+.is-selected .floor-panel-copy strong, .is-hovered .floor-panel-copy strong { color: #18813c; font-size: 17px; }
+.floor-panel-copy > span { display: block; margin-top: 5px; color: #6d7974; font-size: 10px; line-height: 1.45; white-space: normal; }
+.floor-panel-copy b { color: #35413b; font-size: 11px; }
+.floor-panel-copy i { display: inline-block; width: 3px; height: 3px; margin: 0 4px 2px; border-radius: 50%; background: #aab5b0; }
+
+.floor-panel-expanded {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px 7px;
+  margin: 0 12px;
+  padding: 8px 0 11px;
+  border-top: 1px solid #dce9df;
+  animation: floor-panel-expand 180ms ease-out both;
+}
+
+.floor-panel-status { display: flex; align-items: center; gap: 5px; color: #66736d; font-size: 9px; white-space: nowrap; }
+.floor-panel-status i { width: 6px; height: 6px; border-radius: 50%; }
+.floor-panel-status i.active { background: #29ad62; }
+.floor-panel-status i.maintenance { background: #eda51b; }
+.floor-panel-status i.broken { background: #df4655; }
+.floor-panel-explore { grid-column: 1 / -1; margin-top: 3px; padding: 7px 9px; border-radius: 8px; background: #8b1d24; color: #fff; font-size: 9px; font-weight: 800; text-align: center; }
+.floor-panel-explore:hover, .floor-panel-explore:focus-visible { background: #74171d; outline: 2px solid #8b1d2433; }
+
+.floor-hover-card-content {
+  z-index: 120;
+  width: 194px;
+  border: 1px solid #62bd78;
+  border-radius: 17px;
+  padding: 13px;
+  background: rgba(246, 253, 248, .98);
+  color: #253129;
+  box-shadow: 0 20px 45px #174d292d;
+  backdrop-filter: blur(12px);
+  transform-origin: var(--radix-hover-card-content-transform-origin);
+  animation: floor-hover-card-in 150ms ease-out both;
+}
+
+.floor-hover-card-heading { display: grid; grid-template-columns: 42px 1fr; align-items: center; gap: 10px; }
+.floor-hover-card-heading .floor-panel-icon { width: 42px; height: 42px; background: #1f9c4d; color: #fff; box-shadow: 0 7px 16px #1f9c4d40; }
+.floor-hover-card-heading .floor-panel-copy strong { color: #18813c; font-size: 17px; }
+.floor-hover-card-heading .floor-panel-copy > span { margin-top: 4px; }
+.floor-hover-card-statuses { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; margin: 11px 0 9px; padding-top: 9px; border-top: 1px solid #d7e9dc; }
+.floor-hover-card-statuses .floor-panel-status:last-child { grid-column: 1 / -1; }
+.floor-hover-card-content .floor-panel-explore { width: 100%; border: 0; }
+
+@keyframes floor-hover-card-in {
+  from { opacity: 0; transform: scale(.96) translateY(3px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes floor-panel-expand {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hospital-reset-view {
+  position: absolute;
+  z-index: 7;
+  right: 20px;
+  top: 20px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border: 1px solid #dce5e2;
+  border-radius: 11px;
+  background: #fffffff0;
+  color: #53615b;
+  box-shadow: 0 8px 20px #2a3a3412;
+  font-size: 10px;
+  font-weight: 750;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
+.hospital-reset-view:hover { border-color: #87c79a; color: #177d38; }
+.hospital-reset-view span { color: #1d9849; font-size: 15px; }
+
+.hospital-controls-hint {
+  position: absolute;
+  z-index: 7;
+  left: 50%;
+  bottom: 17px;
+  translate: -50% 0;
+  padding: 10px 15px;
+  border: 1px solid #e1e7e6;
+  border-radius: 30px;
+  background: #ffffffe8;
+  color: #68736e;
+  box-shadow: 0 9px 25px #40504914;
+  font-size: 9px;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+}
+
+.hospital-controls-hint span { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-right: 6px; border-radius: 50%; background: #eaf5ed; color: #1b6c24; font-weight: 900; }
+.hospital-controls-hint i { display: inline-block; width: 4px; height: 4px; margin: 0 8px 2px; border-radius: 50%; background: #a9b4af; }
+
+.mobile-floor-overlay { position: absolute; inset: auto 12px 16px; display: grid; gap: 9px; pointer-events: auto; }
+.mobile-selected-floor { position: relative; padding: 13px 88px 13px 14px; border: 1px solid #dce7df; border-radius: 15px; background: #f7fcf8eb; box-shadow: 0 12px 30px #243d3119; backdrop-filter: blur(9px); }
+.mobile-selected-floor > span { display: block; color: #1b7e3d; font-size: 8px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.mobile-selected-floor strong { display: block; margin-top: 3px; font-family: var(--font-title); font-size: 18px; }
+.mobile-selected-floor p { margin: 3px 0 0; color: #69766f; font-size: 10px; }
+.mobile-selected-floor button { position: absolute; right: 11px; bottom: 14px; padding: 8px 10px; border: 0; border-radius: 8px; background: #8b1d24; color: #fff; font-size: 9px; font-weight: 800; }
+.mobile-selected-floor.is-empty { padding-right: 14px; background: #ffffffeb; }
+.mobile-selected-floor.is-empty > span { color: #7b8680; }
+.mobile-selected-floor.is-empty strong { color: #344039; font-size: 15px; }
+.mobile-floor-selector { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.mobile-floor-selector button { aspect-ratio: 1; border: 1px solid #dce5e2; border-radius: 10px; background: #ffffffed; color: #53615b; font-family: var(--font-title); font-size: 12px; font-weight: 800; }
+.mobile-floor-selector button.selected { border-color: #2eac5c; background: #1f9c4d; color: #fff; }
+
+@media (max-width: 1300px) {
+  .hospital-3d-shell { height: 650px; margin-inline: -10px; }
+  .hospital-topology-workspace .section-heading { max-width: 390px; }
+  .floor-topology-panel { border-radius: 14px; }
+  .floor-panel-main { padding: 9px; }
+  .floor-panel-icon { width: 34px; height: 34px; }
+  .is-selected .floor-panel-icon { width: 38px; height: 38px; }
+  .floor-panel-copy strong { font-size: 13px; }
+  .is-selected .floor-panel-copy strong { font-size: 15px; }
+  .floor-panel-expanded { grid-template-columns: 1fr; }
+  .floor-panel-explore { grid-column: 1; }
+}
+
+@media (max-width: 690px) {
+  .hospital-3d-shell { height: 690px; margin: 0; }
+  .hospital-topology-workspace .section-heading { position: relative; margin-bottom: 12px; }
+  .hospital-reset-view { top: 12px; right: 12px; }
+  .topology-connectors, .floor-panel-layer { display: none; }
+  .hospital-controls-hint { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floor-topology-panel, .floor-connector path, .floor-panel-expanded { transition: none; animation: none; }
+}

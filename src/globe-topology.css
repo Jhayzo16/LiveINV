@@ -1,0 +1,53 @@
+.topology-stage { cursor: default; }
+.topology-workspace .topology-stage { height: 700px; margin-top: -75px; }
+.orbital-glow { display: none; }
+.topology-branches { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; z-index: -1; }
+.topology-branches line { stroke: #1b6c2488; stroke-width: .22; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.topology-branches line:nth-child(odd) { stroke: #8b1d2470; }
+.topology-branches line { transition: x2 45ms linear, y2 45ms linear; }
+.topology-stage .floor-node { width: 132px; height: 132px; transform: translate(-50%, -50%); animation: soft-float 4.6s ease-in-out infinite; border: 4px solid #2f8b3b; background: radial-gradient(circle at 32% 24%, #58ad62 0%, #2d8438 28%, #1B6C24 58%, #0d4215 100%); color: #fff; box-shadow: inset -10px -12px 18px #082f0da6, inset 8px 7px 13px #b8e2bd52, 0 16px 28px #1b6c2445, 0 0 0 5px #1b6c2412; }
+.topology-stage .floor-node::after { content: ''; position: absolute; top: 17px; left: 27px; width: 25px; height: 12px; border-radius: 50%; background: #ffffff70; filter: blur(2px); rotate: -28deg; }
+.topology-stage .floor-node:hover { transform: translate(-50%, calc(-50% - 8px)) scale(1.06); animation-play-state: paused; border-color: #6fc379; box-shadow: inset -10px -12px 18px #082f0da6, inset 8px 7px 13px #b8e2bd52, 0 20px 35px #1b6c2466, 0 0 0 7px #1b6c2420; }
+.topology-stage .floor-node .node-num { position: relative; z-index: 1; color: #fff; text-shadow: 0 2px 5px #082c0d; }
+.topology-stage .floor-node .node-title { position: relative; z-index: 1; color: #fff; }
+.topology-stage .floor-node small { position: relative; z-index: 1; color: #d6ead9; }
+.drag-hub { border: 0; cursor: grab; user-select: none; touch-action: none; }
+.drag-hub:active { cursor: grabbing; }
+.topology-stage .hub { width: 86px; height: 86px; padding: 0; border: 3px solid #fff; background: radial-gradient(circle at 32% 24%, #fff 0 5%, #e9f5ed 13%, #4c9c5c 35%, #1B6C24 61%, #103f17 100%); box-shadow: inset -9px -11px 17px #062a0c8c, inset 7px 6px 12px #ffffff8c, 0 13px 22px #1b6c2447, 0 0 0 5px #1b6c2412; }
+.topology-stage .hub::after { content: ''; position: absolute; width: 18px; height: 10px; border-radius: 50%; background: #fff9; top: 13px; left: 18px; filter: blur(2px); transform: rotate(-30deg); }
+.topology-stage .hub span { position: relative; z-index: 1; font-size: 20px; color: white; text-shadow: 0 2px 4px #082d0d; }
+.topology-stage .hub b { position: relative; z-index: 1; font-size: 10px; color: white; text-shadow: 0 1px 3px #082d0d; }
+.drag-hub small { position: relative; z-index: 1; color: #e5f6e8; font-weight: 600; font-size: 7px; text-shadow: 0 1px 3px #082d0d; }
+.topology-stage .globe-hub { width: 650px; height: 650px; padding: 0; border: 0; background: transparent; box-shadow: none; overflow: visible; }
+.topology-workspace .globe-hub { top: 47%; }
+.topology-stage .globe-hub::after { display: none; }
+.globe-demo { position: absolute; inset: 0; border-radius: 50%; overflow: visible; background: transparent; box-shadow: none; }
+.magic-globe { width: 100%; height: 100%; display: block; opacity: 0; cursor: grab; touch-action: none; transition: opacity .5s ease; contain: layout paint size; }
+.globe-shade { display: none; }
+.globe-label { pointer-events: none; position: absolute; z-index: 7; left: 50%; top: 50%; translate: -50% -50%; display: grid; place-items: center; color: #24282d; text-shadow: 0 1px 4px #fff; }
+.hospital-icon { width: 76px; height: 76px; border: 1px solid #d4d8dc; border-radius: 50%; display: grid; place-items: center; background: #f8fafbe8; box-shadow: 0 9px 22px #252b3230, inset 0 0 18px #fff; backdrop-filter: blur(3px); }
+.hospital-icon svg { width: 50px; height: 50px; fill: none; stroke: #30363c; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.topology-stage .globe-hub .globe-label small { margin-top: 7px; color: #4e555d; font-size: 10px; font-weight: 700; text-shadow: 0 1px 4px #fff; }
+.cobe-marker-label { z-index: 6; min-width: 94px; margin-bottom: 11px; border: 0; border-radius: 7px; display: grid; place-items: center; padding: 10px 15px; background: #34383e; color: #fff; font: 700 14px/1 "Plus Jakarta Sans Variable", Arial, sans-serif; letter-spacing: .025em; text-align: center; white-space: nowrap; cursor: pointer; box-shadow: 0 7px 18px #20252b48; transition: opacity .45s ease, filter .45s ease, scale .2s ease, background .2s ease; }
+.cobe-marker-label:hover { scale: 1.08; background: #1f2328; }
+.cobe-marker-label:focus-visible { outline: 3px solid #8B1D24; outline-offset: 4px; }
+.hospital-marker-label { display: none; }
+.topology-stage .globe-hub { z-index: 2; }
+.app-shell { transition: grid-template-columns .3s cubic-bezier(.4, 0, .2, 1); }
+.sidebar { position: sticky; top: 0; align-self: start; height: 100vh; z-index: 20; overflow: visible; transition: padding .3s ease, box-shadow .3s ease; }
+.sidebar-toggle { position: absolute; z-index: 22; top: 80px; right: -17px; width: 34px; height: 34px; border: 1px solid #dde2e7; border-radius: 50%; display: grid; place-items: center; padding: 0 0 3px; background: #fff; color: #343a41; font: 700 24px/1 "Plus Jakarta Sans Variable", Arial, sans-serif; cursor: pointer; box-shadow: 0 6px 16px #20252b24; transition: color .2s ease, background .2s ease, transform .3s ease; }
+.sidebar-toggle:hover { color: #8B1D24; background: #fbf6f6; transform: scale(1.07); }
+.app-shell.sidebar-collapsed { grid-template-columns: 78px minmax(650px, 1fr) 274px; }
+.sidebar-collapsed .sidebar { padding-inline: 8px; }
+.sidebar-collapsed .brand { padding: 5px 2px 25px; justify-content: center; overflow: hidden; }
+.sidebar-collapsed .brand .brand-logo { width: 58px; height: 58px; flex-basis: 58px; object-fit: contain; }
+.sidebar-collapsed .brand-wordmark { display: none; }
+.sidebar-collapsed .facility { display: none; }
+.sidebar-collapsed nav { margin-top: 10px; }
+.sidebar-collapsed .nav-item { justify-content: center; gap: 0; padding-inline: 0; font-size: 0; }
+.sidebar-collapsed .nav-item .icon { width: auto; font-size: 18px; }
+.sidebar-collapsed .nav-count { display: none; }
+.sidebar-collapsed .profile { justify-content: center; padding-inline: 0; }
+.sidebar-collapsed .profile > span:not(.avatar) { display: none; }
+@media (max-width: 1300px) { .app-shell.sidebar-collapsed { grid-template-columns: 78px minmax(600px, 1fr) 240px; } }
+@media (prefers-reduced-motion: reduce) { .topology-stage .floor-node { animation: none; } }

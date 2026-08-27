@@ -1,0 +1,449 @@
+:root {
+  --font-ui: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", Arial, sans-serif;
+  --font-title: "Montserrat Variable", Montserrat, Arial, sans-serif;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-ui);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.module-heading h1,
+.section-heading h1,
+.page-heading h1,
+.card-title h3,
+.directory-heading h3,
+.plan-title,
+.attention-card h3,
+.scanner-card h3,
+.report-tile b {
+  font-family: var(--font-title);
+  font-weight: 850;
+}
+
+.module-heading h1,
+.section-heading h1,
+.page-heading h1 {
+  font-weight: 900;
+}
+
+.module-heading p,
+.section-heading p,
+.page-heading p,
+.card-title p,
+.directory-heading p,
+.plan-title small,
+.map-toolbar span {
+  font-family: var(--font-title);
+  font-weight: 500;
+}
+
+/* Consistent readable type scale across the application shell. */
+.facility,
+.eyebrow {
+  font-size: 11px;
+}
+
+.nav-item {
+  font-size: 14px;
+}
+
+.nav-count,
+.avatar {
+  font-size: 11px;
+}
+
+.profile b {
+  font-size: 12px;
+}
+
+.profile small {
+  font-size: 11px;
+}
+
+.crumbs,
+.ghost-btn,
+.top-actions button {
+  font-size: 13px;
+}
+
+.insights-panel h3 {
+  font-size: 17px;
+}
+
+.muted {
+  font-size: 12px;
+}
+
+.stat,
+.status-row,
+.quick,
+.recent button {
+  font-size: 12px;
+}
+
+.stat b {
+  font-size: 28px;
+}
+
+.insights-panel h4 {
+  font-size: 12px;
+}
+
+.section-heading h1,
+.page-heading h1,
+.module-heading h1 {
+  font-size: 34px;
+  line-height: 1.15;
+}
+
+.section-heading p,
+.page-heading p,
+.module-heading p {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.primary-action,
+.back,
+.outline-full {
+  font-size: 12px;
+}
+
+/* Dashboard and shared cards. */
+.metric-card > span {
+  font-size: 11px;
+}
+
+.metric-card > b {
+  font-size: 32px;
+}
+
+.metric-card > small {
+  font-size: 11px;
+}
+
+.card-title h3 {
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.card-title p {
+  font-size: 12px;
+}
+
+.card-title > button {
+  font-size: 11px;
+}
+
+.health-ring strong {
+  font-size: 28px;
+}
+
+.health-ring span {
+  font-size: 10px;
+}
+
+.health-legend > div,
+.coverage-row {
+  font-size: 12px;
+}
+
+.coverage-row b {
+  font-size: 11px;
+}
+
+.activity-row b {
+  font-size: 11px;
+}
+
+.activity-row small {
+  font-size: 10px;
+}
+
+.attention-label {
+  font-size: 9px;
+}
+
+.attention-card h3 {
+  font-size: 22px;
+}
+
+.attention-card p {
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.attention-card button {
+  font-size: 11px;
+}
+
+/* Registry tables and filtering controls. */
+.search-field input,
+.filter-pills button,
+.export-btn {
+  font-size: 11px;
+}
+
+.table-row {
+  min-height: 62px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.table-head {
+  font-size: 10px;
+}
+
+.asset-cell > i {
+  font-size: 9px;
+}
+
+.asset-cell b {
+  font-size: 11px;
+}
+
+.asset-cell small,
+.mono {
+  font-size: 10px;
+}
+
+.status-badge {
+  font-size: 10px;
+}
+
+/* Assignments and forms. */
+.stepper > b {
+  font-size: 11px;
+}
+
+.stepper > b span {
+  font-size: 10px;
+  color: #66717e;
+  font-weight: 700;
+}
+
+.stepper > b:first-child span {
+  color: var(--green);
+}
+
+.stepper > b.current span {
+  color: var(--maroon);
+}
+
+.transfer-card > label,
+.form-grid label {
+  font-size: 11px;
+}
+
+.selected-asset > span,
+.selected-asset b,
+.selected-asset small,
+.selected-asset button {
+  font-size: 11px;
+}
+
+.form-grid input,
+.form-grid select {
+  font-size: 12px;
+}
+
+.move-row b {
+  font-size: 11px;
+}
+
+.move-row small {
+  font-size: 10px;
+}
+
+.move-row time {
+  font-size: 9px;
+}
+
+/* Scanner and network registry. */
+.scanner-card h3 {
+  font-size: 18px;
+}
+
+.scanner-card p {
+  font-size: 12px;
+}
+
+.scan-row b,
+.privacy-note b {
+  font-size: 11px;
+}
+
+.scan-row small,
+.privacy-note p {
+  font-size: 10px;
+}
+
+.network-summary span,
+.network-summary small {
+  font-size: 11px;
+}
+
+.network-summary b {
+  font-size: 22px;
+}
+
+/* Maintenance, reports, and users. */
+.ticket-head {
+  font-size: 10px;
+}
+
+.ticket-row {
+  font-size: 11px;
+}
+
+.ticket-row b {
+  font-size: 11px;
+}
+
+.ticket-row small,
+.schedule-row small {
+  font-size: 10px;
+}
+
+.priority {
+  font-size: 10px;
+}
+
+.schedule-row time {
+  font-size: 8px;
+}
+
+.schedule-row time b {
+  font-size: 15px;
+}
+
+.schedule-row b {
+  font-size: 11px;
+}
+
+.report-tile b {
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.report-tile small {
+  font-size: 10px;
+}
+
+.bar-chart b,
+.bar-chart small {
+  font-size: 10px;
+}
+
+.exports-card b {
+  font-size: 11px;
+}
+
+.exports-card small,
+.exports-card i {
+  font-size: 10px;
+}
+
+.user-avatar {
+  font-size: 10px;
+}
+
+.user-list b {
+  font-size: 12px;
+}
+
+.user-list small {
+  font-size: 10px;
+}
+
+.permission {
+  font-size: 11px;
+}
+
+/* Topology, floor-map, room, and asset details. */
+.topology-hint,
+.map-toolbar span,
+.map-status {
+  font-size: 11px;
+}
+
+.topology-stage .globe-hub .globe-label small {
+  font-size: 11px;
+}
+
+.floor-summary span,
+.directory-heading p {
+  font-size: 11px;
+}
+
+.directory-heading h3,
+.room-side h3 {
+  font-size: 17px;
+}
+
+.directory-list button b,
+.room-block small,
+.map-label small,
+.plan-title small,
+.qr-card b,
+.qr-card small,
+.asset-list-item small,
+.asset-hero > p,
+.tabs,
+.detail {
+  font-size: 11px;
+}
+
+.directory-list button small,
+.directory-list button em,
+.room-category-strip span {
+  font-size: 9px;
+}
+
+.schematic-room b,
+.room-block span {
+  font-size: 12px;
+}
+
+.schematic-room small,
+.schematic-room em,
+.schematic-hallway {
+  font-size: 8px;
+}
+
+.room-count,
+.room-hotspot span small {
+  font-size: 9px;
+}
+
+.room-hotspot span b,
+.asset-pin b {
+  font-size: 11px;
+}
+
+.asset-pin small {
+  font-size: 10px;
+}
+
+.plan-title,
+.asset-hero h2 {
+  font-size: 18px;
+}
+
+.asset-list-item b {
+  font-size: 12px;
+}
+
+.asset-heading em {
+  font-size: 11px;
+}

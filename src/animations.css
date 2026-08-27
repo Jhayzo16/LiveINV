@@ -1,0 +1,19 @@
+@keyframes soft-float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -12px; }
+}
+
+@keyframes focus-float {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-12px); }
+}
+
+.floor-node { animation: soft-float 4.6s ease-in-out infinite; }
+.floor-node:hover { animation-play-state: paused; }
+.node-0 { animation-delay: -.8s; }
+.node-1 { animation-delay: -2.3s; }
+.node-2 { animation: focus-float 4.3s ease-in-out infinite; }
+.node-3 { animation-delay: -3.4s; }
+.node-4 { animation-delay: -1.7s; }
+.node-5 { animation-delay: -2.8s; }
+.node-6 { animation-delay: -.25s; }

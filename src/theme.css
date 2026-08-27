@@ -1,0 +1,55 @@
+:root {
+  --maroon: #8B1D24;
+  --green: #1B6C24;
+  --font-ui: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", Arial, sans-serif;
+  --font-title: "Montserrat Variable", Montserrat, Arial, sans-serif;
+  font-family: var(--font-ui);
+}
+
+body, button, input, select, textarea { font-family: var(--font-ui); }
+
+h1, h2, h3, h4, h5, h6,
+.section-heading h1,
+.page-heading h1 {
+  font-family: var(--font-title);
+  font-weight: 850;
+}
+
+.section-heading h1,
+.page-heading h1 {
+  font-weight: 900;
+}
+
+.section-heading p,
+.page-heading p,
+.directory-heading p,
+.plan-title small {
+  font-family: var(--font-title);
+  font-weight: 500;
+}
+
+.brand { gap: 5px; padding: 0 4px 18px; }
+.brand .brand-logo { width: 66px; height: 66px; flex: 0 0 66px; object-fit: contain; display: block; }
+.brand-wordmark { display: flex; align-items: baseline; min-width: 0; font-family: var(--font-title); font-size: 25px; font-weight: 900; line-height: 1; letter-spacing: -.055em; white-space: nowrap; }
+.brand-live { color: var(--green); }
+.brand-inv { color: var(--maroon); }
+.facility { color: var(--green); }
+.nav-item:hover, .nav-item.active { background: #f8ecec; color: var(--maroon); }
+.brand-mark { background: var(--maroon); }
+.nav-count { color: var(--maroon); }
+.profile .avatar, .top-actions .avatar { background: #e8f3e9; color: var(--green); }
+.primary-action, .quick.primary { background: var(--maroon); border-color: var(--maroon); }
+.quick.primary:hover, .primary-action:hover { background: #73151b; }
+.back, .room-block i, .asset-list-item i { color: var(--maroon); }
+.eyebrow { color: var(--green); }
+.pulse { background: var(--green); box-shadow: 0 0 0 5px #dcefe0; }
+.floor-node:hover { border-color: #e8cfd0; box-shadow: 0 22px 38px #8b1d2430; }
+.node-2 { box-shadow: 0 17px 30px #1b6c2460, 0 0 0 4px #1B6C24 !important; }
+.hub span { color: var(--maroon); }
+.room-block:hover { border-color: var(--green); box-shadow: 0 10px 20px #1b6c2431; }
+.outline-full { border-color: #a9ccb0; background: #f7fbf8; color: var(--green); }
+.tabs b { color: var(--maroon); }
+.tabs b:after { background-color: var(--maroon); }
+.fake-qr { color: var(--green); }
+.sidebar { max-height: 100vh; position: sticky; top: 0; }
+.sidebar nav { min-height: 0; overflow-y: auto; padding-right: 2px; }
