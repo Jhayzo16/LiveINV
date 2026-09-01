@@ -14,6 +14,7 @@ import './module-pages.css'
 import './typography.css'
 import './ui-fixes.css'
 import './sidebar.css'
+import './mobile.css'
 import { App } from './App'
 
 const queryClient = new QueryClient()
