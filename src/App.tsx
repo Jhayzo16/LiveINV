@@ -18,9 +18,9 @@ type Room = { id: string; name: string; code: string; department: string; assets
 type Floor = { id: number; label: string; assets: number }
 
 const floors = [
-  { id: 1, label: 'Reception & ER', assets: 78 }, { id: 2, label: 'Diagnostics', assets: 112 },
-  { id: 3, label: 'Medical Records', assets: 148 }, { id: 4, label: 'Finance & Admin', assets: 96 },
-  { id: 5, label: 'Nursing Units', assets: 131 }, { id: 6, label: 'Training Center', assets: 64 }, { id: 7, label: 'Executive Offices', assets: 44 },
+  { id: 1, label: 'Ground Floor', assets: 78 }, { id: 2, label: 'Second Floor', assets: 112 },
+  { id: 3, label: 'Third Floor', assets: 148 }, { id: 4, label: 'Fourth Floor', assets: 96 },
+  { id: 5, label: 'Fifth Floor', assets: 131 }, { id: 6, label: 'Sixth Floor', assets: 64 }, { id: 7, label: 'Seventh Floor', assets: 44 },
 ]
 
 const makeAssets = (floor: number, code: string, count = 3): Asset[] => {
@@ -84,7 +84,7 @@ const featuredRoomsByFloor: Record<number, Room[]> = {
   ],
 }
 
-const floorRoomCounts: Record<number, number> = { 1: 59, 2: 46, 3: 34, 4: 40, 5: 34, 6: 37, 7: 37 }
+const floorRoomCounts: Record<number, number> = { 1: 82, 2: 43, 3: 55, 4: 40, 5: 38, 6: 37, 7: 37 }
 
 const roomsByFloor: Record<number, Room[]> = Object.fromEntries(floors.map(floorItem => {
   const featured = featuredRoomsByFloor[floorItem.id] ?? []
@@ -102,13 +102,13 @@ const roomsByFloor: Record<number, Room[]> = Object.fromEntries(floors.map(floor
 const allRooms = Object.values(roomsByFloor).flat()
 
 const floorMapAspectRatios: Record<number, string> = {
-  1: '2900 / 2550',
-  2: '2750 / 2670',
-  3: '2700 / 2550',
-  4: '2900 / 2600',
-  5: '2650 / 1650',
-  6: '2660 / 2050',
-  7: '2660 / 2050',
+  1: '3615 / 3247',
+  2: '3547 / 3247',
+  3: '3547 / 3247',
+  4: '3547 / 3247',
+  5: '3547 / 3247',
+  6: '3547 / 3247',
+  7: '3547 / 3247',
 }
 
 const Icon = ({ name, src }: { name?: string; src?: string }) => (
@@ -209,6 +209,7 @@ function FloorTopology({ floors, onSelect }: { floors: Floor[]; onSelect:(id:num
 function FloorView({ floor, onBack, rooms }: { floor:Floor;onBack:()=>void;rooms:Room[] }) {
   const [zoom, setZoom] = useState(1)
   const [directoryOpen, setDirectoryOpen] = useState(false)
+  const [figmaRoomNames, setFigmaRoomNames] = useState<Record<string, string>>({})
   const [hoveredRoom, setHoveredRoom] = useState<string | null>(null)
   const [hoverCardPosition, setHoverCardPosition] = useState<{ x: number; y: number } | null>(null)
   const [openedRoomId, setOpenedRoomId] = useState<string | null>(null)
@@ -216,9 +217,12 @@ function FloorView({ floor, onBack, rooms }: { floor:Floor;onBack:()=>void;rooms
   const hoverCloseTimer = useRef<number | null>(null)
   const pendingHoverRoom = useRef<string | null>(null)
   const visibleHoverRoom = useRef<string | null>(null)
-  const openedRoom = rooms.find(item => item.id === openedRoomId)
-  const hoveredRoomDetails = rooms.find(item => item.id === hoveredRoom)
-  const selectedRoom = rooms.find(item => item.id === hoveredRoom) ?? openedRoom
+  const namedRooms = useMemo(() => rooms.map(item => figmaRoomNames[item.id] ? { ...item, name: figmaRoomNames[item.id] } : item), [figmaRoomNames, rooms])
+  const openedRoom = namedRooms.find(item => item.id === openedRoomId)
+  const hoveredRoomDetails = namedRooms.find(item => item.id === hoveredRoom)
+  const selectedRoom = namedRooms.find(item => item.id === hoveredRoom) ?? openedRoom
+
+  useEffect(() => setFigmaRoomNames({}), [floor.id])
 
   useEffect(() => () => {
     if (hoverOpenTimer.current) window.clearTimeout(hoverOpenTimer.current)
@@ -293,14 +297,14 @@ function FloorView({ floor, onBack, rooms }: { floor:Floor;onBack:()=>void;rooms
         </div>
         <div className="map-viewport">
           <div className="map-canvas figma-floor-map" style={{ transform: `scale(${zoom})`, aspectRatio: floorMapAspectRatios[floor.id] }} role="img" aria-label={`Interactive room layout for Floor ${floor.id}`}>
-            <InteractiveFloorSvg floor={floor} rooms={rooms} activeRoomId={hoveredRoom ?? openedRoomId} onSelect={openRoomDetails} onHover={handleMapHover} />
+            <InteractiveFloorSvg floor={floor} rooms={rooms} activeRoomId={hoveredRoom ?? openedRoomId} onSelect={openRoomDetails} onHover={handleMapHover} onRoomNames={setFigmaRoomNames} />
           </div>
         </div>
         <div className="map-status"><span className="map-status-key"><i className="mapped"/>Mapped room</span><span className="map-status-key"><i className="computer"/>Computer present</span><span>Click a room to enter</span>{selectedRoom && <strong>{selectedRoom.name} · {selectedRoom.assets.length} assets</strong>}</div>
       </div>
       <aside id={`floor-${floor.id}-room-directory`} className="floor-room-directory" hidden={!directoryOpen}>
         <div className="directory-heading"><span className="eyebrow">ROOM DIRECTORY</span><h3>Floor {floor.id} spaces</h3><p>Select a room to inspect its inventory.</p></div>
-        <div className="directory-list">{rooms.map((item, index) => {
+        <div className="directory-list">{namedRooms.map((item, index) => {
           const pcs = computerCount(item)
           return <button key={item.id} className={`${pcs ? 'has-computer' : ''} ${item.id === openedRoomId ? 'is-open' : ''}`} onMouseEnter={() => setHoveredRoom(item.id)} onMouseLeave={() => setHoveredRoom(null)} onFocus={() => setHoveredRoom(item.id)} onBlur={() => setHoveredRoom(null)} onClick={() => openRoomDetails(item.id)}><span>{String(index + 1).padStart(2, '0')}</span><span><b>{item.name}</b><small>{item.department}</small></span>{pcs > 0 && <span className="directory-pc" aria-label={`${pcs} computer${pcs === 1 ? '' : 's'}`}><i />{pcs}</span>}<em>{item.assets.length}</em></button>
         })}</div>
@@ -319,7 +323,7 @@ function FloorView({ floor, onBack, rooms }: { floor:Floor;onBack:()=>void;rooms
   </section>
 }
 
-function InteractiveFloorSvg({ floor, rooms, activeRoomId, onSelect, onHover }: { floor: Floor; rooms: Room[]; activeRoomId: string | null; onSelect: (id: string) => void; onHover: (id: string | null, point?: { x: number; y: number }) => void }) {
+function InteractiveFloorSvg({ floor, rooms, activeRoomId, onSelect, onHover, onRoomNames }: { floor: Floor; rooms: Room[]; activeRoomId: string | null; onSelect: (id: string) => void; onHover: (id: string | null, point?: { x: number; y: number }) => void; onRoomNames: (names: Record<string, string>) => void }) {
   const [svgMarkup, setSvgMarkup] = useState('')
   const layerRef = useRef<HTMLDivElement>(null)
 
@@ -348,6 +352,40 @@ function InteractiveFloorSvg({ floor, rooms, activeRoomId, onSelect, onHover }: 
     })
   }, [activeRoomId, svgMarkup])
 
+  useEffect(() => {
+    const svg = layerRef.current?.querySelector('svg')
+    if (!svg || !svgMarkup) return
+    const structuralId = /^(?:Rectangle|Group|clip|paint|filter|mask|liveinv)/i
+    const floorTitle = /^(?:GROUND|1ST|2ND|3RD|4TH|5TH|6TH|7TH)\s+FLOOR$/i
+    const labels = Array.from(svg.querySelectorAll<SVGGraphicsElement>('[id]')).filter(element => {
+      const label = cleanFigmaLabel(element.id)
+      return label && !structuralId.test(label) && !floorTitle.test(label) && !element.closest('.svg-room-node')
+    })
+    const discoveredNames: Record<string, string> = {}
+
+    svg.querySelectorAll<SVGGElement>('.svg-room-node').forEach(roomNode => {
+      const roomId = roomNode.dataset.roomId
+      const shape = roomNode.querySelector<SVGRectElement>('.svg-room-box')
+      if (!roomId || !shape) return
+      const roomBounds = shape.getBoundingClientRect()
+      const matchingLabels = labels.filter(label => {
+        const bounds = label.getBoundingClientRect()
+        const centerX = bounds.left + bounds.width / 2
+        const centerY = bounds.top + bounds.height / 2
+        return bounds.width > 0 && bounds.height > 0 && centerX >= roomBounds.left - 2 && centerX <= roomBounds.right + 2 && centerY >= roomBounds.top - 2 && centerY <= roomBounds.bottom + 2
+      }).sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)
+      const names = [...new Set(matchingLabels.map(label => cleanFigmaLabel(label.id)).filter(Boolean))]
+      if (!names.length) return
+      const roomName = names.join(' · ')
+      discoveredNames[roomId] = roomName
+      const title = roomNode.querySelector('title')
+      if (title) title.textContent = roomName
+      svg.querySelector<SVGRectElement>(`.svg-room-hit-target[data-room-id="${roomId}"]`)?.setAttribute('aria-label', `Open ${roomName}`)
+    })
+
+    onRoomNames(discoveredNames)
+  }, [onRoomNames, svgMarkup])
+
   const roomIdFromTarget = (target: EventTarget | null) => target instanceof Element ? target.closest('.svg-room-node, .svg-room-hit-target')?.getAttribute('data-room-id') ?? null : null
   const selectTarget = (target: EventTarget | null) => { const id = roomIdFromTarget(target); if (id) onSelect(id) }
 
@@ -370,6 +408,10 @@ function InteractiveFloorSvg({ floor, rooms, activeRoomId, onSelect, onHover }: 
     onBlur={() => onHover(null)}
     onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectTarget(event.target) } }}
   />
+}
+
+function cleanFigmaLabel(value: string) {
+  return value.replace(/_\d+$/, '').replace(/\s+/g, ' ').trim()
 }
 
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
@@ -413,67 +455,12 @@ function decorateRoomShape(document: Document, shape: SVGRectElement, mappedRoom
   parent.insertBefore(group, shape)
   group.appendChild(shape)
   shape.classList.add('svg-room-box')
-  shape.setAttribute('rx', String(Math.min(5, width * .035, height * .035)))
-  shape.setAttribute('ry', String(Math.min(5, width * .035, height * .035)))
   shape.setAttribute('vector-effect', 'non-scaling-stroke')
-
-  const innerWall = svgElement(document, 'rect', {
-    class: 'svg-room-inner-wall',
-    x: String(x + 8),
-    y: String(y + 8),
-    width: String(Math.max(1, width - 16)),
-    height: String(Math.max(1, height - 16)),
-    rx: '3',
-    ry: '3',
-    'vector-effect': 'non-scaling-stroke',
-  })
-  group.appendChild(innerWall)
-
-  if (width >= 118 && height >= 96) {
-    const doorWidth = Math.min(48, Math.max(30, width * .2))
-    const hingeX = x + width / 2 - doorWidth / 2
-    const floorY = y + height
-    const door = svgElement(document, 'g', { class: 'svg-room-door', 'aria-hidden': 'true' })
-    door.appendChild(svgElement(document, 'line', { x1: String(hingeX - 3), y1: String(floorY), x2: String(hingeX + doorWidth + 3), y2: String(floorY), class: 'svg-room-door-gap', 'vector-effect': 'non-scaling-stroke' }))
-    door.appendChild(svgElement(document, 'path', { d: `M ${hingeX} ${floorY} V ${floorY - doorWidth}`, class: 'svg-room-door-leaf', 'vector-effect': 'non-scaling-stroke' }))
-    door.appendChild(svgElement(document, 'path', { d: `M ${hingeX} ${floorY - doorWidth} A ${doorWidth} ${doorWidth} 0 0 1 ${hingeX + doorWidth} ${floorY}`, class: 'svg-room-door-swing', 'vector-effect': 'non-scaling-stroke' }))
-    group.appendChild(door)
-  } else if (height >= 118) {
-    const doorWidth = Math.min(42, Math.max(28, height * .2))
-    const wallX = x + width
-    const hingeY = y + height / 2 - doorWidth / 2
-    const door = svgElement(document, 'g', { class: 'svg-room-door', 'aria-hidden': 'true' })
-    door.appendChild(svgElement(document, 'line', { x1: String(wallX), y1: String(hingeY - 3), x2: String(wallX), y2: String(hingeY + doorWidth + 3), class: 'svg-room-door-gap', 'vector-effect': 'non-scaling-stroke' }))
-    door.appendChild(svgElement(document, 'path', { d: `M ${wallX} ${hingeY} H ${wallX - doorWidth}`, class: 'svg-room-door-leaf', 'vector-effect': 'non-scaling-stroke' }))
-    door.appendChild(svgElement(document, 'path', { d: `M ${wallX - doorWidth} ${hingeY} A ${doorWidth} ${doorWidth} 0 0 0 ${wallX} ${hingeY + doorWidth}`, class: 'svg-room-door-swing', 'vector-effect': 'non-scaling-stroke' }))
-    group.appendChild(door)
-  }
 
   const title = svgElement(document, 'title', {})
   title.textContent = `${mappedRoom.name} · ${mappedRoom.code} · ${mappedRoom.assets.length} assets`
   group.prepend(title)
 
-  if (width >= 145 && height >= 92) {
-    const code = svgElement(document, 'text', {
-      class: 'svg-room-code',
-      x: String(x + 18),
-      y: String(y + 30),
-    })
-    code.textContent = mappedRoom.code || `ROOM ${String(index + 1).padStart(2, '0')}`
-    group.appendChild(code)
-
-    if (width >= 230 && height >= 130) {
-      const maxCharacters = Math.max(12, Math.floor(width / 17))
-      const roomLabel = mappedRoom.name.length > maxCharacters ? `${mappedRoom.name.slice(0, maxCharacters - 1)}…` : mappedRoom.name
-      const name = svgElement(document, 'text', {
-        class: 'svg-room-name',
-        x: String(x + 18),
-        y: String(y + 58),
-      })
-      name.textContent = roomLabel
-      group.appendChild(name)
-    }
-  }
 
   const hitTarget = svgElement(document, 'rect', {
     class: 'svg-room-hit-target',
