@@ -17,7 +17,6 @@
   position: relative;
   height: calc(100vh - 200px);
   min-height: 500px;
-  max-height: 720px;
   margin: -8px -20px -25px;
   overflow: hidden;
   border: 1px solid #e4eaeb;
