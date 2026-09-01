@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { AssetRepository } from './lib/repositories'
 import liveInvLogo from './assets/liveinv-logo.png'
 import dashboardIcon from './assets/sidebar/dashboard.png'
 import liveMappingIcon from './assets/sidebar/live-mapping.png'
@@ -128,11 +130,22 @@ export function App() {
   const selectedFloor = floor ? floors.find(item => item.id === floor) : null
   const currentAssets = useMemo(() => allRooms.flatMap(item => item.assets), [])
 
+  const { data: inventoryAssets = [] } = useQuery({
+    queryKey: ['assets'],
+    queryFn: () => AssetRepository.getAll(),
+  })
+
+  const total = inventoryAssets.length
+  const active = inventoryAssets.filter(a => a.state === 'Active').length
+  const maintenance = inventoryAssets.filter(a => a.state === 'Maintenance').length
+  const broken = inventoryAssets.filter(a => a.state === 'Broken').length
+  const recentAssets = inventoryAssets.slice(0, 3)
+
   const resetToFloors = () => { setFloor(null); setRoomId(null); setAssetId(null) }
   const openModule = (next: SystemModule | 'topology') => { setModule(next); resetToFloors(); window.scrollTo({ top: 0, behavior: 'auto' }) }
 
   return <div className={`app-shell module-${module} ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
-    <LiveInvSidebar module={module} expanded={sidebarOpen} onToggle={() => setSidebarOpen(open => !open)} onNavigate={openModule} />
+    <LiveInvSidebar module={module} expanded={sidebarOpen} onToggle={() => setSidebarOpen(open => !open)} onNavigate={openModule} totalAssets={total} />
     <main>
       <header className="topbar"><div className="crumbs">{module === 'topology' ? <><button onClick={resetToFloors}>Live Mapping</button>{selectedFloor && <><span>/</span><button onClick={() => { setRoomId(null); setAssetId(null) }}>Floor {floor}</button></>}{room && <><span>/</span><button onClick={() => setAssetId(null)}>{room.name}</button></>}{asset && <><span>/</span><b>{asset.id}</b></>}</> : <><span>Hospital Inventory</span><span>/</span><b>{module === 'qr' ? 'QR Scanner' : module === 'network' ? 'Network Registry' : module === 'manual' ? 'System Manual' : module.charAt(0).toUpperCase() + module.slice(1)}</b></>}</div><div className="top-actions"><button className="ghost-btn">⌕ Search</button><button className="bell">◌</button><span className="avatar">AD</span></div></header>
       {module !== 'topology' && <SystemModulePage module={module} />}
@@ -141,16 +154,17 @@ export function App() {
       {module === 'topology' && floor && room && !asset && <RoomView room={room} floor={floor} onBack={() => setRoomId(null)} onAsset={setAssetId} />}
       {module === 'topology' && floor && room && asset && <AssetView room={room} floor={floor} asset={asset} onBack={() => setAssetId(null)} />}
     </main>
-    <aside className="insights-panel"><h3>Live status</h3><p className="muted">Hospital inventory at a glance</p><div className="stat"><span>Total assets</span><b>648</b><small>Across 7 floors</small></div><div className="status-list"><StatusRow color="green" label="Active" value="521" /><StatusRow color="amber" label="Maintenance" value="86" /><StatusRow color="red" label="Broken" value="41" /></div><div className="divider"/><h4>Quick actions</h4><button className="quick primary">＋ Add new asset</button><button className="quick">▣ Scan QR code</button><button className="quick">⇄ Assign an item</button><div className="recent"><h4>Recently viewed</h4>{currentAssets.slice(0, 3).map(item => <button key={item.id}><span className={`dot ${statusClass(item.status)}`} />{item.id}<small>{item.kind}</small></button>)}</div></aside>
+    <aside className="insights-panel"><h3>Live status</h3><p className="muted">Hospital inventory at a glance</p><div className="stat"><span>Total assets</span><b>{total}</b><small>Across 7 floors</small></div><div className="status-list"><StatusRow color="green" label="Active" value={String(active)} /><StatusRow color="amber" label="Maintenance" value={String(maintenance)} /><StatusRow color="red" label="Broken" value={String(broken)} /></div><div className="divider"/><h4>Quick actions</h4><button className="quick primary" onClick={() => openModule('assets')}>＋ Add new asset</button><button className="quick" onClick={() => openModule('qr')}>▣ Scan QR code</button><button className="quick" onClick={() => openModule('assignments')}>⇄ Assign an item</button><div className="recent"><h4>Recently added</h4>{recentAssets.map(item => <button key={item.tag} onClick={() => openModule('assets')}><span className={`dot ${item.state.toLowerCase()}`} />{item.tag}<small>{item.category}</small></button>)}</div></aside>
     <Toaster />
   </div>
 }
 
-function LiveInvSidebar({ module, expanded, onToggle, onNavigate }: {
+function LiveInvSidebar({ module, expanded, onToggle, onNavigate, totalAssets = 0 }: {
   module: SystemModule | 'topology'
   expanded: boolean
   onToggle: () => void
   onNavigate: (module: SystemModule | 'topology') => void
+  totalAssets?: number
 }) {
   const activeNavIndex = ['dashboard', 'topology', 'assets', 'assignments', 'qr', 'reports', 'manual'].indexOf(module)
 
@@ -171,7 +185,7 @@ function LiveInvSidebar({ module, expanded, onToggle, onNavigate }: {
       <nav aria-label="Primary navigation" style={{ '--active-nav-index': activeNavIndex } as CSSProperties}>
         <button className={`nav-item ${module === 'dashboard' ? 'active' : ''}`} onClick={() => navigate('dashboard')}><Icon src={dashboardIcon} /><span className="sidebar-item-label">Dashboard</span></button>
         <button className={`nav-item ${module === 'topology' ? 'active' : ''}`} onClick={() => navigate('topology')}><Icon src={liveMappingIcon} /><span className="sidebar-item-label">Live Mapping</span></button>
-        <button className={`nav-item ${module === 'assets' ? 'active' : ''}`} onClick={() => navigate('assets')}><Icon src={assetsIcon} /><span className="sidebar-item-label">Assets</span><span className="nav-count">648</span></button>
+        <button className={`nav-item ${module === 'assets' ? 'active' : ''}`} onClick={() => navigate('assets')}><Icon src={assetsIcon} /><span className="sidebar-item-label">Assets</span>{totalAssets > 0 && <span className="nav-count">{totalAssets}</span>}</button>
         <button className={`nav-item ${module === 'assignments' ? 'active' : ''}`} onClick={() => navigate('assignments')}><Icon src={assignmentsIcon} /><span className="sidebar-item-label">Assignments</span></button>
         <button className={`nav-item ${module === 'qr' ? 'active' : ''}`} onClick={() => navigate('qr')}><Icon src={qrScannerIcon} /><span className="sidebar-item-label">QR Scanner</span></button>
         <button className={`nav-item ${module === 'reports' ? 'active' : ''}`} onClick={() => navigate('reports')}><Icon src={reportsIcon} /><span className="sidebar-item-label">Reports</span></button>
@@ -290,7 +304,6 @@ function FloorView({ floor, onBack, rooms }: { floor:Floor;onBack:()=>void;rooms
           const pcs = computerCount(item)
           return <button key={item.id} className={`${pcs ? 'has-computer' : ''} ${item.id === openedRoomId ? 'is-open' : ''}`} onMouseEnter={() => setHoveredRoom(item.id)} onMouseLeave={() => setHoveredRoom(null)} onFocus={() => setHoveredRoom(item.id)} onBlur={() => setHoveredRoom(null)} onClick={() => openRoomDetails(item.id)}><span>{String(index + 1).padStart(2, '0')}</span><span><b>{item.name}</b><small>{item.department}</small></span>{pcs > 0 && <span className="directory-pc" aria-label={`${pcs} computer${pcs === 1 ? '' : 's'}`}><i />{pcs}</span>}<em>{item.assets.length}</em></button>
         })}</div>
-        <button className="outline-full">＋ Add or map a room</button>
       </aside>
     </div>
     {hoveredRoomDetails && hoverCardPosition && <div className="room-hover-card" style={{ left: hoverCardPosition.x, top: hoverCardPosition.y }} role="status" aria-live="polite">

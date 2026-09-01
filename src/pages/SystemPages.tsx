@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { AssetRepository } from '../lib/repositories'
+import { deviceRegistrationSchema, deviceAssignmentSchema, type DeviceRegistrationData, type DeviceAssignmentData } from '../lib/schemas'
+import { type InventoryAsset, type AssetState, type DeviceCategory } from '../lib/types'
 import { BrowserQRCodeReader, type IScannerControls } from '@zxing/browser'
 import QRCode from 'qrcode'
 import { toast } from '@/components/ui/toast'
@@ -16,25 +22,6 @@ import roomsVerifiedMetricIcon from '../assets/metrics/rooms-verified.png'
 import '../device-workflow.css'
 
 export type SystemModule = 'dashboard' | 'assets' | 'assignments' | 'qr' | 'network' | 'maintenance' | 'reports' | 'users' | 'manual'
-
-type AssetState = 'Active' | 'Maintenance' | 'Broken' | 'Inactive'
-type InventoryAsset = {
-  tag: string
-  qrId: string
-  name: string
-  category: string
-  location: string
-  owner: string
-  state: AssetState
-  ip: string
-  brand?: string
-  model?: string
-  ramCapacityGb?: number
-  ramModules?: number
-  ssdCapacityGb?: number
-  ssdCount?: number
-  processor?: string
-}
 
 const assets: InventoryAsset[] = [
   { tag: 'PC-MRR-01', qrId: 'LIV-MRR0001', name: 'Dell OptiPlex 7090', category: 'System Unit', location: 'F5 · Medical Records', owner: 'IT Department', state: 'Active', ip: '10.20.5.31', brand: 'Dell', model: 'OptiPlex 7090', processor: 'Intel Core i5-10500', ramCapacityGb: 8, ramModules: 2, ssdCapacityGb: 512, ssdCount: 1 },
@@ -75,39 +62,40 @@ const moduleNames: Record<SystemModule, string> = {
 }
 
 export function SystemModulePage({ module }: { module: SystemModule }) {
-  const [inventoryAssets, setInventoryAssets] = useState<InventoryAsset[]>(() => {
-    try {
-      const saved = window.localStorage.getItem(SAVED_ASSETS_KEY)
-      if (!saved) return assets
-      const savedAssets = (JSON.parse(saved) as Array<InventoryAsset & { qrId?: string }>).map(item => ({ ...item, qrId: item.qrId || createQrId() }))
-      window.localStorage.setItem(SAVED_ASSETS_KEY, JSON.stringify(savedAssets))
-      return [...savedAssets, ...assets.filter(seed => !savedAssets.some(item => item.tag === seed.tag))]
-    } catch {
-      return assets
-    }
+  const queryClient = useQueryClient()
+  
+  const { data: inventoryAssets = [], isLoading } = useQuery({
+    queryKey: ['assets'],
+    queryFn: () => AssetRepository.getAll(),
   })
-  const registerAsset = (asset: InventoryAsset) => {
-    setInventoryAssets(current => {
-      const next = [asset, ...current.filter(item => item.tag !== asset.tag)]
-      window.localStorage.setItem(SAVED_ASSETS_KEY, JSON.stringify(next))
-      return next
-    })
+
+  const registerMutation = useMutation({
+    mutationFn: (asset: InventoryAsset) => AssetRepository.save(asset),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['assets'] })
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ tag, asset }: { tag: string, asset: InventoryAsset }) => AssetRepository.update(tag, asset),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['assets'] })
+  })
+
+  const registerAsset = async (asset: InventoryAsset) => {
+    await registerMutation.mutateAsync(asset)
   }
-  const updateAsset = (originalTag: string, asset: InventoryAsset) => {
-    setInventoryAssets(current => {
-      const next = current.map(item => item.tag === originalTag ? asset : item)
-      window.localStorage.setItem(SAVED_ASSETS_KEY, JSON.stringify(next))
-      return next
-    })
+
+  const updateAsset = async (originalTag: string, asset: InventoryAsset) => {
+    await updateMutation.mutateAsync({ tag: originalTag, asset })
   }
+
+  if (isLoading) return <section className="workspace module-workspace"><div style={{ padding: '40px', color: '#666' }}>Loading inventory...</div></section>
   const page = {
-    dashboard: <DashboardPage />,
+    dashboard: <DashboardPage inventoryAssets={inventoryAssets} />,
     assets: <AssetsPage inventoryAssets={inventoryAssets} onRegister={registerAsset} onUpdate={updateAsset} />,
     assignments: <AssignmentsPage inventoryAssets={inventoryAssets} onAssign={registerAsset} />,
     qr: <QrPage inventoryAssets={inventoryAssets} onUpdate={updateAsset} />,
-    network: <NetworkPage />,
-    maintenance: <MaintenancePage />,
-    reports: <ReportsPage />,
+    network: <NetworkPage inventoryAssets={inventoryAssets} />,
+    maintenance: <MaintenancePage inventoryAssets={inventoryAssets} />,
+    reports: <ReportsPage inventoryAssets={inventoryAssets} />,
     users: <UsersPage />,
     manual: <ManualPage />,
   }[module]
@@ -130,20 +118,37 @@ function Metric({ label, value, note, tone = 'navy', icon }: { label: string; va
   </article>
 }
 
-function DashboardPage() {
+function DashboardPage({ inventoryAssets }: { inventoryAssets: InventoryAsset[] }) {
+  const total = inventoryAssets.length
+  const active = inventoryAssets.filter(a => a.state === 'Active').length
+  const maintenance = inventoryAssets.filter(a => a.state === 'Maintenance').length
+  const broken = inventoryAssets.filter(a => a.state === 'Broken').length
+  const needsAttention = maintenance + broken
+  const activePercent = total > 0 ? Math.round((active / total) * 100) : 0
+  const assigned = inventoryAssets.filter(a => a.location !== 'Unassigned').length
+
+  const floorCounts: Record<string, number> = {}
+  inventoryAssets.forEach(a => {
+    const match = a.location.match(/^F(\d)/)
+    if (match) floorCounts[match[1]] = (floorCounts[match[1]] || 0) + 1
+  })
+  const maxFloorCount = Math.max(...Object.values(floorCounts), 1)
+
+  const recentAssets = inventoryAssets.slice(0, 4).map(a => [`${a.tag} — ${a.name}`, a.state === 'Active' ? 'Registered and assigned' : `Status: ${a.state}`])
+
   return <>
-    <ModuleHeading eyebrow="OPERATIONS OVERVIEW" title="Good morning, Inventory Team" description="A clear view of hospital assets, service risks, and inventory activity for today." action="Register asset" />
+    <ModuleHeading eyebrow="OPERATIONS OVERVIEW" title="Good morning, Inventory Team" description="A clear view of hospital assets, service risks, and inventory activity for today." />
     <div className="metric-grid">
-      <Metric label="Registered assets" value="648" note="+18 this month" icon={registeredAssetsMetricIcon} />
-      <Metric label="Active and ready" value="521" note="80.4% of inventory" tone="green" icon={activeReadyMetricIcon} />
-      <Metric label="Needs attention" value="127" note="86 maintenance · 41 broken" tone="maroon" icon={needsAttentionMetricIcon} />
-      <Metric label="Rooms verified" value="109" note="23 rooms due this week" tone="amber" icon={roomsVerifiedMetricIcon} />
+      <Metric label="Registered assets" value={String(total)} note={`${inventoryAssets.filter(a => a.location === 'Unassigned').length} unassigned`} icon={registeredAssetsMetricIcon} />
+      <Metric label="Active and ready" value={String(active)} note={`${activePercent}% of inventory`} tone="green" icon={activeReadyMetricIcon} />
+      <Metric label="Needs attention" value={String(needsAttention)} note={`${maintenance} maintenance · ${broken} broken`} tone="maroon" icon={needsAttentionMetricIcon} />
+      <Metric label="Assigned to rooms" value={String(assigned)} note={`${total - assigned} awaiting placement`} tone="amber" icon={roomsVerifiedMetricIcon} />
     </div>
     <div className="dashboard-grid">
-      <article className="module-card asset-health"><CardTitle title="Asset health" subtitle="Current equipment condition" action="View registry" /><div className="health-layout"><div className="health-ring"><strong>80%</strong><span>operational</span></div><div className="health-legend"><StatusLine label="Active" value="521" color="green" /><StatusLine label="Maintenance" value="86" color="amber" /><StatusLine label="Broken" value="41" color="red" /></div></div></article>
-      <article className="module-card floor-coverage"><CardTitle title="Verification coverage" subtitle="Rooms checked by floor" action="Open topology" />{[['Floor 1',88],['Floor 2',72],['Floor 3',94],['Floor 4',61],['Floor 5',79]].map(([floor,percent]) => <div className="coverage-row" key={String(floor)}><span>{floor}</span><div><i style={{width:`${percent}%`}} /></div><b>{percent}%</b></div>)}</article>
-      <article className="module-card activity-card"><CardTitle title="Recent activity" subtitle="Latest inventory events" action="Audit log" />{activity.map(item => <div className="activity-row" key={item[0]}><i /><span><b>{item[0]}</b><small>{item[1]}</small></span></div>)}</article>
-      <article className="module-card attention-card"><span className="attention-label">PRIORITY</span><h3>Six devices are overdue for verification</h3><p>Review equipment last verified more than 90 days ago before the next monthly inventory close.</p><button>Review overdue assets →</button></article>
+      <article className="module-card asset-health"><CardTitle title="Asset health" subtitle="Current equipment condition" /><div className="health-layout"><div className="health-ring"><strong>{activePercent}%</strong><span>operational</span></div><div className="health-legend"><StatusLine label="Active" value={String(active)} color="green" /><StatusLine label="Maintenance" value={String(maintenance)} color="amber" /><StatusLine label="Broken" value={String(broken)} color="red" /></div></div></article>
+      <article className="module-card floor-coverage"><CardTitle title="Assets by floor" subtitle="Distribution across hospital floors" />{Object.entries(floorCounts).sort(([a],[b]) => a.localeCompare(b)).map(([floor, count]) => <div className="coverage-row" key={floor}><span>Floor {floor}</span><div><i style={{width:`${Math.round((count/maxFloorCount)*100)}%`}} /></div><b>{count}</b></div>)}</article>
+      <article className="module-card activity-card"><CardTitle title="Recent inventory" subtitle="Latest registered assets" />{recentAssets.map(item => <div className="activity-row" key={item[0]}><i /><span><b>{item[0]}</b><small>{item[1]}</small></span></div>)}</article>
+      <article className="module-card attention-card"><span className="attention-label">PRIORITY</span><h3>{needsAttention > 0 ? `${needsAttention} device${needsAttention !== 1 ? 's need' : ' needs'} attention` : 'All devices are operational'}</h3><p>{needsAttention > 0 ? `${broken} broken and ${maintenance} under maintenance. Review equipment status and update records as needed.` : 'No broken or maintenance-flagged equipment at this time.'}</p></article>
     </div>
   </>
 }
@@ -250,21 +255,7 @@ const departmentsByFloor: Record<string, string[]> = {
   '7': ['Executive Offices', 'Administration', 'Inpatient Services'],
 }
 
-type DeviceDraft = {
-  tag: string
-  category: string
-  brand: string
-  model: string
-  status: AssetState
-  ip: string
-  ramCapacityGb: string
-  ramModules: string
-  ssdCapacityGb: string
-  ssdCount: string
-  processor: string
-}
-
-const deviceCategories = ['Printer', 'Monitor', 'Keyboard', 'System Unit', 'UPS', 'Scanner', 'Router'] as const
+const deviceCategories: DeviceCategory[] = ['Printer', 'Monitor', 'Keyboard', 'System Unit', 'UPS', 'Scanner', 'Router']
 const RECENT_PROCESSORS_KEY = 'liveinv-recent-processors'
 
 function DeviceRegistrationDialog({ onClose, onRegister }: { onClose: () => void; onRegister: (asset: InventoryAsset) => void }) {
@@ -273,55 +264,48 @@ function DeviceRegistrationDialog({ onClose, onRegister }: { onClose: () => void
   const [qrDataUrl, setQrDataUrl] = useState('')
   const [registeredAsset, setRegisteredAsset] = useState<InventoryAsset | null>(null)
   const [recentProcessors, setRecentProcessors] = useState<string[]>(() => {
-    try {
-      return JSON.parse(window.localStorage.getItem(RECENT_PROCESSORS_KEY) || '[]') as string[]
-    } catch {
-      return []
-    }
-  })
-  const [draft, setDraft] = useState<DeviceDraft>({
-    tag: '', category: 'System Unit', brand: '', model: '', status: 'Active', ip: '',
-    processor: '', ramCapacityGb: '', ramModules: '', ssdCapacityGb: '', ssdCount: '',
+    try { return JSON.parse(window.localStorage.getItem(RECENT_PROCESSORS_KEY) || '[]') as string[] } catch { return [] }
   })
 
-  const updateDraft = <K extends keyof DeviceDraft>(key: K, value: DeviceDraft[K]) => setDraft(current => ({ ...current, [key]: value }))
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+  const { register, handleSubmit, watch, setValue, formState: { errors, isValid } } = useForm<DeviceRegistrationData>({
+    resolver: zodResolver(deviceRegistrationSchema),
+    defaultValues: { tag: '', category: 'System Unit', brand: '', model: '', status: 'Active', ip: '', processor: '', ramCapacityGb: '', ramModules: '', ssdCapacityGb: '', ssdCount: '' },
+    mode: 'onChange'
+  })
+  
+  const watchedCategory = watch('category')
+
+  const submit = async (data: DeviceRegistrationData) => {
     if (step === 1 && !saving) {
-      const tag = draft.tag.trim().toUpperCase()
-      const supportsIp = draft.category === 'System Unit' || draft.category === 'Printer' || draft.category === 'Router'
-      const processor = draft.processor.trim()
+      const tag = data.tag.trim().toUpperCase()
+      const supportsIp = data.category === 'System Unit' || data.category === 'Printer' || data.category === 'Router'
+      const processor = data.processor?.trim()
       const asset: InventoryAsset = {
         tag,
         qrId: createQrId(),
-        name: `${draft.brand} ${draft.model}`.trim(),
-        category: draft.category,
+        name: `${data.brand} ${data.model}`.trim(),
+        category: data.category as DeviceCategory,
         location: 'Unassigned',
         owner: 'Unassigned',
-        state: draft.status,
-        ip: supportsIp ? draft.ip.trim() || '—' : '—',
-        brand: draft.brand.trim(),
-        model: draft.model.trim(),
-        ...(draft.category === 'System Unit' ? {
+        state: data.status as AssetState,
+        ip: supportsIp && data.ip ? data.ip.trim() : '—',
+        brand: data.brand.trim(),
+        model: data.model.trim(),
+        ...(data.category === 'System Unit' ? {
           processor,
-          ramCapacityGb: Number(draft.ramCapacityGb),
-          ramModules: Number(draft.ramModules),
-          ssdCapacityGb: Number(draft.ssdCapacityGb),
-          ssdCount: Number(draft.ssdCount),
+          ramCapacityGb: Number(data.ramCapacityGb),
+          ramModules: Number(data.ramModules),
+          ssdCapacityGb: Number(data.ssdCapacityGb),
+          ssdCount: Number(data.ssdCount),
         } : {}),
       }
       setSaving(true)
       const registration = Promise.all([
-        QRCode.toDataURL(`liveinv:qr:${asset.qrId}`, {
-          width: 320,
-          margin: 2,
-          errorCorrectionLevel: 'H',
-          color: { dark: '#1B6C24', light: '#FFFFFF' },
-        }),
+        QRCode.toDataURL(`liveinv:qr:${asset.qrId}`, { width: 320, margin: 2, errorCorrectionLevel: 'H', color: { dark: '#1B6C24', light: '#FFFFFF' } }),
         new Promise(resolve => window.setTimeout(resolve, 800)),
       ]).then(([generatedQr]) => {
         onRegister(asset)
-        if (draft.category === 'System Unit' && processor) {
+        if (data.category === 'System Unit' && processor) {
           setRecentProcessors(current => {
             const next = [processor, ...current.filter(item => item.toLowerCase() !== processor.toLowerCase())].slice(0, 8)
             window.localStorage.setItem(RECENT_PROCESSORS_KEY, JSON.stringify(next))
@@ -335,21 +319,13 @@ function DeviceRegistrationDialog({ onClose, onRegister }: { onClose: () => void
       })
 
       try {
-        await toast.promise(registration, {
-          loading: 'Saving device and generating QR…',
-          success: savedAsset => `${savedAsset.tag} saved. QR code generated.`,
-          error: 'Could not save the device or generate its QR code.',
-        })
+        await toast.promise(registration, { loading: 'Saving device and generating QR…', success: savedAsset => `${savedAsset.tag} saved. QR code generated.`, error: 'Could not save the device or generate its QR code.' })
       } catch {
-        // The toast presents the error and the form remains available for retrying.
       } finally {
         setSaving(false)
       }
     }
   }
-
-  const systemUnitReady = draft.category !== 'System Unit' || (draft.processor.trim() && Number(draft.ramCapacityGb) > 0 && Number(draft.ramModules) > 0 && Number(draft.ssdCapacityGb) > 0 && Number(draft.ssdCount) > 0)
-  const descriptionReady = draft.tag.trim() && draft.brand.trim() && draft.model.trim() && systemUnitReady
 
   return <div className="device-dialog-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
     <section className="device-dialog" role="dialog" aria-modal="true" aria-labelledby="device-registration-title">
@@ -358,27 +334,27 @@ function DeviceRegistrationDialog({ onClose, onRegister }: { onClose: () => void
         {['Device details', 'Generate QR'].map((label, index) => <div key={label} className={`${step === index + 1 ? 'current' : ''} ${step > index + 1 ? 'complete' : ''}`}><b>{step > index + 1 ? '✓' : index + 1}</b><span>{label}</span></div>)}
       </div>
 
-      {step === 1 && <form className="device-form" onSubmit={submit}>
+      {step === 1 && <form className="device-form" onSubmit={handleSubmit(submit)}>
         <div className="device-form-grid">
-          <label>Asset tag<input required value={draft.tag} onChange={event => updateDraft('tag', event.target.value)} placeholder="e.g. PC-MRR-015" /></label>
-          <label>Device category<select value={draft.category} onChange={event => updateDraft('category', event.target.value)}>{deviceCategories.map(category => <option key={category}>{category}</option>)}</select></label>
-          <label>Brand name<input required value={draft.brand} onChange={event => updateDraft('brand', event.target.value)} placeholder="e.g. Dell, HP, APC" /></label>
-          <label>Model<input required value={draft.model} onChange={event => updateDraft('model', event.target.value)} placeholder="e.g. OptiPlex 7090" /></label>
-          <label>Status<select value={draft.status} onChange={event => updateDraft('status', event.target.value as AssetState)}><option>Active</option><option>Maintenance</option><option>Broken</option><option>Inactive</option></select></label>
-          {draft.category === 'System Unit' && <>
+          <label>Asset tag<input {...register('tag')} placeholder="e.g. PC-MRR-015" />{errors.tag && <span className="field-error">{errors.tag.message}</span>}</label>
+          <label>Device category<select {...register('category')}>{deviceCategories.map(category => <option key={category}>{category}</option>)}</select></label>
+          <label>Brand name<input {...register('brand')} placeholder="e.g. Dell, HP, APC" />{errors.brand && <span className="field-error">{errors.brand.message}</span>}</label>
+          <label>Model<input {...register('model')} placeholder="e.g. OptiPlex 7090" />{errors.model && <span className="field-error">{errors.model.message}</span>}</label>
+          <label>Status<select {...register('status')}><option>Active</option><option>Maintenance</option><option>Broken</option><option>Inactive</option></select></label>
+          {watchedCategory === 'System Unit' && <>
             <div className="device-spec-heading wide"><span>SYSTEM UNIT SPECIFICATIONS</span><p>Record the installed memory and storage configuration.</p></div>
-            <label className="wide">Processor <small>Type the complete processor model</small><input required list="recent-processor-suggestions" value={draft.processor} onChange={event => updateDraft('processor', event.target.value)} placeholder="e.g. Intel Core i5-12400 or AMD Ryzen 5 5600G" /><datalist id="recent-processor-suggestions">{recentProcessors.map(processor => <option key={processor} value={processor} />)}</datalist></label>
-            <div className="processor-recent-suggestions wide"><span>RECENT PROCESSOR SUGGESTIONS</span>{recentProcessors.length ? <div>{recentProcessors.map(processor => <button type="button" key={processor} onClick={() => updateDraft('processor', processor)}>{processor}</button>)}</div> : <p>Recently entered processor specifications will appear here.</p>}</div>
-            <label>RAM capacity per module <small>Gigabytes</small><input required type="number" min="1" value={draft.ramCapacityGb} onChange={event => updateDraft('ramCapacityGb', event.target.value)} placeholder="8" /></label>
-            <label>RAM modules installed <small>Number of RAM sticks</small><input required type="number" min="1" value={draft.ramModules} onChange={event => updateDraft('ramModules', event.target.value)} placeholder="2" /></label>
-            <label>SSD capacity per drive <small>Gigabytes</small><input required type="number" min="1" value={draft.ssdCapacityGb} onChange={event => updateDraft('ssdCapacityGb', event.target.value)} placeholder="512" /></label>
-            <label>SSDs installed <small>Number of SSD drives</small><input required type="number" min="1" value={draft.ssdCount} onChange={event => updateDraft('ssdCount', event.target.value)} placeholder="1" /></label>
+            <label className="wide">Processor <small>Type the complete processor model</small><input list="recent-processor-suggestions" {...register('processor')} placeholder="e.g. Intel Core i5-12400 or AMD Ryzen 5 5600G" /><datalist id="recent-processor-suggestions">{recentProcessors.map(processor => <option key={processor} value={processor} />)}</datalist>{errors.processor && <span className="field-error">{errors.processor.message}</span>}</label>
+            <div className="processor-recent-suggestions wide"><span>RECENT PROCESSOR SUGGESTIONS</span>{recentProcessors.length ? <div>{recentProcessors.map(processor => <button type="button" key={processor} onClick={() => setValue('processor', processor, { shouldValidate: true })}>{processor}</button>)}</div> : <p>Recently entered processor specifications will appear here.</p>}</div>
+            <label>RAM capacity per module <small>Gigabytes</small><input type="number" min="1" {...register('ramCapacityGb')} placeholder="8" />{errors.ramCapacityGb && <span className="field-error">{errors.ramCapacityGb.message}</span>}</label>
+            <label>RAM modules installed <small>Number of RAM sticks</small><input type="number" min="1" {...register('ramModules')} placeholder="2" />{errors.ramModules && <span className="field-error">{errors.ramModules.message}</span>}</label>
+            <label>SSD capacity per drive <small>Gigabytes</small><input type="number" min="1" {...register('ssdCapacityGb')} placeholder="512" />{errors.ssdCapacityGb && <span className="field-error">{errors.ssdCapacityGb.message}</span>}</label>
+            <label>SSDs installed <small>Number of SSD drives</small><input type="number" min="1" {...register('ssdCount')} placeholder="1" />{errors.ssdCount && <span className="field-error">{errors.ssdCount.message}</span>}</label>
           </>}
-          {(draft.category === 'System Unit' || draft.category === 'Printer' || draft.category === 'Router') && <label className="wide">IP address <small>Optional; can be assigned or updated later</small><input value={draft.ip} onChange={event => updateDraft('ip', event.target.value)} placeholder="10.20.x.x" /></label>}
+          {(watchedCategory === 'System Unit' || watchedCategory === 'Printer' || watchedCategory === 'Router') && <label className="wide">IP address <small>Optional; can be assigned or updated later</small><input {...register('ip')} placeholder="10.20.x.x" />{errors.ip && <span className="field-error">{errors.ip.message}</span>}</label>}
         </div>
 
         <div className="registration-assignment-note"><AssignmentBadge assigned={false} /><p>The new device will enter the inventory as unassigned. Use the Assignments page when its floor, department, and room are known.</p></div>
-        <footer className="device-form-actions"><button type="button" className="export-btn" onClick={onClose} disabled={saving}>Cancel</button><button type="submit" className="primary-action" disabled={!descriptionReady || saving}>{saving ? 'Saving & generating QR…' : 'Save device & generate QR →'}</button></footer>
+        <footer className="device-form-actions"><button type="button" className="export-btn" onClick={onClose} disabled={saving}>Cancel</button><button type="submit" className="primary-action" disabled={!isValid || saving}>{saving ? 'Saving & generating QR…' : 'Save device & generate QR →'}</button></footer>
       </form>}
 
       {step === 2 && registeredAsset && <div className="device-qr-complete">
@@ -392,25 +368,28 @@ function DeviceRegistrationDialog({ onClose, onRegister }: { onClose: () => void
 
 function EditAssetDialog({ asset, onClose, onSave }: { asset: InventoryAsset; onClose: () => void; onSave: (originalTag: string, asset: InventoryAsset) => void }) {
   const [recentProcessors, setRecentProcessors] = useState<string[]>(() => {
-    try {
-      return JSON.parse(window.localStorage.getItem(RECENT_PROCESSORS_KEY) || '[]') as string[]
-    } catch {
-      return []
-    }
+    try { return JSON.parse(window.localStorage.getItem(RECENT_PROCESSORS_KEY) || '[]') as string[] } catch { return [] }
   })
-  const [draft, setDraft] = useState<DeviceDraft>({
-    tag: asset.tag,
-    category: asset.category,
-    brand: asset.brand || '',
-    model: asset.model || '',
-    status: asset.state,
-    ip: asset.ip === '—' ? '' : asset.ip,
-    processor: asset.processor || '',
-    ramCapacityGb: asset.ramCapacityGb ? String(asset.ramCapacityGb) : '',
-    ramModules: asset.ramModules ? String(asset.ramModules) : '',
-    ssdCapacityGb: asset.ssdCapacityGb ? String(asset.ssdCapacityGb) : '',
-    ssdCount: asset.ssdCount ? String(asset.ssdCount) : '',
+
+  const { register, handleSubmit, watch, setValue, formState: { errors, isValid } } = useForm<DeviceRegistrationData>({
+    resolver: zodResolver(deviceRegistrationSchema),
+    defaultValues: {
+      tag: asset.tag,
+      category: asset.category,
+      brand: asset.brand || '',
+      model: asset.model || '',
+      status: asset.state,
+      ip: asset.ip === '—' ? '' : asset.ip,
+      processor: asset.processor || '',
+      ramCapacityGb: asset.ramCapacityGb ? String(asset.ramCapacityGb) : '',
+      ramModules: asset.ramModules ? String(asset.ramModules) : '',
+      ssdCapacityGb: asset.ssdCapacityGb ? String(asset.ssdCapacityGb) : '',
+      ssdCount: asset.ssdCount ? String(asset.ssdCount) : '',
+    },
+    mode: 'onChange'
   })
+
+  const watchedCategory = watch('category')
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
@@ -418,30 +397,24 @@ function EditAssetDialog({ asset, onClose, onSave }: { asset: InventoryAsset; on
     return () => window.removeEventListener('keydown', closeOnEscape)
   }, [onClose])
 
-  const updateDraft = <K extends keyof DeviceDraft>(key: K, value: DeviceDraft[K]) => setDraft(current => ({ ...current, [key]: value }))
-  const supportsIp = draft.category === 'System Unit' || draft.category === 'Printer' || draft.category === 'Router'
-  const systemUnitReady = draft.category !== 'System Unit' || (draft.processor.trim() && Number(draft.ramCapacityGb) > 0 && Number(draft.ramModules) > 0 && Number(draft.ssdCapacityGb) > 0 && Number(draft.ssdCount) > 0)
-  const formReady = draft.brand.trim() && draft.model.trim() && systemUnitReady
-
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!formReady) return
-    const processor = draft.processor.trim()
+  const submit = (data: DeviceRegistrationData) => {
+    const processor = data.processor?.trim()
+    const supportsIp = data.category === 'System Unit' || data.category === 'Printer' || data.category === 'Router'
     const updatedAsset: InventoryAsset = {
       ...asset,
-      name: `${draft.brand.trim()} ${draft.model.trim()}`,
-      category: draft.category,
-      brand: draft.brand.trim(),
-      model: draft.model.trim(),
-      state: draft.status,
-      ip: supportsIp ? draft.ip.trim() || '—' : '—',
-      processor: draft.category === 'System Unit' ? processor : undefined,
-      ramCapacityGb: draft.category === 'System Unit' ? Number(draft.ramCapacityGb) : undefined,
-      ramModules: draft.category === 'System Unit' ? Number(draft.ramModules) : undefined,
-      ssdCapacityGb: draft.category === 'System Unit' ? Number(draft.ssdCapacityGb) : undefined,
-      ssdCount: draft.category === 'System Unit' ? Number(draft.ssdCount) : undefined,
+      name: `${data.brand.trim()} ${data.model.trim()}`,
+      category: data.category as DeviceCategory,
+      brand: data.brand.trim(),
+      model: data.model.trim(),
+      state: data.status as AssetState,
+      ip: supportsIp && data.ip ? data.ip.trim() : '—',
+      processor: data.category === 'System Unit' ? processor : undefined,
+      ramCapacityGb: data.category === 'System Unit' ? Number(data.ramCapacityGb) : undefined,
+      ramModules: data.category === 'System Unit' ? Number(data.ramModules) : undefined,
+      ssdCapacityGb: data.category === 'System Unit' ? Number(data.ssdCapacityGb) : undefined,
+      ssdCount: data.category === 'System Unit' ? Number(data.ssdCount) : undefined,
     }
-    if (draft.category === 'System Unit' && processor) {
+    if (data.category === 'System Unit' && processor) {
       const next = [processor, ...recentProcessors.filter(item => item.toLowerCase() !== processor.toLowerCase())].slice(0, 8)
       window.localStorage.setItem(RECENT_PROCESSORS_KEY, JSON.stringify(next))
       setRecentProcessors(next)
@@ -452,26 +425,27 @@ function EditAssetDialog({ asset, onClose, onSave }: { asset: InventoryAsset; on
   return <div className="device-dialog-backdrop asset-edit-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
     <section className="device-dialog asset-edit-dialog" role="dialog" aria-modal="true" aria-labelledby="asset-edit-title">
       <header className="device-dialog-header"><div><span>EDIT DEVICE</span><h2 id="asset-edit-title">Update asset record</h2><p>Edit its description, status, and applicable technical specifications.</p></div><button type="button" aria-label="Close asset editor" onClick={onClose}>×</button></header>
-      <form className="device-form" onSubmit={submit}>
+      <form className="device-form" onSubmit={handleSubmit(submit)}>
         <div className="asset-edit-identity"><div><span>Asset tag</span><b>{asset.tag}</b></div><div><span>QR fallback ID</span><b className="mono">{asset.qrId}</b></div></div>
         <div className="device-form-grid">
-          <label>Device category<select value={draft.category} onChange={event => updateDraft('category', event.target.value)}>{deviceCategories.map(category => <option key={category}>{category}</option>)}</select></label>
-          <label>Status<select value={draft.status} onChange={event => updateDraft('status', event.target.value as AssetState)}><option>Active</option><option>Maintenance</option><option>Broken</option><option>Inactive</option></select></label>
-          <label>Brand name<input required value={draft.brand} onChange={event => updateDraft('brand', event.target.value)} placeholder="e.g. Dell, HP, APC" /></label>
-          <label>Model<input required value={draft.model} onChange={event => updateDraft('model', event.target.value)} placeholder="e.g. OptiPlex 7090" /></label>
-          {draft.category === 'System Unit' && <>
+          <input type="hidden" {...register('tag')} />
+          <label>Device category<select {...register('category')}>{deviceCategories.map(category => <option key={category}>{category}</option>)}</select></label>
+          <label>Status<select {...register('status')}><option>Active</option><option>Maintenance</option><option>Broken</option><option>Inactive</option></select></label>
+          <label>Brand name<input {...register('brand')} placeholder="e.g. Dell, HP, APC" />{errors.brand && <span className="field-error">{errors.brand.message}</span>}</label>
+          <label>Model<input {...register('model')} placeholder="e.g. OptiPlex 7090" />{errors.model && <span className="field-error">{errors.model.message}</span>}</label>
+          {watchedCategory === 'System Unit' && <>
             <div className="device-spec-heading wide"><span>SYSTEM UNIT SPECIFICATIONS</span><p>Update the installed processor, memory, and storage configuration.</p></div>
-            <label className="wide">Processor <small>Type the complete processor model</small><input required list="edit-processor-suggestions" value={draft.processor} onChange={event => updateDraft('processor', event.target.value)} placeholder="e.g. Intel Core i5-12400 or AMD Ryzen 5 5600G" /><datalist id="edit-processor-suggestions">{recentProcessors.map(processor => <option key={processor} value={processor} />)}</datalist></label>
-            <div className="processor-recent-suggestions wide"><span>RECENT PROCESSOR SUGGESTIONS</span>{recentProcessors.length ? <div>{recentProcessors.map(processor => <button type="button" key={processor} onClick={() => updateDraft('processor', processor)}>{processor}</button>)}</div> : <p>Recently entered processor specifications will appear here.</p>}</div>
-            <label>RAM capacity per module <small>Gigabytes</small><input required type="number" min="1" value={draft.ramCapacityGb} onChange={event => updateDraft('ramCapacityGb', event.target.value)} /></label>
-            <label>RAM modules installed <small>Number of RAM sticks</small><input required type="number" min="1" value={draft.ramModules} onChange={event => updateDraft('ramModules', event.target.value)} /></label>
-            <label>SSD capacity per drive <small>Gigabytes</small><input required type="number" min="1" value={draft.ssdCapacityGb} onChange={event => updateDraft('ssdCapacityGb', event.target.value)} /></label>
-            <label>SSDs installed <small>Number of SSD drives</small><input required type="number" min="1" value={draft.ssdCount} onChange={event => updateDraft('ssdCount', event.target.value)} /></label>
+            <label className="wide">Processor <small>Type the complete processor model</small><input list="edit-processor-suggestions" {...register('processor')} placeholder="e.g. Intel Core i5-12400 or AMD Ryzen 5 5600G" /><datalist id="edit-processor-suggestions">{recentProcessors.map(processor => <option key={processor} value={processor} />)}</datalist>{errors.processor && <span className="field-error">{errors.processor.message}</span>}</label>
+            <div className="processor-recent-suggestions wide"><span>RECENT PROCESSOR SUGGESTIONS</span>{recentProcessors.length ? <div>{recentProcessors.map(processor => <button type="button" key={processor} onClick={() => setValue('processor', processor, { shouldValidate: true })}>{processor}</button>)}</div> : <p>Recently entered processor specifications will appear here.</p>}</div>
+            <label>RAM capacity per module <small>Gigabytes</small><input type="number" min="1" {...register('ramCapacityGb')} />{errors.ramCapacityGb && <span className="field-error">{errors.ramCapacityGb.message}</span>}</label>
+            <label>RAM modules installed <small>Number of RAM sticks</small><input type="number" min="1" {...register('ramModules')} />{errors.ramModules && <span className="field-error">{errors.ramModules.message}</span>}</label>
+            <label>SSD capacity per drive <small>Gigabytes</small><input type="number" min="1" {...register('ssdCapacityGb')} />{errors.ssdCapacityGb && <span className="field-error">{errors.ssdCapacityGb.message}</span>}</label>
+            <label>SSDs installed <small>Number of SSD drives</small><input type="number" min="1" {...register('ssdCount')} />{errors.ssdCount && <span className="field-error">{errors.ssdCount.message}</span>}</label>
           </>}
-          {supportsIp && <label className="wide">IP address <small>Optional; leave blank if no address is assigned</small><input value={draft.ip} onChange={event => updateDraft('ip', event.target.value)} placeholder="10.20.x.x" /></label>}
+          {(watchedCategory === 'System Unit' || watchedCategory === 'Printer' || watchedCategory === 'Router') && <label className="wide">IP address <small>Optional; leave blank if no address is assigned</small><input {...register('ip')} placeholder="10.20.x.x" />{errors.ip && <span className="field-error">{errors.ip.message}</span>}</label>}
         </div>
         <div className="asset-edit-assignment-note"><AssignmentBadge assigned={isAssetAssigned(asset)} /><p>Location and department are managed separately on the Assignments page, so editing this record will not move the device.</p></div>
-        <footer className="device-form-actions"><button type="button" className="export-btn" onClick={onClose}>Cancel</button><button type="submit" className="primary-action" disabled={!formReady}>Save changes</button></footer>
+        <footer className="device-form-actions"><button type="button" className="export-btn" onClick={onClose}>Cancel</button><button type="submit" className="primary-action" disabled={!isValid}>Save changes</button></footer>
       </form>
     </section>
   </div>
@@ -480,22 +454,26 @@ function EditAssetDialog({ asset, onClose, onSave }: { asset: InventoryAsset; on
 function AssignmentsPage({ inventoryAssets, onAssign }: { inventoryAssets: InventoryAsset[]; onAssign: (asset: InventoryAsset) => void }) {
   const unassignedAssets = inventoryAssets.filter(item => !isAssetAssigned(item))
   const [selectedTag, setSelectedTag] = useState(unassignedAssets[0]?.tag || '')
-  const [floor, setFloor] = useState('1')
-  const [department, setDepartment] = useState(departmentsByFloor['1'][0])
-  const [room, setRoom] = useState('')
   const [message, setMessage] = useState('')
   const selectedAsset = unassignedAssets.find(item => item.tag === selectedTag) || unassignedAssets[0]
+
+  const { register, handleSubmit, watch, setValue, reset, formState: { errors, isValid } } = useForm<DeviceAssignmentData>({
+    resolver: zodResolver(deviceAssignmentSchema),
+    defaultValues: { floor: '1', department: departmentsByFloor['1'][0], room: '' },
+    mode: 'onChange'
+  })
+
+  const watchedFloor = watch('floor')
 
   useEffect(() => {
     if (!unassignedAssets.some(item => item.tag === selectedTag)) setSelectedTag(unassignedAssets[0]?.tag || '')
   }, [inventoryAssets, selectedTag, unassignedAssets])
 
-  const assignDevice = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!selectedAsset || !room.trim()) return
-    onAssign({ ...selectedAsset, location: `F${floor} · ${room.trim()}`, owner: department })
-    setMessage(`${selectedAsset.tag} is now assigned to Floor ${floor}, ${department}, ${room.trim()}.`)
-    setRoom('')
+  const assignDevice = (data: DeviceAssignmentData) => {
+    if (!selectedAsset) return
+    onAssign({ ...selectedAsset, location: `F${data.floor} · ${data.room.trim()}`, owner: data.department })
+    setMessage(`${selectedAsset.tag} is now assigned to Floor ${data.floor}, ${data.department}, ${data.room.trim()}.`)
+    reset({ floor: data.floor, department: data.department, room: '' })
   }
 
   return <>
@@ -503,12 +481,16 @@ function AssignmentsPage({ inventoryAssets, onAssign }: { inventoryAssets: Inven
     <div className="assignment-layout">
       <article className="module-card transfer-card">
         <div className="assignment-form-heading"><div><AssignmentBadge assigned={false} /><h3>Device assignment</h3><p>Only devices without a hospital location appear here.</p></div><strong>{unassignedAssets.length} waiting</strong></div>
-        {selectedAsset ? <form onSubmit={assignDevice}>
+        {selectedAsset ? <form onSubmit={handleSubmit(assignDevice)}>
           <label>Unassigned device<select value={selectedAsset.tag} onChange={event => { setSelectedTag(event.target.value); setMessage('') }}>{unassignedAssets.map(item => <option key={item.tag} value={item.tag}>{item.tag} — {item.name}</option>)}</select></label>
           <div className="selected-asset assignment-selected"><span>{selectedAsset.category.slice(0, 2).toUpperCase()}</span><p><b>{selectedAsset.tag}</b><small>{selectedAsset.name} · QR ID {selectedAsset.qrId}</small></p><AssignmentBadge assigned={false} /></div>
-          <div className="form-grid"><label>Floor<select value={floor} onChange={event => { const nextFloor = event.target.value; setFloor(nextFloor); setDepartment(departmentsByFloor[nextFloor][0]) }}>{Object.keys(departmentsByFloor).map(item => <option key={item} value={item}>Floor {item}</option>)}</select></label><label>Department<select value={department} onChange={event => setDepartment(event.target.value)}>{departmentsByFloor[floor].map(item => <option key={item}>{item}</option>)}</select></label><label className="wide">Room or office<input required value={room} onChange={event => setRoom(event.target.value)} placeholder="e.g. Medical Records Archives Room" /></label></div>
+          <div className="form-grid">
+            <label>Floor<select {...register('floor')} onChange={e => { register('floor').onChange(e); setValue('department', departmentsByFloor[e.target.value][0]) }}>{Object.keys(departmentsByFloor).map(item => <option key={item} value={item}>Floor {item}</option>)}</select></label>
+            <label>Department<select {...register('department')}>{departmentsByFloor[watchedFloor || '1'].map(item => <option key={item}>{item}</option>)}</select></label>
+            <label className="wide">Room or office<input {...register('room')} placeholder="e.g. Medical Records Archives Room" />{errors.room && <span className="field-error">{errors.room.message}</span>}</label>
+          </div>
           {message && <div className="assignment-success" role="status">✓ {message}</div>}
-          <div className="form-actions"><button type="button" className="export-btn" onClick={() => setRoom('')}>Clear</button><button type="submit" className="primary-action" disabled={!room.trim()}>Assign device →</button></div>
+          <div className="form-actions"><button type="button" className="export-btn" onClick={() => reset({ room: '' })}>Clear</button><button type="submit" className="primary-action" disabled={!isValid}>Assign device →</button></div>
         </form> : <div className="assignment-empty"><span>✓</span><h3>All registered devices are assigned</h3><p>Newly added devices will appear here automatically with an Unassigned label.</p></div>}
       </article>
       <article className="module-card move-summary unassigned-queue"><CardTitle title="Unassigned queue" subtitle="Devices ready for a confirmed location" />{unassignedAssets.length ? unassignedAssets.map((item, index) => <button type="button" className={item.tag === selectedAsset?.tag ? 'queue-device selected' : 'queue-device'} key={item.tag} onClick={() => { setSelectedTag(item.tag); setMessage('') }}><span>{index + 1}</span><div><b>{item.tag}</b><small>{item.name}</small></div><AssignmentBadge assigned={false} /></button>) : <p className="queue-complete">No devices are waiting for assignment.</p>}</article>
@@ -631,26 +613,67 @@ function FullDeviceRecordDialog({ asset, onClose, onEdit }: { asset: InventoryAs
   </div>
 }
 
-function NetworkPage() {
+function NetworkPage({ inventoryAssets }: { inventoryAssets: InventoryAsset[] }) {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filter, setFilter] = useState<'all' | 'active' | 'maintenance'>('all')
+
+  const networkAssets = inventoryAssets.filter(a => a.ip !== '—' && a.ip)
+  const assignedCount = networkAssets.length
+  const maintenanceCount = networkAssets.filter(a => a.state === 'Maintenance' || a.state === 'Broken').length
+
+  const filtered = networkAssets.filter(a => {
+    if (filter === 'active' && a.state !== 'Active') return false
+    if (filter === 'maintenance' && a.state !== 'Maintenance' && a.state !== 'Broken') return false
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      return a.tag.toLowerCase().includes(q) || a.ip.toLowerCase().includes(q) || a.name.toLowerCase().includes(q) || a.location.toLowerCase().includes(q)
+    }
+    return true
+  })
+
   return <>
-    <ModuleHeading eyebrow="IT OPERATIONS" title="Network registry" description="Monitor address assignments and verification status for network-capable equipment." action="Add network profile" />
-    <div className="network-summary"><article><span>Address pool</span><b>10.20.0.0/16</b><small>Hospital private network</small></article><article><span>Assigned addresses</span><b>355</b><div><i style={{width:'71%'}} /></div><small>71% of managed pool</small></article><article><span>Conflicts detected</span><b className="danger">2</b><small>Requires IT review</small></article></div>
-    <article className="module-card registry-card"><div className="registry-toolbar"><label className="search-field">⌕ <input aria-label="Search network registry" placeholder="Search IP, hostname, MAC, or asset" /></label><div className="filter-pills"><button className="selected">All profiles</button><button>Verified</button><button>Conflict</button></div></div><div className="data-table network-table"><div className="table-row table-head"><span>Asset / hostname</span><span>IPv4 address</span><span>MAC address</span><span>Location</span><span>Last verified</span><span>Status</span></div>{assets.filter(a=>a.ip!=='—').map((item,index)=><div className="table-row" key={item.tag}><span className="asset-cell"><i>IP</i><span><b>{item.tag}</b><small>HOSP-{item.tag}</small></span></span><span className="mono">{item.ip}</span><span className="mono">00:1B:44:11:{30+index}:7B</span><span>{item.location}</span><span>{index+2} days ago</span><span><StatusBadge state={index===3?'Maintenance':'Active'}/></span></div>)}</div></article>
+    <ModuleHeading eyebrow="IT OPERATIONS" title="Network registry" description="Monitor address assignments and verification status for network-capable equipment." />
+    <div className="network-summary"><article><span>Address pool</span><b>10.20.0.0/16</b><small>Hospital private network</small></article><article><span>Assigned addresses</span><b>{assignedCount}</b><div><i style={{width:`${Math.min(Math.round((assignedCount / Math.max(inventoryAssets.length, 1)) * 100), 100)}%`}} /></div><small>{assignedCount} network-capable devices</small></article><article><span>Needs review</span><b className={maintenanceCount > 0 ? 'danger' : ''}>{maintenanceCount}</b><small>{maintenanceCount > 0 ? 'Devices not in active state' : 'All network devices active'}</small></article></div>
+    <article className="module-card registry-card"><div className="registry-toolbar"><label className="search-field">⌕ <input aria-label="Search network registry" placeholder="Search IP, hostname, MAC, or asset" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} /></label><div className="filter-pills"><button className={filter === 'all' ? 'selected' : ''} onClick={() => setFilter('all')}>All profiles</button><button className={filter === 'active' ? 'selected' : ''} onClick={() => setFilter('active')}>Active</button><button className={filter === 'maintenance' ? 'selected' : ''} onClick={() => setFilter('maintenance')}>Needs review</button></div></div><div className="data-table network-table"><div className="table-row table-head"><span>Asset / hostname</span><span>IPv4 address</span><span>Category</span><span>Location</span><span>Owner</span><span>Status</span></div>{filtered.length ? filtered.map(item => <div className="table-row" key={item.tag}><span className="asset-cell"><i>IP</i><span><b>{item.tag}</b><small>{item.name}</small></span></span><span className="mono">{item.ip}</span><span>{item.category}</span><span>{item.location}</span><span>{item.owner}</span><span><StatusBadge state={item.state}/></span></div>) : <div className="table-row" style={{justifyContent:'center', color:'#888', padding:'32px'}}>No network devices match your search.</div>}</div></article>
   </>
 }
 
-function MaintenancePage() {
+function MaintenancePage({ inventoryAssets }: { inventoryAssets: InventoryAsset[] }) {
+  const maintenanceAssets = inventoryAssets.filter(a => a.state === 'Maintenance')
+  const brokenAssets = inventoryAssets.filter(a => a.state === 'Broken')
+  const activeAssets = inventoryAssets.filter(a => a.state === 'Active')
+  const totalIssues = maintenanceAssets.length + brokenAssets.length
+
   const tickets = [
-    ['MT-0261','PRN-ACC-02','Paper feed assembly replacement','High','In progress','Aug 25'],
-    ['MT-0258','PC-ER-12','No power after voltage event','Critical','For diagnosis','Aug 24'],
-    ['MT-0254','UPS-LAB-02','Battery health below threshold','Medium','Waiting parts','Aug 23'],
-    ['MT-0249','AP-OR-03','Quarterly preventive inspection','Low','Scheduled','Aug 28'],
-  ]
-  return <><ModuleHeading eyebrow="SERVICE OPERATIONS" title="Maintenance queue" description="Prioritize repairs, preventive inspections, and equipment return-to-service." action="Create work order" /><div className="metric-grid compact"><Metric label="Open work orders" value="18" note="4 created this week" /><Metric label="Critical" value="3" note="Immediate attention" tone="maroon" /><Metric label="Waiting for parts" value="5" note="Average 3.2 days" tone="amber" /><Metric label="Completed this month" value="42" note="94% within SLA" tone="green" /></div><div className="maintenance-layout"><article className="module-card work-orders"><CardTitle title="Active work orders" subtitle="Sorted by operational priority" action="Filters" /><div className="ticket-head"><span>Work order</span><span>Issue</span><span>Priority</span><span>Stage</span><span>Opened</span></div>{tickets.map(ticket => <button className="ticket-row" key={ticket[0]}><span><b>{ticket[0]}</b><small>{ticket[1]}</small></span><span>{ticket[2]}</span><span className={`priority ${ticket[3].toLowerCase()}`}>{ticket[3]}</span><span>{ticket[4]}</span><span>{ticket[5]}</span></button>)}</article><article className="module-card maintenance-schedule"><CardTitle title="This week" subtitle="Preventive maintenance schedule" />{['Network room inspection','Printer cleaning cycle','UPS battery test','Workstation security check'].map((item,index)=><div className="schedule-row" key={item}><time>AUG<br/><b>{26+index}</b></time><span><b>{item}</b><small>{3+index} assets · Floor {index+1}</small></span></div>)}</article></div></>
+    ...brokenAssets.map(a => [a.tag, a.tag, `${a.name} — requires diagnosis`, 'Critical', 'For diagnosis']),
+    ...maintenanceAssets.map(a => [a.tag, a.tag, `${a.name} — scheduled service`, 'Medium', 'In progress']),
+  ].slice(0, 8)
+
+  return <><ModuleHeading eyebrow="SERVICE OPERATIONS" title="Maintenance queue" description="Prioritize repairs, preventive inspections, and equipment return-to-service." /><div className="metric-grid compact"><Metric label="Open work orders" value={String(totalIssues)} note={`${brokenAssets.length} critical`} /><Metric label="Critical" value={String(brokenAssets.length)} note="Immediate attention" tone="maroon" /><Metric label="Under maintenance" value={String(maintenanceAssets.length)} note="Scheduled service" tone="amber" /><Metric label="Active devices" value={String(activeAssets.length)} note={`${Math.round((activeAssets.length / Math.max(inventoryAssets.length, 1)) * 100)}% operational`} tone="green" /></div><div className="maintenance-layout"><article className="module-card work-orders"><CardTitle title="Active work orders" subtitle="Sorted by operational priority" /><div className="ticket-head"><span>Asset</span><span>Issue</span><span>Priority</span><span>Stage</span></div>{tickets.length ? tickets.map(ticket => <button className="ticket-row" key={ticket[0]}><span><b>{ticket[0]}</b><small>{ticket[1]}</small></span><span>{ticket[2]}</span><span className={`priority ${ticket[3].toLowerCase()}`}>{ticket[3]}</span><span>{ticket[4]}</span></button>) : <div style={{padding:'24px',color:'#888',textAlign:'center'}}>No devices currently need maintenance.</div>}</article><article className="module-card maintenance-schedule"><CardTitle title="Equipment status" subtitle="Devices needing attention" />{[...brokenAssets, ...maintenanceAssets].slice(0, 4).map((item, index) => <div className="schedule-row" key={item.tag}><time><b>{item.state === 'Broken' ? '⚠' : '⚒'}</b></time><span><b>{item.tag} — {item.name}</b><small>{item.location} · {item.state}</small></span></div>)}{totalIssues === 0 && <div style={{padding:'24px',color:'#888',textAlign:'center'}}>All equipment is operational.</div>}</article></div></>
 }
 
-function ReportsPage() {
-  return <><ModuleHeading eyebrow="ANALYTICS" title="Reports and exports" description="Turn inventory records into operational summaries for IT and hospital management." action="Create report" /><div className="report-catalog"><ReportTile icon="▦" title="Inventory master list" note="All assets with location and status" /><ReportTile icon="⌁" title="Network assignment" note="IP, hostname, and verification report" /><ReportTile icon="⚒" title="Maintenance performance" note="Work orders, downtime, and SLA" /><ReportTile icon="⇄" title="Movement audit" note="Assignment and transfer history" /></div><div className="reports-layout"><article className="module-card"><CardTitle title="Assets by floor" subtitle="Current registered inventory" action="Last 30 days" /><div className="bar-chart">{[78,112,148,96,131,64,44].map((value,index)=><div key={index}><span style={{height:`${value/1.7}px`}}/><b>F{index+1}</b><small>{value}</small></div>)}</div></article><article className="module-card exports-card"><CardTitle title="Recent exports" subtitle="Generated by authorized users" />{[['Inventory Master List','XLSX · 2.4 MB'],['Monthly Maintenance Summary','PDF · 780 KB'],['Network Registry','CSV · 96 KB']].map(item=><button key={item[0]}><span>⇩</span><div><b>{item[0]}</b><small>{item[1]} · Today</small></div><i>Download</i></button>)}</article></div></>
+function ReportsPage({ inventoryAssets }: { inventoryAssets: InventoryAsset[] }) {
+  const floorCounts: number[] = [0, 0, 0, 0, 0, 0, 0]
+  inventoryAssets.forEach(a => {
+    const match = a.location.match(/^F(\d)/)
+    if (match) floorCounts[parseInt(match[1]) - 1] = (floorCounts[parseInt(match[1]) - 1] || 0) + 1
+  })
+  const unassigned = inventoryAssets.filter(a => a.location === 'Unassigned').length
+  const maxBar = Math.max(...floorCounts, 1)
+
+  const downloadCsv = (title: string) => {
+    const rows = [['Tag', 'Name', 'Category', 'Location', 'Owner', 'State', 'IP'].join(',')]
+    inventoryAssets.forEach(a => rows.push([a.tag, a.name, a.category, `"${a.location}"`, `"${a.owner}"`, a.state, a.ip].join(',')))
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${title.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  return <><ModuleHeading eyebrow="ANALYTICS" title="Reports and exports" description="Turn inventory records into operational summaries for IT and hospital management." /><div className="report-catalog"><ReportTile icon="▦" title="Inventory master list" note={`${inventoryAssets.length} assets total`} /><ReportTile icon="⌁" title="Network assignment" note={`${inventoryAssets.filter(a => a.ip !== '—' && a.ip).length} network devices`} /><ReportTile icon="⚒" title="Maintenance status" note={`${inventoryAssets.filter(a => a.state === 'Maintenance' || a.state === 'Broken').length} needing attention`} /><ReportTile icon="⇄" title="Unassigned devices" note={`${unassigned} awaiting placement`} /></div><div className="reports-layout"><article className="module-card"><CardTitle title="Assets by floor" subtitle="Current registered inventory" /><div className="bar-chart">{floorCounts.map((value, index) => <div key={index}><span style={{height:`${Math.round((value / maxBar) * 87)}px`}}/><b>F{index+1}</b><small>{value}</small></div>)}</div></article><article className="module-card exports-card"><CardTitle title="Export inventory data" subtitle="Download current records as CSV" />{[['Inventory Master List', `All ${inventoryAssets.length} assets`], ['Network Devices', `${inventoryAssets.filter(a => a.ip !== '—').length} network-capable`], ['Maintenance Report', `${inventoryAssets.filter(a => a.state !== 'Active').length} flagged devices`]].map(item => <button key={item[0]} onClick={() => downloadCsv(item[0])}><span>⇩</span><div><b>{item[0]}</b><small>{item[1]}</small></div><i>Download</i></button>)}</article></div></>
 }
 
 function UsersPage() {
