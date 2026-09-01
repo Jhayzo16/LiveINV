@@ -51,5 +51,5 @@ h1, h2, h3, h4, h5, h6,
 .tabs b { color: var(--maroon); }
 .tabs b:after { background-color: var(--maroon); }
 .fake-qr { color: var(--green); }
-.sidebar { max-height: 100vh; position: sticky; top: 0; }
-.sidebar nav { min-height: 0; overflow-y: auto; padding-right: 2px; }
+.sidebar { min-height: 100%; }
+.sidebar nav { min-height: 0; padding-right: 2px; }
