@@ -1,7 +1,11 @@
 /* Shared collision guards for text, decorative circles, badges, and icon controls. */
 
+body {
+  min-width: 0;
+}
+
 .metric-card {
-  padding-right: 92px;
+  padding-right: 18px;
 }
 
 .metric-card > span,
@@ -16,10 +20,7 @@
 }
 
 .metric-card > i {
-  right: -42px;
-  bottom: -45px;
-  z-index: 0;
-  pointer-events: none;
+  display: none !important;
 }
 
 .facility {
@@ -107,4 +108,162 @@
   .metric-card {
     padding-right: 86px;
   }
+}
+
+@media (max-width: 1100px) {
+  .app-shell,
+  .app-shell.sidebar-collapsed {
+    grid-template-columns: 210px minmax(0, 1fr);
+  }
+
+  .app-shell > main {
+    min-width: 0;
+  }
+
+  .insights-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  .app-shell,
+  .app-shell.sidebar-collapsed {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .app-shell > main {
+    min-width: 0;
+  }
+
+  .insights-panel {
+    display: none;
+  }
+
+  .liveinv-sidebar {
+    width: 64px;
+    padding-inline: 8px;
+  }
+
+  .liveinv-sidebar .brand-wordmark,
+  .liveinv-sidebar .sidebar-item-label,
+  .liveinv-sidebar .sidebar-profile-copy,
+  .liveinv-sidebar .sidebar-section-label,
+  .liveinv-sidebar .nav-count {
+    display: none;
+  }
+
+  .liveinv-sidebar .brand,
+  .liveinv-sidebar .nav-item,
+  .liveinv-sidebar .sidebar-profile-button {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .liveinv-sidebar .sidebar-toggle {
+    display: none;
+  }
+
+  .topbar {
+    min-width: 0;
+    height: 60px;
+    padding-inline: 16px;
+  }
+
+  .topbar .top-actions {
+    display: none;
+  }
+
+  .crumbs {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .workspace.module-workspace {
+    min-width: 0;
+    padding: 24px 16px;
+  }
+}
+
+/* Promise toast used by device registration and QR generation. */
+.toast-viewport {
+  position: fixed;
+  z-index: 320;
+  top: 22px;
+  right: 22px;
+  width: min(390px, calc(100vw - 32px));
+  display: grid;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.promise-toast {
+  min-width: 0;
+  border: 1px solid #dce5df;
+  border-left: 4px solid #1b6c24;
+  border-radius: 13px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 13px 13px 12px;
+  background: #fffffff5;
+  color: #26342d;
+  box-shadow: 0 18px 45px #14271d2c;
+  backdrop-filter: blur(14px);
+  pointer-events: auto;
+  animation: promise-toast-in .24s cubic-bezier(.22, 1, .36, 1);
+}
+
+.promise-toast.success { border-left-color: #23a862; }
+.promise-toast.error { border-left-color: #b32b38; }
+.promise-toast-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: #e7f3ea;
+  color: #1b6c24;
+  font-size: 14px;
+  font-weight: 900;
+}
+.promise-toast.error .promise-toast-icon { background: #fae9eb; color: #a92431; }
+.promise-toast-icon i {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #a8c8b1;
+  border-top-color: #1b6c24;
+  border-radius: 50%;
+  animation: promise-toast-spin .7s linear infinite;
+}
+.promise-toast b,
+.promise-toast p { display: block; min-width: 0; }
+.promise-toast b { margin: 0 0 3px; color: #1d2d25; font-size: 11px; }
+.promise-toast p { margin: 0; color: #718078; font-size: 9.5px; line-height: 1.45; }
+.promise-toast > button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: transparent;
+  color: #78857e;
+  font-size: 15px;
+  cursor: pointer;
+}
+.promise-toast > button:hover { background: #eef2ef; color: #26342d; }
+
+@keyframes promise-toast-spin { to { transform: rotate(360deg); } }
+@keyframes promise-toast-in { from { opacity: 0; transform: translateY(-9px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+@media (max-width: 620px) {
+  .toast-viewport { top: 14px; right: 16px; left: 16px; width: auto; }
 }

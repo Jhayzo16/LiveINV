@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { BrowserQRCodeReader, type IScannerControls } from '@zxing/browser'
 import QRCode from 'qrcode'
+import { toast } from '@/components/ui/toast'
 import keyboardDeviceImage from '@/assets/device-keyboard.png'
 import monitorDeviceImage from '@/assets/device-monitor.png'
 import printerDeviceImage from '@/assets/device-printer.jpeg'
@@ -8,6 +9,10 @@ import routerDeviceImage from '@/assets/device-router.png'
 import scannerDeviceImage from '@/assets/device-scanner.jpg'
 import systemUnitDeviceImage from '@/assets/device-system-unit.jpg'
 import upsDeviceImage from '@/assets/device-ups.webp'
+import registeredAssetsMetricIcon from '../assets/metrics/registered-assets.png'
+import activeReadyMetricIcon from '../assets/metrics/active-ready.png'
+import needsAttentionMetricIcon from '../assets/metrics/needs-attention.png'
+import roomsVerifiedMetricIcon from '../assets/metrics/rooms-verified.png'
 import '../device-workflow.css'
 
 export type SystemModule = 'dashboard' | 'assets' | 'assignments' | 'qr' | 'network' | 'maintenance' | 'reports' | 'users' | 'manual'
@@ -114,14 +119,26 @@ function ModuleHeading({ eyebrow, title, description, action, onAction }: { eyeb
   return <div className="module-heading"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{description}</p></div>{action && <button className="primary-action" onClick={onAction}>＋ {action}</button>}</div>
 }
 
-function Metric({ label, value, note, tone = 'navy' }: { label: string; value: string; note: string; tone?: 'navy' | 'green' | 'maroon' | 'amber' }) {
-  return <article className={`metric-card ${tone}`}><span>{label}</span><b>{value}</b><small>{note}</small><i aria-hidden="true" /></article>
+function Metric({ label, value, note, tone = 'navy', icon }: { label: string; value: string; note: string; tone?: 'navy' | 'green' | 'maroon' | 'amber'; icon?: string }) {
+  return <article className={`metric-card ${tone}`}>
+    <div className="metric-card-top">
+      <span>{label}</span>
+      {icon && <span className="metric-card-icon" style={{ WebkitMaskImage: `url(${icon})`, maskImage: `url(${icon})` }} />}
+    </div>
+    <b>{value}</b>
+    <small>{note}</small>
+  </article>
 }
 
 function DashboardPage() {
   return <>
     <ModuleHeading eyebrow="OPERATIONS OVERVIEW" title="Good morning, Inventory Team" description="A clear view of hospital assets, service risks, and inventory activity for today." action="Register asset" />
-    <div className="metric-grid"><Metric label="Registered assets" value="648" note="+18 this month" /><Metric label="Active and ready" value="521" note="80.4% of inventory" tone="green" /><Metric label="Needs attention" value="127" note="86 maintenance · 41 broken" tone="maroon" /><Metric label="Rooms verified" value="109" note="23 rooms due this week" tone="amber" /></div>
+    <div className="metric-grid">
+      <Metric label="Registered assets" value="648" note="+18 this month" icon={registeredAssetsMetricIcon} />
+      <Metric label="Active and ready" value="521" note="80.4% of inventory" tone="green" icon={activeReadyMetricIcon} />
+      <Metric label="Needs attention" value="127" note="86 maintenance · 41 broken" tone="maroon" icon={needsAttentionMetricIcon} />
+      <Metric label="Rooms verified" value="109" note="23 rooms due this week" tone="amber" icon={roomsVerifiedMetricIcon} />
+    </div>
     <div className="dashboard-grid">
       <article className="module-card asset-health"><CardTitle title="Asset health" subtitle="Current equipment condition" action="View registry" /><div className="health-layout"><div className="health-ring"><strong>80%</strong><span>operational</span></div><div className="health-legend"><StatusLine label="Active" value="521" color="green" /><StatusLine label="Maintenance" value="86" color="amber" /><StatusLine label="Broken" value="41" color="red" /></div></div></article>
       <article className="module-card floor-coverage"><CardTitle title="Verification coverage" subtitle="Rooms checked by floor" action="Open topology" />{[['Floor 1',88],['Floor 2',72],['Floor 3',94],['Floor 4',61],['Floor 5',79]].map(([floor,percent]) => <div className="coverage-row" key={String(floor)}><span>{floor}</span><div><i style={{width:`${percent}%`}} /></div><b>{percent}%</b></div>)}</article>
@@ -133,19 +150,35 @@ function DashboardPage() {
 
 function AssetsPage({ inventoryAssets, onRegister, onUpdate }: { inventoryAssets: InventoryAsset[]; onRegister: (asset: InventoryAsset) => void; onUpdate: (originalTag: string, asset: InventoryAsset) => void }) {
   const [registrationOpen, setRegistrationOpen] = useState(false)
-  const [filter, setFilter] = useState<'all' | 'assigned' | 'unassigned' | 'maintenance'>('all')
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'system' | 'display' | 'printer' | 'network'>('all')
+  const [statusFilter, setStatusFilter] = useState<'recent' | 'active' | 'maintenance'>('recent')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedAsset, setSelectedAsset] = useState<InventoryAsset | null>(null)
   const [editingAsset, setEditingAsset] = useState<InventoryAsset | null>(null)
-  const unassignedCount = inventoryAssets.filter(item => !isAssetAssigned(item)).length
   const normalizedQuery = searchQuery.trim().toLowerCase()
   const visibleAssets = inventoryAssets.filter(item => {
-    const matchesFilter = filter === 'all' || (filter === 'assigned' && isAssetAssigned(item)) || (filter === 'unassigned' && !isAssetAssigned(item)) || (filter === 'maintenance' && item.state === 'Maintenance')
+    const matchesCategory = categoryFilter === 'all'
+      || (categoryFilter === 'system' && item.category === 'System Unit')
+      || (categoryFilter === 'display' && item.category === 'Monitor')
+      || (categoryFilter === 'printer' && item.category === 'Printer')
+      || (categoryFilter === 'network' && ['Router', 'Printer', 'System Unit'].includes(item.category))
+    const matchesStatus = statusFilter === 'recent' || (statusFilter === 'active' && item.state === 'Active') || (statusFilter === 'maintenance' && item.state === 'Maintenance')
     const searchable = [item.tag, item.qrId, item.name, item.category, item.brand, item.model, item.location, item.owner, item.ip, item.processor, item.state].filter(Boolean).join(' ').toLowerCase()
-    return matchesFilter && (!normalizedQuery || searchable.includes(normalizedQuery))
+    return matchesCategory && matchesStatus && (!normalizedQuery || searchable.includes(normalizedQuery))
   })
   const systemUnitCount = inventoryAssets.filter(item => item.category === 'System Unit').length
-  const networkCount = inventoryAssets.filter(item => item.category === 'System Unit' || item.category === 'Printer' || item.category === 'Router').length
+  const displayCount = inventoryAssets.filter(item => item.category === 'Monitor').length
+  const printerCount = inventoryAssets.filter(item => item.category === 'Printer').length
+  const networkCount = inventoryAssets.filter(item => ['System Unit', 'Printer', 'Router'].includes(item.category)).length
+
+  const categoryViews = [
+    { key: 'system' as const, icon: '▥', label: 'System units', count: systemUnitCount },
+    { key: 'display' as const, icon: '▰', label: 'Displays', count: displayCount },
+    { key: 'printer' as const, icon: '▤', label: 'Printers', count: printerCount },
+    { key: 'network' as const, icon: '⌁', label: 'Network equipment', count: networkCount },
+  ]
+
+  const viewTitle = categoryFilter === 'all' ? 'All devices' : categoryViews.find(view => view.key === categoryFilter)?.label || 'All devices'
 
   const exportRegistry = () => {
     const escapeCell = (value: string | number | undefined) => `"${String(value ?? '').replaceAll('"', '""')}"`
@@ -167,17 +200,32 @@ function AssetsPage({ inventoryAssets, onRegister, onUpdate }: { inventoryAssets
   }
 
   return <>
-    <ModuleHeading eyebrow="INVENTORY" title="Asset registry" description="Search, filter, and manage every tracked hospital asset from one workspace." action="Add device" onAction={() => setRegistrationOpen(true)} />
-    <div className="metric-grid compact"><Metric label="All assets" value={String(inventoryAssets.length)} note="7 device categories" /><Metric label="System units" value={String(systemUnitCount)} note="Registered workstations" tone="green" /><Metric label="Network-capable" value={String(networkCount)} note="System units, printers, routers" tone="navy" /><Metric label="Unassigned" value={String(unassignedCount)} note="Ready for assignment" tone="amber" /></div>
-    <article className="module-card registry-card"><div className="registry-toolbar"><label className="search-field">⌕ <input aria-label="Search assets" value={searchQuery} onChange={event => setSearchQuery(event.target.value)} placeholder="Search tag, QR ID, name, model, IP, or room" /></label><div className="filter-pills"><button className={filter === 'all' ? 'selected' : ''} onClick={() => setFilter('all')}>All assets</button><button className={filter === 'assigned' ? 'selected' : ''} onClick={() => setFilter('assigned')}>Assigned</button><button className={filter === 'unassigned' ? 'selected' : ''} onClick={() => setFilter('unassigned')}>Unassigned</button><button className={filter === 'maintenance' ? 'selected' : ''} onClick={() => setFilter('maintenance')}>Maintenance</button></div><button className="export-btn" onClick={exportRegistry}>⇩ Export</button></div><AssetTable inventoryAssets={visibleAssets} onSelect={setSelectedAsset} searchActive={Boolean(normalizedQuery || filter !== 'all')} /></article>
+    <header className="asset-gallery-heading">
+      <div><span className="eyebrow">ASSET REGISTRY · FOCUSED VIEW</span><h1>{viewTitle}</h1><p>A visual overview of every registered equipment category across the hospital.</p></div>
+      <div className="asset-gallery-actions"><span className="asset-total-pill">{inventoryAssets.length} total assets</span><button className="export-btn" onClick={exportRegistry}>Export</button><button className="primary-action" onClick={() => setRegistrationOpen(true)}>＋ Add device</button></div>
+    </header>
+    <nav className="asset-category-grid" aria-label="Asset categories">
+      {categoryViews.map((view, index) => <button type="button" key={view.key} className={`asset-category-card ${(categoryFilter === view.key || (categoryFilter === 'all' && index === 0)) ? 'selected' : ''}`} aria-pressed={categoryFilter === view.key} onClick={() => setCategoryFilter(current => current === view.key ? 'all' : view.key)}><span>{view.icon}</span><div><b>{view.label}</b><small>{view.count} devices</small></div></button>)}
+    </nav>
+    <section className="module-card asset-gallery-toolbar" aria-label="Asset search and filters">
+      <label className="search-field">⌕ <input aria-label="Search assets" value={searchQuery} onChange={event => setSearchQuery(event.target.value)} placeholder="Search all devices by asset tag, room, or model" /></label>
+      <div className="filter-pills"><button className={statusFilter === 'recent' ? 'selected' : ''} onClick={() => setStatusFilter('recent')}>Recently updated</button><button className={statusFilter === 'active' ? 'selected' : ''} onClick={() => setStatusFilter('active')}>Active</button><button className={statusFilter === 'maintenance' ? 'selected' : ''} onClick={() => setStatusFilter('maintenance')}>Maintenance</button></div>
+      <button className="export-btn asset-grid-mode" type="button" aria-label="Grid view selected">Grid ▦</button>
+    </section>
+    <AssetCardGrid inventoryAssets={visibleAssets} onSelect={setSelectedAsset} searchActive={Boolean(normalizedQuery || categoryFilter !== 'all' || statusFilter !== 'recent')} />
     {registrationOpen && <DeviceRegistrationDialog onClose={() => setRegistrationOpen(false)} onRegister={onRegister} />}
     {selectedAsset && <FullDeviceRecordDialog asset={selectedAsset} onClose={() => setSelectedAsset(null)} onEdit={() => { setEditingAsset(selectedAsset); setSelectedAsset(null) }} />}
     {editingAsset && <EditAssetDialog asset={editingAsset} onClose={() => setEditingAsset(null)} onSave={saveEditedAsset} />}
   </>
 }
 
-function AssetTable({ inventoryAssets, onSelect, searchActive }: { inventoryAssets: InventoryAsset[]; onSelect: (asset: InventoryAsset) => void; searchActive: boolean }) {
-  return <div className="data-table asset-registry-table"><div className="table-row table-head"><span>Asset</span><span>Category</span><span>Assignment</span><span>Department</span><span>Network</span><span>Status</span><span /></div>{inventoryAssets.map(item => <button className="table-row" key={item.tag} onClick={() => onSelect(item)} aria-label={`Open full record for ${item.tag}`}><span className="asset-cell"><i>{item.category.slice(0,2).toUpperCase()}</i><span><b>{item.tag}</b><small>{item.name}</small></span></span><span>{item.category}</span><span className="assignment-cell"><AssignmentBadge assigned={isAssetAssigned(item)} /><small>{item.location}</small></span><span>{item.owner}</span><span className="mono">{item.ip}</span><span><StatusBadge state={item.state} /></span><span className="row-action">→</span></button>)}{!inventoryAssets.length && <div className="registry-empty"><span>⌕</span><h3>No assets found</h3><p>{searchActive ? 'Try another search term or change the selected filter.' : 'No devices are registered yet.'}</p></div>}</div>
+function AssetCardGrid({ inventoryAssets, onSelect, searchActive }: { inventoryAssets: InventoryAsset[]; onSelect: (asset: InventoryAsset) => void; searchActive: boolean }) {
+  if (!inventoryAssets.length) return <div className="module-card asset-gallery-empty"><span>⌕</span><h3>No assets found</h3><p>{searchActive ? 'Try another search term or change the selected filter.' : 'No devices are registered yet.'}</p></div>
+
+  return <div className="asset-device-grid">{inventoryAssets.map(item => <button type="button" className="asset-device-card" key={item.tag} onClick={() => onSelect(item)} aria-label={`Open full record for ${item.tag}`}>
+    <div className="asset-device-visual"><DevicePreview asset={item} className="asset-card-preview" /><StatusBadge state={item.state} /></div>
+    <div className="asset-device-copy"><span className="asset-device-category">{item.category}</span><h3>{item.tag}</h3><p>{item.name}</p><dl><div><dt>Location</dt><dd>{item.location}</dd></div><div><dt>Department</dt><dd>{item.owner}</dd></div></dl><footer><span className="mono">{item.ip === '—' ? 'No network' : item.ip}</span><b>View record →</b></footer></div>
+  </button>)}</div>
 }
 
 function isAssetAssigned(asset: InventoryAsset) {
@@ -221,6 +269,7 @@ const RECENT_PROCESSORS_KEY = 'liveinv-recent-processors'
 
 function DeviceRegistrationDialog({ onClose, onRegister }: { onClose: () => void; onRegister: (asset: InventoryAsset) => void }) {
   const [step, setStep] = useState(1)
+  const [saving, setSaving] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState('')
   const [registeredAsset, setRegisteredAsset] = useState<InventoryAsset | null>(null)
   const [recentProcessors, setRecentProcessors] = useState<string[]>(() => {
@@ -235,20 +284,10 @@ function DeviceRegistrationDialog({ onClose, onRegister }: { onClose: () => void
     processor: '', ramCapacityGb: '', ramModules: '', ssdCapacityGb: '', ssdCount: '',
   })
 
-  useEffect(() => {
-    if (!registeredAsset) return
-    QRCode.toDataURL(`liveinv:qr:${registeredAsset.qrId}`, {
-      width: 320,
-      margin: 2,
-      errorCorrectionLevel: 'H',
-      color: { dark: '#1B6C24', light: '#FFFFFF' },
-    }).then(setQrDataUrl).catch(() => setQrDataUrl(''))
-  }, [registeredAsset])
-
   const updateDraft = <K extends keyof DeviceDraft>(key: K, value: DeviceDraft[K]) => setDraft(current => ({ ...current, [key]: value }))
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (step === 1) {
+    if (step === 1 && !saving) {
       const tag = draft.tag.trim().toUpperCase()
       const supportsIp = draft.category === 'System Unit' || draft.category === 'Printer' || draft.category === 'Router'
       const processor = draft.processor.trim()
@@ -271,16 +310,41 @@ function DeviceRegistrationDialog({ onClose, onRegister }: { onClose: () => void
           ssdCount: Number(draft.ssdCount),
         } : {}),
       }
-      onRegister(asset)
-      if (draft.category === 'System Unit' && processor) {
-        setRecentProcessors(current => {
-          const next = [processor, ...current.filter(item => item.toLowerCase() !== processor.toLowerCase())].slice(0, 8)
-          window.localStorage.setItem(RECENT_PROCESSORS_KEY, JSON.stringify(next))
-          return next
+      setSaving(true)
+      const registration = Promise.all([
+        QRCode.toDataURL(`liveinv:qr:${asset.qrId}`, {
+          width: 320,
+          margin: 2,
+          errorCorrectionLevel: 'H',
+          color: { dark: '#1B6C24', light: '#FFFFFF' },
+        }),
+        new Promise(resolve => window.setTimeout(resolve, 800)),
+      ]).then(([generatedQr]) => {
+        onRegister(asset)
+        if (draft.category === 'System Unit' && processor) {
+          setRecentProcessors(current => {
+            const next = [processor, ...current.filter(item => item.toLowerCase() !== processor.toLowerCase())].slice(0, 8)
+            window.localStorage.setItem(RECENT_PROCESSORS_KEY, JSON.stringify(next))
+            return next
+          })
+        }
+        setQrDataUrl(generatedQr)
+        setRegisteredAsset(asset)
+        setStep(2)
+        return asset
+      })
+
+      try {
+        await toast.promise(registration, {
+          loading: 'Saving device and generating QR…',
+          success: savedAsset => `${savedAsset.tag} saved. QR code generated.`,
+          error: 'Could not save the device or generate its QR code.',
         })
+      } catch {
+        // The toast presents the error and the form remains available for retrying.
+      } finally {
+        setSaving(false)
       }
-      setRegisteredAsset(asset)
-      setStep(2)
     }
   }
 
@@ -314,7 +378,7 @@ function DeviceRegistrationDialog({ onClose, onRegister }: { onClose: () => void
         </div>
 
         <div className="registration-assignment-note"><AssignmentBadge assigned={false} /><p>The new device will enter the inventory as unassigned. Use the Assignments page when its floor, department, and room are known.</p></div>
-        <footer className="device-form-actions"><button type="button" className="export-btn" onClick={onClose}>Cancel</button><button type="submit" className="primary-action" disabled={!descriptionReady}>Save device & generate QR →</button></footer>
+        <footer className="device-form-actions"><button type="button" className="export-btn" onClick={onClose} disabled={saving}>Cancel</button><button type="submit" className="primary-action" disabled={!descriptionReady || saving}>{saving ? 'Saving & generating QR…' : 'Save device & generate QR →'}</button></footer>
       </form>}
 
       {step === 2 && registeredAsset && <div className="device-qr-complete">

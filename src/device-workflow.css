@@ -412,7 +412,14 @@
 }
 
 .scanner-card.is-scanning .scanner-frame { box-shadow: 0 0 0 1px #55d27633, 0 0 42px #55d2761b; }
-.scanner-actions { display: flex; gap: 8px; }
+.scanner-card {
+  min-width: 0;
+  min-height: 420px;
+  padding: 20px 28px;
+}
+
+.scanner-card h3 { margin-top: 16px; }
+.scanner-actions { max-width: 100%; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 
 .manual-scan-form {
   width: min(100%, 410px);
@@ -449,7 +456,13 @@
 
 .scan-message.success { background: #45bf7022; color: #bff1cf; }
 .scan-message.error { background: #d94d5925; color: #ffd2d6; }
-.qr-information-panel { min-height: 540px; overflow-y: auto; padding: 22px; }
+.qr-information-panel {
+  min-width: 0;
+  min-height: 460px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 22px;
+}
 
 .qr-empty-state {
   min-height: 180px;
@@ -470,15 +483,41 @@
 
 .recent-scan-section .scan-row {
   width: 100%;
+  min-width: 0;
   border: 0;
   border-bottom: 1px solid #edf0f2;
+  grid-template-columns: 34px minmax(0, 1fr) max-content;
   background: transparent;
   color: #39443e;
   text-align: left;
   cursor: pointer;
 }
 
-.qr-asset-result { position: relative; display: grid; grid-template-columns: 146px minmax(0, 1fr); gap: 16px; }
+.recent-scan-section .scan-row > div { min-width: 0; }
+.recent-scan-section .scan-row b,
+.recent-scan-section .scan-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-scan-section .status-badge {
+  width: max-content;
+  min-width: max-content;
+  max-width: none;
+  height: auto;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  place-items: unset;
+  justify-self: end;
+}
+
+.recent-scan-section .status-badge i {
+  margin: 0 5px 0 0;
+}
+
+.qr-asset-result { min-width: 0; position: relative; display: grid; grid-template-columns: 146px minmax(0, 1fr); gap: 16px; }
 
 .qr-asset-result header {
   grid-column: 1 / -1;
@@ -490,7 +529,7 @@
 }
 
 .qr-asset-result header > div:first-child > span { color: #1b6c24; font-size: 8px; font-weight: 850; letter-spacing: .11em; }
-.qr-result-labels { display: flex; align-items: flex-start; gap: 7px; }
+.qr-result-labels { min-width: 0; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: flex-start; gap: 7px; }
 .qr-asset-result h2 { margin: 5px 0 2px; font-family: var(--font-title, Montserrat, Arial, sans-serif); font-size: 22px; color: #17231c; }
 .qr-asset-result header p { margin: 0; color: #748078; font-size: 9px; }
 
@@ -537,8 +576,9 @@
 
 .qr-asset-result dl { min-width: 0; }
 .qr-asset-result dl > div { padding: 6px 0; }
-.qr-result-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; padding-top: 5px; }
+.qr-result-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding-top: 5px; }
 .qr-result-actions .export-btn { margin-left: 0; }
+.qr-result-actions button { max-width: 100%; white-space: normal; }
 
 .qr-fallback-note strong { color: #8b1d24; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
 
@@ -762,8 +802,17 @@
   .device-record-content { grid-template-columns: 1fr; }
   .device-record-preview-card { grid-template-columns: 140px minmax(0, 1fr); gap: 13px; }
   .device-record-preview { width: 140px; }
-  .qr-asset-result { grid-template-columns: 112px minmax(0, 1fr); }
-  .qr-device-preview { width: 108px; height: 96px; }
+  .scanner-card { min-height: 390px; padding: 18px; }
+  .manual-scan-form { grid-template-columns: 1fr; }
+  .qr-information-panel { padding: 18px; }
+  .qr-asset-result { grid-template-columns: 1fr; }
+  .qr-asset-result header { flex-direction: column; }
+  .qr-result-labels { justify-content: flex-start; }
+  .qr-device-preview { width: min(100%, 220px); height: 130px; }
+  .qr-result-actions { justify-content: stretch; }
+  .qr-result-actions button { flex: 1 1 170px; }
+  .recent-scan-section .scan-row { grid-template-columns: 31px minmax(0, 1fr); }
+  .recent-scan-section .status-badge { grid-column: 2; justify-self: start; }
   .asset-edit-identity { grid-template-columns: 1fr; }
 }
 
