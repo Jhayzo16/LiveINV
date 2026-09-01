@@ -15,7 +15,9 @@
 
 .hospital-3d-shell {
   position: relative;
-  height: 720px;
+  height: calc(100vh - 200px);
+  min-height: 600px;
+  max-height: 1200px;
   margin: -8px -20px -25px;
   overflow: hidden;
   border: 1px solid #e4eaeb;
@@ -255,7 +257,7 @@
 .mobile-floor-selector button.selected { border-color: #2eac5c; background: #1f9c4d; color: #fff; }
 
 @media (max-width: 1300px) {
-  .hospital-3d-shell { height: 650px; margin-inline: -10px; }
+  .hospital-3d-shell { margin-inline: -10px; }
   .hospital-topology-workspace .section-heading { max-width: 390px; }
   .floor-topology-panel { border-radius: 14px; }
   .floor-panel-main { padding: 9px; }
@@ -268,7 +270,7 @@
 }
 
 @media (max-width: 690px) {
-  .hospital-3d-shell { height: 690px; margin: 0; }
+  .hospital-3d-shell { margin: 0; }
   .hospital-topology-workspace .section-heading { position: relative; margin-bottom: 12px; }
   .hospital-reset-view { top: 12px; right: 12px; }
   .topology-connectors, .floor-panel-layer { display: none; }
