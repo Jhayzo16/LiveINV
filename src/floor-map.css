@@ -136,6 +136,9 @@
 .equipment-dialog-header > div > span { display: block; margin-bottom: 5px; color: #1B6C24; font-size: 9px; font-weight: 850; letter-spacing: .11em; }
 .equipment-dialog-header h2 { margin: 0; color: #17231c; font-family: var(--font-title); font-size: 25px; font-weight: 850; }
 .equipment-dialog-header p { margin: 5px 0 0; color: #758179; font-size: 11px; }
+.equipment-dialog-header-actions { flex: 0 0 auto; display: flex; align-items: center; gap: 9px; }
+.equipment-dialog-assign { height: 36px; border: 1px solid #8B1D24; border-radius: 10px; padding: 0 14px; background: #8B1D24; color: #fff; font-size: 9px; font-weight: 800; cursor: pointer; box-shadow: 0 6px 14px #8b1d2426; }
+.equipment-dialog-assign:hover, .equipment-dialog-assign:focus-visible { background: #74181e; outline: none; box-shadow: 0 0 0 3px #8b1d2418, 0 6px 14px #8b1d2426; }
 .equipment-dialog-close { width: 36px; height: 36px; flex: 0 0 auto; border: 1px solid #dfe6e1; border-radius: 10px; display: grid; place-items: center; padding: 0 0 3px; background: #f7f9f8; color: #68736d; font-size: 23px; line-height: 1; cursor: pointer; }
 .equipment-dialog-close:hover, .equipment-dialog-close:focus-visible { border-color: #c98489; background: #fff5f5; color: #8B1D24; outline: none; }
 .equipment-summary-strip { flex: 0 0 auto; display: grid; grid-template-columns: 1.2fr repeat(3, 1fr); gap: 1px; border-bottom: 1px solid #e3e9e5; background: #e3e9e5; }
@@ -144,6 +147,21 @@
 .equipment-summary-strip span { color: #77827c; font-size: 9px; }
 .equipment-summary-strip b { color: #1c2922; font-family: var(--font-title); font-size: 20px; }
 .equipment-summary-strip > div:first-child b { color: #1B6C24; font-size: 24px; }
+.room-inline-assignment { flex: 0 0 auto; display: grid; grid-template-columns: minmax(220px, 1fr) minmax(280px, 430px) auto; align-items: end; gap: 12px; padding: 13px 18px; border-bottom: 1px solid #e0e8e2; background: #f5faf6; }
+.room-inline-assignment-copy span, .room-inline-assignment-copy b, .room-inline-assignment-copy small { display: block; }
+.room-inline-assignment-copy span { margin-bottom: 3px; color: #1B6C24; font-size: 8px; font-weight: 850; letter-spacing: .11em; }
+.room-inline-assignment-copy b { color: #203027; font-size: 11px; }
+.room-inline-assignment-copy small { margin-top: 3px; color: #7a867f; font-size: 8px; }
+.room-inline-assignment label > span { display: block; margin-bottom: 5px; color: #68766d; font-size: 8px; font-weight: 750; }
+.room-inline-assignment select { width: 100%; height: 38px; border: 1px solid #cedbd2; border-radius: 9px; padding: 0 34px 0 11px; background: #fff; color: #243129; font-size: 9px; outline: none; }
+.room-inline-assignment select:focus { border-color: #1B6C24; box-shadow: 0 0 0 3px #1b6c2418; }
+.room-inline-assignment > button { height: 38px; border: 1px solid #8B1D24; border-radius: 9px; padding: 0 15px; background: #8B1D24; color: #fff; font-size: 9px; font-weight: 800; white-space: nowrap; cursor: pointer; }
+.room-inline-assignment > button:hover, .room-inline-assignment > button:focus-visible { background: #74181e; outline: none; box-shadow: 0 0 0 3px #8b1d2418; }
+.room-inline-assignment > button:disabled { opacity: .55; cursor: not-allowed; }
+.room-inline-assignment-empty { grid-column: 2 / -1; align-self: center; margin: 0; color: #78847c; font-size: 9px; }
+.room-inline-assignment-success, .room-inline-assignment-error { grid-column: 1 / -1; margin: -2px 0 0; border-radius: 7px; padding: 7px 9px; font-size: 8.5px; font-weight: 750; }
+.room-inline-assignment-success { background: #e5f5e9; color: #1B6C24; }
+.room-inline-assignment-error { background: #fff0f0; color: #a41e27; }
 .equipment-kind-icon { width: 27px; height: 27px; border-radius: 8px; display: grid; place-items: center; background: #edf3ef; color: #4b6456 !important; font-size: 14px !important; }
 .equipment-kind-icon.computer { background: #e6f5ea; color: #1B6C24 !important; }
 .equipment-kind-icon.printer { background: #fff5df; color: #ba7600 !important; }
@@ -272,6 +290,9 @@
   .equipment-summary-strip { grid-template-columns: repeat(3, 1fr); }
   .equipment-summary-strip > div { min-height: 55px; grid-template-columns: 1fr auto; padding: 9px 10px; }
   .equipment-summary-strip > div:first-child { display: none; }
+  .room-inline-assignment { grid-template-columns: 1fr; align-items: stretch; gap: 9px; padding: 12px 14px; }
+  .room-inline-assignment > button { width: 100%; }
+  .room-inline-assignment-empty, .room-inline-assignment-success, .room-inline-assignment-error { grid-column: 1; }
   .equipment-kind-icon { display: none; }
   .equipment-dialog-content { grid-template-columns: 1fr; overflow-y: auto; }
   .equipment-list { max-height: 210px; border-right: 0; border-bottom: 1px solid #e1e8e3; }

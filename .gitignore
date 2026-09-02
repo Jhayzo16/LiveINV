@@ -14,5 +14,7 @@ tmp/
 render_*/
 docx_render/
 
-deliverables/
-
+deliverables/*
+!deliverables/LiveINV_QA_Test_Plan.md
+!deliverables/LiveINV_Deployment_Readiness_Audit.md
+!deliverables/LiveINV_Live_Deployment_Implementation_Plan.md

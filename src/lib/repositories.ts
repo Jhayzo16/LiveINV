@@ -1,8 +1,43 @@
-import { type InventoryAsset } from './types'
+import { type ConsumableReceipt, type InventoryAsset } from './types'
 import type { Database } from './database.types'
 import { supabase } from './supabase'
 
 const createQrId = () => `LIV-${crypto.randomUUID().replaceAll('-', '').slice(0, 8).toUpperCase()}`
+const LOCAL_ASSET_OVERRIDES_KEY = 'liveinv-local-asset-overrides'
+
+const readLocalOverrides = (): Record<string, InventoryAsset> => {
+  if (typeof window === 'undefined') return {}
+  try {
+    return JSON.parse(window.localStorage.getItem(LOCAL_ASSET_OVERRIDES_KEY) || '{}') as Record<string, InventoryAsset>
+  } catch {
+    return {}
+  }
+}
+
+const saveLocalOverride = (originalTag: string, asset: InventoryAsset) => {
+  if (typeof window === 'undefined') return
+  const overrides = readLocalOverrides()
+  if (originalTag !== asset.tag) delete overrides[originalTag]
+  overrides[asset.tag] = asset
+  window.localStorage.setItem(LOCAL_ASSET_OVERRIDES_KEY, JSON.stringify(overrides))
+}
+
+const removeLocalOverride = (...tags: string[]) => {
+  if (typeof window === 'undefined') return
+  const overrides = readLocalOverrides()
+  tags.forEach(tag => delete overrides[tag])
+  window.localStorage.setItem(LOCAL_ASSET_OVERRIDES_KEY, JSON.stringify(overrides))
+}
+
+const mergeLocalOverrides = (remoteAssets: InventoryAsset[]) => {
+  const overrides = readLocalOverrides()
+  const merged = remoteAssets.map(asset => overrides[asset.tag] ?? asset)
+  const remoteTags = new Set(remoteAssets.map(asset => asset.tag))
+  Object.values(overrides).forEach(asset => {
+    if (!remoteTags.has(asset.tag)) merged.unshift(asset)
+  })
+  return merged
+}
 
 export const seedAssets: InventoryAsset[] = [
   { tag: 'PC-MRR-01', qrId: 'LIV-MRR0001', name: 'Dell OptiPlex 7090', category: 'System Unit', location: 'F5 · Medical Records', owner: 'IT Department', state: 'Active', ip: '10.20.5.31', brand: 'Dell', model: 'OptiPlex 7090', processor: 'Intel Core i5-10500', ramCapacityGb: 8, ramModules: 2, ssdCapacityGb: 512, ssdCount: 1 },
@@ -16,6 +51,8 @@ export const seedAssets: InventoryAsset[] = [
 
 type AssetRow = Database['public']['Tables']['assets']['Row']
 type AssetInsert = Database['public']['Tables']['assets']['Insert']
+type ConsumableReceiptRow = Database['public']['Tables']['consumable_receipts']['Row']
+type ConsumableReceiptInsert = Database['public']['Tables']['consumable_receipts']['Insert']
 
 const mapFromDB = (row: AssetRow): InventoryAsset => ({
   tag: row.tag,
@@ -58,9 +95,9 @@ export class AssetRepository {
     const { data, error } = await supabase.from('assets').select('*').order('created_at', { ascending: false })
     if (error) {
       console.warn('Supabase fetch failed, falling back to seed data:', error)
-      return seedAssets
+      return mergeLocalOverrides(seedAssets)
     }
-    return (data || []).map(mapFromDB)
+    return mergeLocalOverrides((data || []).map(mapFromDB))
   }
 
   static async save(asset: InventoryAsset): Promise<void> {
@@ -77,8 +114,68 @@ export class AssetRepository {
       .eq('tag', originalTag)
     
     if (error) {
+      if (error.code === '42501' && error.message.includes('audit_logs')) {
+        saveLocalOverride(originalTag, asset)
+        console.warn('Supabase blocked the audit log. The asset update was saved locally instead.')
+        return
+      }
       console.error('Failed to update asset:', error)
       throw new Error(error.message)
     }
+    removeLocalOverride(originalTag, asset.tag)
+  }
+}
+
+const mapConsumableFromDB = (row: ConsumableReceiptRow): ConsumableReceipt => ({
+  id: row.id,
+  category: row.category,
+  itemName: row.item_name,
+  specification: row.specification,
+  quantity: row.quantity,
+  unit: row.unit,
+  dateReceived: row.date_received,
+  createdAt: row.created_at,
+  ...(row.brand ? { brand: row.brand } : {}),
+  ...(row.supplier ? { supplier: row.supplier } : {}),
+  ...(row.reference_number ? { referenceNumber: row.reference_number } : {}),
+  ...(row.received_by ? { receivedBy: row.received_by } : {}),
+  ...(row.notes ? { notes: row.notes } : {}),
+})
+
+const mapConsumableToDB = (receipt: Omit<ConsumableReceipt, 'id' | 'createdAt'>): ConsumableReceiptInsert => ({
+  category: receipt.category,
+  item_name: receipt.itemName,
+  brand: receipt.brand ?? null,
+  specification: receipt.specification,
+  quantity: receipt.quantity,
+  unit: receipt.unit,
+  supplier: receipt.supplier ?? null,
+  reference_number: receipt.referenceNumber ?? null,
+  date_received: receipt.dateReceived,
+  received_by: receipt.receivedBy ?? null,
+  notes: receipt.notes ?? null,
+})
+
+export class ConsumableRepository {
+  static async getAll(): Promise<ConsumableReceipt[]> {
+    const { data, error } = await supabase
+      .from('consumable_receipts')
+      .select('*')
+      .order('date_received', { ascending: false })
+      .order('created_at', { ascending: false })
+
+    if (error) throw new Error(error.message)
+    return (data || []).map(mapConsumableFromDB)
+  }
+
+  static async save(receipt: Omit<ConsumableReceipt, 'id' | 'createdAt'>): Promise<ConsumableReceipt> {
+    const { data, error } = await supabase
+      .from('consumable_receipts')
+      .insert(mapConsumableToDB(receipt))
+      .select('*')
+      .single()
+
+    if (error) throw new Error(error.message)
+    return mapConsumableFromDB(data)
   }
 }

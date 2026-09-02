@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { AssetRepository } from './lib/repositories'
+import { type InventoryAsset } from './lib/types'
 import liveInvLogo from './assets/liveinv-logo.png'
 import dashboardIcon from './assets/sidebar/dashboard.png'
 import liveMappingIcon from './assets/sidebar/live-mapping.png'
@@ -14,7 +15,7 @@ import { SystemModulePage, type AssignmentTarget, type SystemModule } from './pa
 
 type Status = 'Active' | 'Maintenance' | 'Broken'
 type Asset = { id: string; name: string; kind: 'Computer' | 'Printer' | 'Monitor'; status: Status; detail: string; ip?: string }
-type Room = { id: string; name: string; code: string; department: string; assets: Asset[]; x: number; y: number; w: number; h: number }
+type Room = { id: string; floor: number; name: string; code: string; department: string; assets: Asset[]; x: number; y: number; w: number; h: number }
 type Floor = { id: number; label: string; assets: number }
 
 const floors = [
@@ -28,7 +29,7 @@ const makeAssets = (floor: number, code: string, count = 3): Asset[] => {
 }
 
 const room = (floor: number, id: string, name: string, code: string, department: string, x: number, y: number, w: number, h: number, assetCount = 3): Room => ({
-  id: `f${floor}-${id}`, name, code, department, x, y, w, h, assets: makeAssets(floor, code, assetCount),
+  id: `f${floor}-${id}`, floor, name, code, department, x, y, w, h, assets: makeAssets(floor, code, assetCount),
 })
 
 const featuredRoomsByFloor: Record<number, Room[]> = {
@@ -258,10 +259,15 @@ export function App() {
   const [floor, setFloor] = useState<number | null>(null)
   const [roomId, setRoomId] = useState<string | null>(null)
   const [assetId, setAssetId] = useState<string | null>(null)
-  const { data: inventoryAssets = [] } = useQuery({
+  const { data: inventoryAssets = [], refetch: refetchInventoryAssets } = useQuery({
     queryKey: ['assets'],
     queryFn: () => AssetRepository.getAll(),
   })
+
+  const availableAssets = useMemo(
+    () => inventoryAssets.filter(item => item.location === 'Unassigned' || item.owner === 'Unassigned'),
+    [inventoryAssets],
+  )
 
   const dynamicRoomsByFloor = useMemo(() => {
     const map: Record<number, Room[]> = {}
@@ -269,14 +275,17 @@ export function App() {
       map[Number(floorId)] = rList.map(r => {
         const roomLocationStr = `F${r.floor} · ${r.name}`
         const assignedAssets = inventoryAssets.filter(a => a.location === roomLocationStr)
-        const assets: Asset[] = assignedAssets.map(a => ({
-          id: a.qrId || a.tag,
-          name: a.name,
-          status: a.state.toLowerCase() as Status,
-          kind: a.category === 'System Unit' || a.category === 'Laptop' || a.category === 'Server' ? 'Computer' : a.category,
-          detail: `${a.brand ?? ''} ${a.model ?? ''}`.trim() || 'Generic Device',
-          ip: a.ip || undefined
-        }))
+        const assets: Asset[] = assignedAssets.map(a => {
+          const kind: Asset['kind'] = a.category === 'Printer' ? 'Printer' : a.category === 'Monitor' ? 'Monitor' : 'Computer'
+          return {
+            id: a.qrId || a.tag,
+            name: a.name,
+            status: a.state as Status,
+            kind,
+            detail: `${a.brand ?? ''} ${a.model ?? ''}`.trim() || 'Generic Device',
+            ip: a.ip || undefined
+          }
+        })
         return { ...r, assets }
       })
     }
@@ -304,6 +313,14 @@ export function App() {
     resetToFloors()
     window.scrollTo({ top: 0, behavior: 'auto' })
   }
+  const assignAvailableAssetToRoom = async (availableAsset: InventoryAsset, targetRoom: Room) => {
+    await AssetRepository.update(availableAsset.tag, {
+      ...availableAsset,
+      location: `F${targetRoom.floor} · ${targetRoom.name}`,
+      owner: targetRoom.department,
+    })
+    await refetchInventoryAssets()
+  }
 
   return <div className={`app-shell module-${module} ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
     <LiveInvSidebar module={module} expanded={sidebarOpen} onToggle={() => setSidebarOpen(open => !open)} onNavigate={openModule} totalAssets={total} />
@@ -311,7 +328,7 @@ export function App() {
       <header className="topbar"><div className="crumbs">{module === 'topology' ? <><button onClick={resetToFloors}>Live Mapping</button>{selectedFloor && <><span>/</span><button onClick={() => { setRoomId(null); setAssetId(null) }}>Floor {floor}</button></>}{room && <><span>/</span><button onClick={() => setAssetId(null)}>{room.name}</button></>}{asset && <><span>/</span><b>{asset.id}</b></>}</> : <><span>Hospital Inventory</span><span>/</span><b>{module === 'qr' ? 'QR Scanner' : module === 'network' ? 'Network Registry' : module === 'manual' ? 'System Manual' : module.charAt(0).toUpperCase() + module.slice(1)}</b></>}</div><div className="top-actions"><button className="ghost-btn">⌕ Search</button><button className="bell">◌</button><span className="avatar">AD</span></div></header>
       {module !== 'topology' && <SystemModulePage module={module} assignmentTarget={assignmentTarget} />}
       {module === 'topology' && !floor && <FloorTopology floors={floors} onSelect={setFloor} />}
-      {module === 'topology' && floor && !room && <FloorView floor={selectedFloor!} onBack={resetToFloors} rooms={dynamicRoomsByFloor[floor] ?? []} onAssignEquipment={targetRoom => openRoomAssignment(floor, targetRoom)} />}
+      {module === 'topology' && floor && !room && <FloorView floor={selectedFloor!} onBack={resetToFloors} rooms={dynamicRoomsByFloor[floor] ?? []} availableAssets={availableAssets} onAssignAvailableAsset={assignAvailableAssetToRoom} />}
       {module === 'topology' && floor && room && !asset && <RoomView room={room} floor={floor} onBack={() => setRoomId(null)} onAsset={setAssetId} onAssignEquipment={() => openRoomAssignment(floor, room)} />}
       {module === 'topology' && floor && room && asset && <AssetView room={room} floor={floor} asset={asset} onBack={() => setAssetId(null)} />}
     </main>
@@ -327,7 +344,7 @@ function LiveInvSidebar({ module, expanded, onToggle, onNavigate, totalAssets = 
   onNavigate: (module: SystemModule | 'topology') => void
   totalAssets?: number
 }) {
-  const activeNavIndex = ['dashboard', 'topology', 'assets', 'assignments', 'qr', 'reports', 'manual'].indexOf(module)
+  const activeNavIndex = ['dashboard', 'topology', 'assets', 'consumables', 'assignments', 'qr', 'reports', 'manual'].indexOf(module)
 
   const navigate = (next: SystemModule | 'topology') => {
     onNavigate(next)
@@ -347,6 +364,7 @@ function LiveInvSidebar({ module, expanded, onToggle, onNavigate, totalAssets = 
         <button className={`nav-item ${module === 'dashboard' ? 'active' : ''}`} onClick={() => navigate('dashboard')}><Icon src={dashboardIcon} /><span className="sidebar-item-label">Dashboard</span></button>
         <button className={`nav-item ${module === 'topology' ? 'active' : ''}`} onClick={() => navigate('topology')}><Icon src={liveMappingIcon} /><span className="sidebar-item-label">Live Mapping</span></button>
         <button className={`nav-item ${module === 'assets' ? 'active' : ''}`} onClick={() => navigate('assets')}><Icon src={assetsIcon} /><span className="sidebar-item-label">Assets</span>{totalAssets > 0 && <span className="nav-count">{totalAssets}</span>}</button>
+        <button className={`nav-item ${module === 'consumables' ? 'active' : ''}`} onClick={() => navigate('consumables')}><Icon name="▧" /><span className="sidebar-item-label">Consumables</span></button>
         <button className={`nav-item ${module === 'assignments' ? 'active' : ''}`} onClick={() => navigate('assignments')}><Icon src={assignmentsIcon} /><span className="sidebar-item-label">Assignments</span></button>
         <button className={`nav-item ${module === 'qr' ? 'active' : ''}`} onClick={() => navigate('qr')}><Icon src={qrScannerIcon} /><span className="sidebar-item-label">QR Scanner</span></button>
         <button className={`nav-item ${module === 'reports' ? 'active' : ''}`} onClick={() => navigate('reports')}><Icon src={reportsIcon} /><span className="sidebar-item-label">Reports</span></button>
@@ -367,12 +385,13 @@ function FloorTopology({ floors, onSelect }: { floors: Floor[]; onSelect:(id:num
   return <section className="workspace topology-workspace hospital-topology-workspace" aria-label={`${floors.length} hospital floors available`}><div className="section-heading"><span className="eyebrow">VISUAL INVENTORY</span><h1>Hospital topology</h1><p>Rotate the 3D hospital, inspect each floor, and explore its rooms and assigned inventory.</p></div><HospitalBuilding3D floors={modelFloors} onExplore={onSelect} /></section>
 }
 
-function FloorView({ floor, onBack, rooms, onAssignEquipment }: { floor:Floor;onBack:()=>void;rooms:Room[];onAssignEquipment:(room:Room)=>void }) {
+function FloorView({ floor, onBack, rooms, availableAssets, onAssignAvailableAsset }: { floor:Floor;onBack:()=>void;rooms:Room[];availableAssets:InventoryAsset[];onAssignAvailableAsset:(asset:InventoryAsset,room:Room)=>Promise<void> }) {
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
   const dragStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
   const dragMoved = useRef(false)
+  const pressedMapRoomId = useRef<string | null>(null)
   const [directoryOpen, setDirectoryOpen] = useState(false)
   const [figmaRoomNames, setFigmaRoomNames] = useState<Record<string, string>>({})
   const [hoveredRoom, setHoveredRoom] = useState<string | null>(null)
@@ -461,6 +480,9 @@ function FloorView({ floor, onBack, rooms, onAssignEquipment }: { floor:Floor;on
           style={{ cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none', overflow: 'hidden' }}
           onPointerDown={e => {
             if (e.button !== 0 && e.button !== 1) return
+            pressedMapRoomId.current = e.target instanceof Element
+              ? e.target.closest('.svg-room-node, .svg-room-hit-target')?.getAttribute('data-room-id') ?? null
+              : null
             setIsDragging(true)
             dragMoved.current = false
             dragStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y }
@@ -475,7 +497,14 @@ function FloorView({ floor, onBack, rooms, onAssignEquipment }: { floor:Floor;on
           }}
           onPointerUp={e => {
             setIsDragging(false)
-            e.currentTarget.releasePointerCapture(e.pointerId)
+            if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId)
+            if (e.button === 0 && !dragMoved.current && pressedMapRoomId.current) openRoomDetails(pressedMapRoomId.current)
+            pressedMapRoomId.current = null
+          }}
+          onPointerCancel={e => {
+            setIsDragging(false)
+            if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId)
+            pressedMapRoomId.current = null
           }}
           onWheel={e => {
             if (e.ctrlKey || e.metaKey) {
@@ -486,7 +515,7 @@ function FloorView({ floor, onBack, rooms, onAssignEquipment }: { floor:Floor;on
           }}
         >
           <div className="map-canvas figma-floor-map" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, aspectRatio: floorMapAspectRatios[floor.id] }} role="img" aria-label={`Interactive room layout for Floor ${floor.id}`}>
-            <InteractiveFloorSvg floor={floor} rooms={rooms} activeRoomId={hoveredRoom ?? openedRoomId} onSelect={openRoomDetails} onHover={handleMapHover} onRoomNames={setFigmaRoomNames} dragMoved={dragMoved} />
+            <InteractiveFloorSvg floor={floor} rooms={rooms} activeRoomId={hoveredRoom ?? openedRoomId} onSelect={openRoomDetails} onHover={handleMapHover} onRoomNames={setFigmaRoomNames} />
           </div>
         </div>
         <div className="map-status"><span className="map-status-key"><i className="mapped"/>Mapped room</span><span className="map-status-key"><i className="computer"/>Computer present</span><span>Click a room to enter</span>{selectedRoom && <strong>{selectedRoom.name} · {selectedRoom.assets.length} assets</strong>}</div>
@@ -508,11 +537,11 @@ function FloorView({ floor, onBack, rooms, onAssignEquipment }: { floor:Floor;on
         {hoveredRoomDetails.assets.length ? hoveredRoomDetails.assets.slice(0, 4).map(device => <div key={device.id}><i className={`dot ${statusClass(device.status)}`} /><span><b>{device.id}</b><small>{device.kind} · {device.detail}</small></span><em>{device.status}</em></div>) : <div className="room-hover-empty">No devices assigned to this room.</div>}
       </div>
     </div>}
-    {openedRoom && <RoomEquipmentDialog key={openedRoom.id} room={openedRoom} floor={floor.id} onClose={() => setOpenedRoomId(null)} onAssignEquipment={() => onAssignEquipment(openedRoom)} />}
+    {openedRoom && <RoomEquipmentDialog key={openedRoom.id} room={openedRoom} floor={floor.id} availableAssets={availableAssets} onClose={() => setOpenedRoomId(null)} onAssignAvailableAsset={asset => onAssignAvailableAsset(asset, openedRoom)} />}
   </section>
 }
 
-function InteractiveFloorSvg({ floor, rooms, activeRoomId, onSelect, onHover, onRoomNames, dragMoved }: { floor: Floor; rooms: Room[]; activeRoomId: string | null; onSelect: (id: string) => void; onHover: (id: string | null, point?: { x: number; y: number }) => void; onRoomNames: (names: Record<string, string>) => void; dragMoved: React.MutableRefObject<boolean> }) {
+function InteractiveFloorSvg({ floor, rooms, activeRoomId, onSelect, onHover, onRoomNames }: { floor: Floor; rooms: Room[]; activeRoomId: string | null; onSelect: (id: string) => void; onHover: (id: string | null, point?: { x: number; y: number }) => void; onRoomNames: (names: Record<string, string>) => void }) {
   const [svgMarkup, setSvgMarkup] = useState('')
   const layerRef = useRef<HTMLDivElement>(null)
 
@@ -582,7 +611,6 @@ function InteractiveFloorSvg({ floor, rooms, activeRoomId, onSelect, onHover, on
     ref={layerRef}
     className="floor-svg-layer"
     dangerouslySetInnerHTML={{ __html: svgMarkup }}
-    onPointerUp={event => { if (event.button === 0 && !dragMoved.current) selectTarget(event.target) }}
     onMouseMove={event => {
       const roomId = roomIdFromTarget(event.target)
       if (roomId) onHover(roomId, { x: event.clientX, y: event.clientY })
@@ -692,9 +720,13 @@ function decorateRoomShape(document: Document, shape: SVGRectElement, mappedRoom
 
 type EquipmentFilter = 'All' | Asset['kind']
 
-function RoomEquipmentDialog({ room, floor, onClose, onAssignEquipment }: { room: Room; floor: number; onClose: () => void; onAssignEquipment: () => void }) {
+function RoomEquipmentDialog({ room, floor, availableAssets, onClose, onAssignAvailableAsset }: { room: Room; floor: number; availableAssets: InventoryAsset[]; onClose: () => void; onAssignAvailableAsset: (asset: InventoryAsset) => Promise<void> }) {
   const [filter, setFilter] = useState<EquipmentFilter>('All')
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(room.assets[0]?.id ?? null)
+  const [availableAssetTag, setAvailableAssetTag] = useState(availableAssets[0]?.tag ?? '')
+  const [isAssigning, setIsAssigning] = useState(false)
+  const [assignmentMessage, setAssignmentMessage] = useState('')
+  const [assignmentError, setAssignmentError] = useState('')
   const selectedAsset = room.assets.find(assetItem => assetItem.id === selectedAssetId) ?? room.assets[0]
   const filters: EquipmentFilter[] = ['All', 'Computer', 'Printer', 'Monitor']
   const filteredAssets = filter === 'All' ? room.assets : room.assets.filter(assetItem => assetItem.kind === filter)
@@ -715,10 +747,32 @@ function RoomEquipmentDialog({ room, floor, onClose, onAssignEquipment }: { room
     return () => window.removeEventListener('keydown', handleEscape)
   }, [onClose])
 
+  useEffect(() => {
+    if (!availableAssets.some(assetItem => assetItem.tag === availableAssetTag)) {
+      setAvailableAssetTag(availableAssets[0]?.tag ?? '')
+    }
+  }, [availableAssets, availableAssetTag])
+
   const chooseFilter = (nextFilter: EquipmentFilter) => {
     setFilter(nextFilter)
     const first = nextFilter === 'All' ? room.assets[0] : room.assets.find(assetItem => assetItem.kind === nextFilter)
     setSelectedAssetId(first?.id ?? null)
+  }
+
+  const assignSelectedAsset = async () => {
+    const availableAsset = availableAssets.find(assetItem => assetItem.tag === availableAssetTag)
+    if (!availableAsset) return
+    setAssignmentMessage('')
+    setAssignmentError('')
+    setIsAssigning(true)
+    try {
+      await onAssignAvailableAsset(availableAsset)
+      setAssignmentMessage(`${availableAsset.tag} was assigned to ${room.name}.`)
+    } catch (error) {
+      setAssignmentError(error instanceof Error ? error.message : 'The asset could not be assigned. Please try again.')
+    } finally {
+      setIsAssigning(false)
+    }
   }
 
   return <div className="equipment-dialog-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
@@ -733,7 +787,16 @@ function RoomEquipmentDialog({ room, floor, onClose, onAssignEquipment }: { room
         <div><span className="equipment-kind-icon printer">▤</span><span>Printers</span><b>{counts.Printer}</b></div>
         <div><span className="equipment-kind-icon monitor">▱</span><span>Monitors</span><b>{counts.Monitor}</b></div>
       </div>
-      {room.assets.length === 0 ? <div className="equipment-empty"><span>▣</span><h3>No equipment assigned</h3><p>This room does not currently have registered computers or equipment.</p><button type="button" onClick={() => { onClose(); onAssignEquipment() }}>＋ Assign equipment</button></div> : <div className="room-focus-layout">
+      <section className="room-inline-assignment" aria-label={`Assign an available asset to ${room.name}`}>
+        <div className="room-inline-assignment-copy"><span>ASSIGN AVAILABLE ASSET</span><b>Add a device to {room.name}</b><small>The device will immediately appear in this room.</small></div>
+        {availableAssets.length ? <>
+          <label><span>Available asset or device</span><select aria-label="Available asset or device" value={availableAssetTag} onChange={event => { setAvailableAssetTag(event.target.value); setAssignmentMessage(''); setAssignmentError('') }}>{availableAssets.map(assetItem => <option key={assetItem.tag} value={assetItem.tag}>{assetItem.tag} — {assetItem.name}</option>)}</select></label>
+          <button type="button" onClick={assignSelectedAsset} disabled={isAssigning || !availableAssetTag}>{isAssigning ? 'Assigning…' : 'Assign to this room'}</button>
+        </> : <p className="room-inline-assignment-empty">All registered assets are already assigned.</p>}
+        {assignmentMessage && <p className="room-inline-assignment-success" role="status">✓ {assignmentMessage}</p>}
+        {assignmentError && <p className="room-inline-assignment-error" role="alert">{assignmentError}</p>}
+      </section>
+      {room.assets.length === 0 ? <div className="equipment-empty"><span>▣</span><h3>No equipment assigned</h3><p>Choose an available asset above to add equipment to this room.</p></div> : <div className="room-focus-layout">
         <section className="room-focus-visual" aria-label={`2D view of ${room.name}`}>
           <div className="room-focus-heading"><div><span>2D ROOM VIEW</span><h3>{room.name}</h3></div><strong>{computers.length} PC{computers.length === 1 ? '' : 's'}</strong></div>
           <div className="room-focus-plan">

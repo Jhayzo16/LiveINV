@@ -34,3 +34,21 @@ export const deviceAssignmentSchema = z.object({
 })
 
 export type DeviceAssignmentData = z.infer<typeof deviceAssignmentSchema>
+
+const consumableCategories = ['RAM', 'SSD', 'HDD', 'Network Cable', 'Ink / Toner', 'Battery', 'Other'] as const
+
+export const consumableReceiptSchema = z.object({
+  category: z.enum(consumableCategories),
+  itemName: z.string().trim().min(2, 'Item name is required').max(120, 'Keep the item name under 120 characters'),
+  brand: z.string().trim().max(80, 'Keep the brand under 80 characters').optional(),
+  specification: z.string().trim().min(2, 'Specification or description is required').max(240, 'Keep the specification under 240 characters'),
+  quantity: z.string().trim().min(1, 'Quantity is required').refine(value => Number.isInteger(Number(value)) && Number(value) > 0, 'Enter a positive whole number'),
+  unit: z.string().trim().min(1, 'Unit is required').max(30, 'Keep the unit under 30 characters'),
+  supplier: z.string().trim().max(120, 'Keep the supplier under 120 characters').optional(),
+  referenceNumber: z.string().trim().max(80, 'Keep the reference number under 80 characters').optional(),
+  dateReceived: z.string().min(1, 'Date received is required').refine(value => !Number.isNaN(Date.parse(`${value}T00:00:00`)), 'Enter a valid received date'),
+  receivedBy: z.string().trim().max(120, 'Keep the receiver name under 120 characters').optional(),
+  notes: z.string().trim().max(1000, 'Keep notes under 1,000 characters').optional(),
+})
+
+export type ConsumableReceiptData = z.infer<typeof consumableReceiptSchema>

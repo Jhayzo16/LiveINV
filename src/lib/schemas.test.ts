@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { deviceRegistrationSchema } from './schemas'
+import { consumableReceiptSchema, deviceRegistrationSchema } from './schemas'
 
 describe('deviceRegistrationSchema', () => {
   it('validates a correct system unit', () => {
@@ -47,5 +47,39 @@ describe('deviceRegistrationSchema', () => {
     }
     const result = deviceRegistrationSchema.safeParse(validData)
     expect(result.success).toBe(true)
+  })
+})
+
+describe('consumableReceiptSchema', () => {
+  const validReceipt = {
+    category: 'RAM',
+    itemName: 'Kingston Fury RAM',
+    brand: 'Kingston',
+    specification: '16 GB DDR4 3200 MHz',
+    quantity: '12',
+    unit: 'pieces',
+    supplier: 'QA Supplier',
+    referenceNumber: 'DR-2026-001',
+    dateReceived: '2026-09-02',
+    receivedBy: 'Inventory Staff',
+    notes: 'Received in good condition',
+  }
+
+  it('validates a complete consumable receipt', () => {
+    expect(consumableReceiptSchema.safeParse(validReceipt).success).toBe(true)
+  })
+
+  it('rejects zero, negative, and fractional quantities', () => {
+    expect(consumableReceiptSchema.safeParse({ ...validReceipt, quantity: '0' }).success).toBe(false)
+    expect(consumableReceiptSchema.safeParse({ ...validReceipt, quantity: '-2' }).success).toBe(false)
+    expect(consumableReceiptSchema.safeParse({ ...validReceipt, quantity: '1.5' }).success).toBe(false)
+  })
+
+  it('requires receipt information but does not contain assignment fields', () => {
+    const result = consumableReceiptSchema.safeParse({ ...validReceipt, specification: '', dateReceived: '' })
+    expect(result.success).toBe(false)
+    expect('floor' in consumableReceiptSchema.shape).toBe(false)
+    expect('room' in consumableReceiptSchema.shape).toBe(false)
+    expect('department' in consumableReceiptSchema.shape).toBe(false)
   })
 })

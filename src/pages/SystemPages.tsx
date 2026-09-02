@@ -20,8 +20,9 @@ import activeReadyMetricIcon from '../assets/metrics/active-ready.png'
 import needsAttentionMetricIcon from '../assets/metrics/needs-attention.png'
 import roomsVerifiedMetricIcon from '../assets/metrics/rooms-verified.png'
 import '../device-workflow.css'
+import { ConsumablesPage } from './ConsumablesPage'
 
-export type SystemModule = 'dashboard' | 'assets' | 'assignments' | 'qr' | 'network' | 'maintenance' | 'reports' | 'users' | 'manual'
+export type SystemModule = 'dashboard' | 'assets' | 'consumables' | 'assignments' | 'qr' | 'network' | 'maintenance' | 'reports' | 'users' | 'manual'
 export type AssignmentTarget = { floor: string; room: string; department: string }
 
 const assets: InventoryAsset[] = [
@@ -58,7 +59,7 @@ const activity = [
 ]
 
 const moduleNames: Record<SystemModule, string> = {
-  dashboard: 'Dashboard', assets: 'Asset registry', assignments: 'Assignments', qr: 'QR scanner',
+  dashboard: 'Dashboard', assets: 'Asset registry', consumables: 'Consumables', assignments: 'Assignments', qr: 'QR scanner',
   network: 'Network registry', maintenance: 'Maintenance', reports: 'Reports', users: 'Users & roles', manual: 'System manual',
 }
 
@@ -92,6 +93,7 @@ export function SystemModulePage({ module, assignmentTarget }: { module: SystemM
   const page = {
     dashboard: <DashboardPage inventoryAssets={inventoryAssets} />,
     assets: <AssetsPage inventoryAssets={inventoryAssets} onRegister={registerAsset} onUpdate={updateAsset} />,
+    consumables: <ConsumablesPage />,
     assignments: <AssignmentsPage inventoryAssets={inventoryAssets} onAssign={asset => updateAsset(asset.tag, asset)} initialTarget={assignmentTarget} />,
     qr: <QrPage inventoryAssets={inventoryAssets} onUpdate={updateAsset} />,
     network: <NetworkPage inventoryAssets={inventoryAssets} />,
@@ -470,10 +472,12 @@ function EditAssetDialog({ asset, onClose, onSave }: { asset: InventoryAsset; on
   </div>
 }
 
-function AssignmentsPage({ inventoryAssets, onAssign, initialTarget }: { inventoryAssets: InventoryAsset[]; onAssign: (asset: InventoryAsset) => void; initialTarget?: AssignmentTarget | null }) {
+function AssignmentsPage({ inventoryAssets, onAssign, initialTarget }: { inventoryAssets: InventoryAsset[]; onAssign: (asset: InventoryAsset) => Promise<void>; initialTarget?: AssignmentTarget | null }) {
   const unassignedAssets = inventoryAssets.filter(item => !isAssetAssigned(item))
   const [selectedTag, setSelectedTag] = useState(unassignedAssets[0]?.tag || '')
   const [message, setMessage] = useState('')
+  const [assignmentError, setAssignmentError] = useState('')
+  const [isAssigning, setIsAssigning] = useState(false)
   const [roomLocations, setRoomLocations] = useState<AssignmentLocation[]>(() => initialTarget ? [{ floor: initialTarget.floor, room: initialTarget.room }] : fallbackAssignmentLocations)
   const selectedAsset = unassignedAssets.find(item => item.tag === selectedTag) || unassignedAssets[0]
 
@@ -507,13 +511,22 @@ function AssignmentsPage({ inventoryAssets, onAssign, initialTarget }: { invento
     if (!unassignedAssets.some(item => item.tag === selectedTag)) setSelectedTag(unassignedAssets[0]?.tag || '')
   }, [inventoryAssets, selectedTag, unassignedAssets])
 
-  const assignDevice = (data: DeviceAssignmentData) => {
+  const assignDevice = async (data: DeviceAssignmentData) => {
     const location = roomLocations.find(item => item.floor === data.floor && assignmentLocationKey(item) === data.locationKey)
     if (!selectedAsset || !location) return
     const department = initialTarget && initialTarget.floor === location.floor && initialTarget.room === location.room ? initialTarget.department : location.room
-    onAssign({ ...selectedAsset, location: `F${location.floor} · ${location.room}`, owner: department })
-    setMessage(`${selectedAsset.tag} is now assigned to Floor ${location.floor}, ${location.room}.`)
-    reset({ floor: data.floor, locationKey: data.locationKey })
+    setMessage('')
+    setAssignmentError('')
+    setIsAssigning(true)
+    try {
+      await onAssign({ ...selectedAsset, location: `F${location.floor} · ${location.room}`, owner: department })
+      setMessage(`${selectedAsset.tag} is now assigned to Floor ${location.floor}, ${location.room}.`)
+      reset({ floor: data.floor, locationKey: data.locationKey })
+    } catch (error) {
+      setAssignmentError(error instanceof Error ? error.message : 'The device could not be assigned. Please try again.')
+    } finally {
+      setIsAssigning(false)
+    }
   }
 
   return <>
@@ -522,14 +535,15 @@ function AssignmentsPage({ inventoryAssets, onAssign, initialTarget }: { invento
       <article className="module-card transfer-card">
         <div className="assignment-form-heading"><div><AssignmentBadge assigned={false} /><h3>Device assignment</h3><p>Only devices without a hospital location appear here.</p></div><strong>{unassignedAssets.length} waiting</strong></div>
         {selectedAsset ? <form onSubmit={handleSubmit(assignDevice)}>
-          <label>Unassigned device<select value={selectedAsset.tag} onChange={event => { setSelectedTag(event.target.value); setMessage('') }}>{unassignedAssets.map(item => <option key={item.tag} value={item.tag}>{item.tag} — {item.name}</option>)}</select></label>
+          <label>Unassigned device<select value={selectedAsset.tag} onChange={event => { setSelectedTag(event.target.value); setMessage(''); setAssignmentError('') }}>{unassignedAssets.map(item => <option key={item.tag} value={item.tag}>{item.tag} — {item.name}</option>)}</select></label>
           <div className="selected-asset assignment-selected"><span>{selectedAsset.category.slice(0, 2).toUpperCase()}</span><p><b>{selectedAsset.tag}</b><small>{selectedAsset.name} · QR ID {selectedAsset.qrId}</small></p><AssignmentBadge assigned={false} /></div>
           <div className="form-grid">
-            <label className="wide">Floor<select {...register('floor')} onChange={event => { register('floor').onChange(event); setValue('locationKey', '', { shouldValidate: true }); setMessage('') }}><option value="">Select a floor</option>{Array.from({ length: 7 }, (_, index) => String(index + 1)).map(floor => <option key={floor} value={floor}>Floor {floor}</option>)}</select>{errors.floor && <span className="field-error">{errors.floor.message}</span>}</label>
+            <label className="wide">Floor<select {...register('floor')} onChange={event => { register('floor').onChange(event); setValue('locationKey', '', { shouldValidate: true }); setMessage(''); setAssignmentError('') }}><option value="">Select a floor</option>{Array.from({ length: 7 }, (_, index) => String(index + 1)).map(floor => <option key={floor} value={floor}>Floor {floor}</option>)}</select>{errors.floor && <span className="field-error">{errors.floor.message}</span>}</label>
             {selectedFloor && <label className="wide">Room name or office<select {...register('locationKey')}><option value="">Select a room or office on Floor {selectedFloor}</option>{roomLocations.filter(location => location.floor === selectedFloor).map(location => <option key={assignmentLocationKey(location)} value={assignmentLocationKey(location)}>{location.room}</option>)}</select>{errors.locationKey && <span className="field-error">{errors.locationKey.message}</span>}</label>}
           </div>
           {message && <div className="assignment-success" role="status">✓ {message}</div>}
-          <div className="form-actions"><button type="button" className="export-btn" onClick={() => reset({ floor: '', locationKey: '' })}>Clear</button><button type="submit" className="primary-action" disabled={!isValid || !selectedLocation}>Assign device →</button></div>
+          {assignmentError && <div className="assignment-error" role="alert">{assignmentError}</div>}
+          <div className="form-actions"><button type="button" className="export-btn" onClick={() => { reset({ floor: '', locationKey: '' }); setMessage(''); setAssignmentError('') }}>Clear</button><button type="submit" className="primary-action" disabled={isAssigning || !isValid || !selectedLocation}>{isAssigning ? 'Assigning…' : 'Assign device →'}</button></div>
         </form> : <div className="assignment-empty"><span>✓</span><h3>All registered devices are assigned</h3><p>Newly added devices will appear here automatically with an Unassigned label.</p></div>}
       </article>
       <article className="module-card move-summary unassigned-queue"><CardTitle title="Unassigned queue" subtitle="Devices ready for a confirmed location" />{unassignedAssets.length ? unassignedAssets.map((item, index) => <button type="button" className={item.tag === selectedAsset?.tag ? 'queue-device selected' : 'queue-device'} key={item.tag} onClick={() => { setSelectedTag(item.tag); setMessage('') }}><span>{index + 1}</span><div><b>{item.tag}</b><small>{item.name}</small></div><AssignmentBadge assigned={false} /></button>) : <p className="queue-complete">No devices are waiting for assignment.</p>}</article>
@@ -723,6 +737,7 @@ function UsersPage() {
 const manualSteps = [
   { icon: '▦', title: 'Review the dashboard', text: 'Start on the Dashboard to check asset totals, equipment condition, verification coverage, and recent activity.' },
   { icon: '＋', title: 'Register a device', text: 'Open Assets, select Add device, enter its category, brand, model, status, and applicable technical specifications.' },
+  { icon: '▧', title: 'Record received consumables', text: 'Open Consumables to record received RAM, SSDs, cables, ink, batteries, and similar stock. Consumables are receiving records and cannot be assigned to rooms.' },
   { icon: '▣', title: 'Generate and attach its QR label', text: 'After saving a device, download or print its generated QR label. Keep the fallback QR ID available for manual identification.' },
   { icon: '⇄', title: 'Assign its hospital location', text: 'Open Assignments, choose an unassigned device, then select its floor, department, and room.' },
   { icon: '⌘', title: 'Find equipment through Topology', text: 'Open Topology, select a floor, then hover or click a room to see its assigned devices and full equipment details.' },

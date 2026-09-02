@@ -1,4 +1,4 @@
-import type { AssetState, DeviceCategory } from './types'
+import type { AssetState, ConsumableCategory, DeviceCategory } from './types'
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
@@ -44,6 +44,38 @@ type AssetInsert = {
   updated_at?: string
 }
 
+type ConsumableReceiptRow = {
+  id: string
+  category: ConsumableCategory
+  item_name: string
+  brand: string | null
+  specification: string
+  quantity: number
+  unit: string
+  supplier: string | null
+  reference_number: string | null
+  date_received: string
+  received_by: string | null
+  notes: string | null
+  created_at: string
+}
+
+type ConsumableReceiptInsert = {
+  id?: string
+  category: ConsumableCategory
+  item_name: string
+  brand?: string | null
+  specification: string
+  quantity: number
+  unit: string
+  supplier?: string | null
+  reference_number?: string | null
+  date_received: string
+  received_by?: string | null
+  notes?: string | null
+  created_at?: string
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -51,6 +83,12 @@ export interface Database {
         Row: AssetRow
         Insert: AssetInsert
         Update: Partial<AssetInsert>
+        Relationships: []
+      }
+      consumable_receipts: {
+        Row: ConsumableReceiptRow
+        Insert: ConsumableReceiptInsert
+        Update: Partial<ConsumableReceiptInsert>
         Relationships: []
       }
       audit_logs: {

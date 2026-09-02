@@ -11,6 +11,7 @@ LiveINV is a visual hospital inventory tracking system designed for Tagum Global
 - Device registration with permanent QR fallback IDs
 - QR scanning and manual asset identification
 - Separate workflow for assigning devices to floors, departments, and rooms
+- Consumable receiving records for RAM, SSDs, cables, ink, batteries, and other non-assignable stock
 - Inventory reports and a built-in system manual
 
 ## Technology
