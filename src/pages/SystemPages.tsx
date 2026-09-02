@@ -263,7 +263,7 @@ async function loadFigmaRoomLocations() {
   const floorTitle = /^(?:GROUND|1ST|2ND|3RD|4TH|5TH|6TH|7TH)\s+FLOOR$/i
   const floors = await Promise.all(Array.from({ length: 7 }, async (_, index) => {
     const floor = String(index + 1)
-    const response = await fetch(`/floor-plans/floor-${floor}.svg`)
+    const response = await fetch(`/floor-plans/floor-${floor}.svg?v=${Date.now()}`)
     if (!response.ok) return []
     const document = new DOMParser().parseFromString(await response.text(), 'image/svg+xml')
     const names = Array.from(document.querySelectorAll<SVGGraphicsElement>('[id]'))

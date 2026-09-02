@@ -24,15 +24,7 @@ const floors = [
 ]
 
 const makeAssets = (floor: number, code: string, count = 3): Asset[] => {
-  const kinds: Asset['kind'][] = ['Computer', 'Printer', 'Monitor']
-  const prefixes = { Computer: 'PC', Printer: 'PRN', Monitor: 'MON' }
-  const details = { Computer: 'Dell OptiPlex 7090', Printer: 'HP LaserJet Pro M404dn', Monitor: 'Dell 24-inch Display' }
-  const statuses: Status[] = ['Active', 'Active', 'Maintenance']
-  return Array.from({ length: count }, (_, index) => {
-    const kind = kinds[index % kinds.length]
-    const id = `${prefixes[kind]}-${code}-${String(index + 1).padStart(2, '0')}`
-    return { id, name: id, kind, status: statuses[index % statuses.length], detail: details[kind], ...(kind === 'Computer' ? { ip: `10.20.${floor}.${30 + index}` } : {}) }
-  })
+  return []
 }
 
 const room = (floor: number, id: string, name: string, code: string, department: string, x: number, y: number, w: number, h: number, assetCount = 3): Room => ({
@@ -40,17 +32,157 @@ const room = (floor: number, id: string, name: string, code: string, department:
 })
 
 const featuredRoomsByFloor: Record<number, Room[]> = {
-  1: [
-    room(1, 'emergency', 'Emergency Treatment', 'ERT', 'Emergency Department', 42, 8, 34, 21, 4),
-    room(1, 'diagnostics', 'Diagnostic Imaging', 'DIA', 'Radiology Department', 37, 33, 33, 24, 3),
-    room(1, 'reception', 'ER Reception', 'ERR', 'Emergency Department', 72, 34, 17, 20, 2),
-    room(1, 'laboratory', 'Clinical Laboratory', 'LAB', 'Laboratory Department', 36, 70, 37, 20, 4),
+          1: [
+    room(1, 'dark_room', 'DARK ROOM', 'DARK ROOM', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'reception___information', 'RECEPTION / INFORMATION', 'RECEPTION / INFORMATION', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'yakap_office', 'YAKAP OFFICE', 'YAKAP OFFICE', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'minor_operating_room', 'MINOR OPERATING ROOM', 'MINOR OPERATING ROOM', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-1', 'Unassigned Room 1', 'UN-1', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-2', 'Unassigned Room 2', 'UN-2', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-3', 'Unassigned Room 3', 'UN-3', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-4', 'Unassigned Room 4', 'UN-4', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-5', 'Unassigned Room 5', 'UN-5', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-6', 'Unassigned Room 6', 'UN-6', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-7', 'Unassigned Room 7', 'UN-7', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-8', 'Unassigned Room 8', 'UN-8', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-9', 'Unassigned Room 9', 'UN-9', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-10', 'Unassigned Room 10', 'UN-10', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-11', 'Unassigned Room 11', 'UN-11', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-12', 'Unassigned Room 12', 'UN-12', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'oecb', 'OECB', 'OECB', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-13', 'Unassigned Room 13', 'UN-13', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-14', 'Unassigned Room 14', 'UN-14', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'nurses_station', 'NURSE\'S STATION', 'NURSE\'S STATION', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'records_rm', 'RECORDS RM.', 'RECORDS RM.', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-15', 'Unassigned Room 15', 'UN-15', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 't_and_b', 'T & B', 'T & B', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'female_doctors_rm', 'FEMALE DOCTORS RM.', 'FEMALE DOCTORS RM.', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'male_doctors_rm', 'MALE DOCTORS RM.', 'MALE DOCTORS RM.', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-16', 'Unassigned Room 16', 'UN-16', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-17', 'Unassigned Room 17', 'UN-17', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'er_admitting_and_satellite_billing', 'E.R. ADMITTING & SATELLITE BILLING', 'E.R. ADMITTING & SATELLITE BILLING', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-18', 'Unassigned Room 18', 'UN-18', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'crisis_intervention_room', 'CRISIS INTERVENTION ROOM', 'CRISIS INTERVENTION ROOM', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-19', 'Unassigned Room 19', 'UN-19', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'doctors_desk', 'DOCTOR\'S DESK', 'DOCTOR\'S DESK', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-20', 'Unassigned Room 20', 'UN-20', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-21', 'Unassigned Room 21', 'UN-21', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-22', 'Unassigned Room 22', 'UN-22', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'er_reception', 'E.R. RECEPTION', 'E.R. RECEPTION', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'radiologist_work_rm', 'RADIOLOGIST WORK RM.', 'RADIOLOGIST WORK RM.', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'x-ray_1', 'X-RAY 1', 'X-RAY 1', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-23', 'Unassigned Room 23', 'UN-23', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'x-ray_2', 'X-RAY 2', 'X-RAY 2', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'ante_rm', 'ANTE RM.', 'ANTE RM.', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'ultrasound_2', 'ULTRASOUND 2', 'ULTRASOUND 2', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'ultrasound_1', 'ULTRASOUND 1', 'ULTRASOUND 1', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'ultrasound_reading', 'ULTRASOUND READING', 'ULTRASOUND READING', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'film_storage', 'FILM STORAGE', 'FILM STORAGE', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'mammography', 'MAMMOGRAPHY', 'MAMMOGRAPHY', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'reading_room', 'READING ROOM', 'READING ROOM', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'rad_tech_office', 'RAD. TECH OFFICE', 'RAD. TECH OFFICE', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'reception_1', 'RECEPTION (RADIOLOGY)', 'RECEPTION (RADIOLOGY)', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-24', 'Unassigned Room 24', 'UN-24', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'cashier', 'CASHIER', 'CASHIER', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'billing', 'BILLING', 'BILLING', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'admitting', 'ADMITTING', 'ADMITTING', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-25', 'Unassigned Room 25', 'UN-25', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'social_services', 'SOCIAL SERVICES', 'SOCIAL SERVICES', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-26', 'Unassigned Room 26', 'UN-26', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'admin_office', 'ADMIN OFFICE', 'ADMIN OFFICE', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'hr_office', 'HR OFFICE', 'HR OFFICE', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 's_to', 'S. TO.', 'S. TO.', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'dangr_drugs', 'DANGR. DRUGS', 'DANGR. DRUGS', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'blood_supply_room', 'BLOOD SUPPLY ROOM', 'BLOOD SUPPLY ROOM', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'laboratory_equipment_area', 'LABORATORY EQUIPMENT AREA', 'LABORATORY EQUIPMENT AREA', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'cutting_and_processing', 'CUTTING & PROCESSING', 'CUTTING & PROCESSING', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'cytology_staining', 'CYTOLOGY/STAINING', 'CYTOLOGY/STAINING', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'cytogenetics', 'CYTOGENETICS', 'CYTOGENETICS', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'sterilization', 'STERILIZATION', 'STERILIZATION', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'microbiology', 'MICROBIOLOGY', 'MICROBIOLOGY', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'media_prep', 'MEDIA PREP.', 'MEDIA PREP.', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'autoclave', 'AUTOCLAVE', 'AUTOCLAVE', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'clinical_microscopy', 'CLINICAL MICROSCOPY', 'CLINICAL MICROSCOPY', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'chief_med_tech', 'CHIEF MED. TECH.', 'CHIEF MED. TECH.', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'blood_extraction', 'BLOOD EXTRACTION', 'BLOOD EXTRACTION', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'reception_2', 'RECEPTION (LABORATORY)', 'RECEPTION (LABORATORY)', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'counseling_and_meeting_room', 'COUNSELING & MEETING ROOM', 'COUNSELING & MEETING ROOM', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-27', 'Unassigned Room 27', 'UN-27', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'un-28', 'Unassigned Room 28', 'UN-28', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'compounding_area', 'COMPOUNDING AREA', 'COMPOUNDING AREA', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'pharmacist', 'PHARMACIST', 'PHARMACIST', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'delivery_apron', 'DELIVERY APRON', 'DELIVERY APRON', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'pharmacy', 'PHARMACY', 'PHARMACY', '1st Floor Dept', 25, 25, 0, 0, 0),
+    room(1, 'pathologists_office', 'PATHOLOGISTS\' OFFICE', 'PATHOLOGISTS\' OFFICE', '1st Floor Dept', 25, 25, 0, 0, 0),
   ],
   2: [
-    room(2, 'operating', 'Operating Room Complex', 'ORC', 'Surgical Services', 25, 18, 43, 34, 4),
-    room(2, 'nicu', 'Neonatal ICU', 'NICU', 'Women and Children', 70, 8, 24, 27, 3),
-    room(2, 'recovery', 'Recovery Room', 'REC', 'Surgical Services', 34, 34, 31, 17, 3),
-    room(2, 'picu', 'Pediatric ICU', 'PICU', 'Women and Children', 36, 65, 48, 20, 4),
+    room(2, 'cs_delivery_room', 'CS DELIVERY ROOM', 'CS DELIVERY ROOM', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'd.r_sub-sterilization', 'D.R SUB-STERILIZATION', 'D.R SUB-STERILIZATION', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'd.r._supply', 'D.R. SUPPLY', 'D.R. SUPPLY', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'delivery_room_1', 'DELIVERY ROOM 1', 'DELIVERY ROOM 1', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'delivery_room_2', 'DELIVERY ROOM 2', 'DELIVERY ROOM 2', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'clean_up', 'CLEAN UP', 'CLEAN UP', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'lounge', 'LOUNGE', 'LOUNGE', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'treatment_infant_washing', 'TREATMENT INFANT WASHING', 'TREATMENT INFANT WASHING', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'supply_room', 'SUPPLY ROOM', 'SUPPLY ROOM', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'nicu', 'NICU', 'NICU', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'un-10', 'Unassigned Room 1', 'UN-10', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'outborn', 'OUTBORN', 'OUTBORN', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'newborn_care_area', 'NEWBORN CARE AREA', 'NEWBORN CARE AREA', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'un-13', 'Unassigned Room 2', 'UN-13', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'un-14', 'Unassigned Room 3', 'UN-14', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'un-15', 'Unassigned Room 4', 'UN-15', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'nurses_station_nicu', 'NURSE\'S STATION NICU', 'NURSE\'S STATION NICU', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'un-17', 'Unassigned Room 5', 'UN-17', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'un-18', 'Unassigned Room 6', 'UN-18', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'un-19', 'Unassigned Room 7', 'UN-19', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'or/dr_transfer_room', 'OR/DR TRANSFER ROOM', 'OR/DR TRANSFER ROOM', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'labor_room', 'LABOR ROOM', 'LABOR ROOM', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'dr_nurses_station_2', 'DR NURSE\'S STATION 2', 'DR NURSE\'S STATION 2', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'major_or_5', 'MAJOR OR 5', 'MAJOR OR 5', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'un-24', 'Unassigned Room 8', 'UN-24', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'un-25', 'Unassigned Room 9', 'UN-25', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'un-26', 'Unassigned Room 10', 'UN-26', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'un-27', 'Unassigned Room 11', 'UN-27', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'major_or_4', 'MAJOR OR 4', 'MAJOR OR 4', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'major_or_3', 'MAJOR OR 3', 'MAJOR OR 3', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'or_sub-sterilization', 'OR SUB-STERILIZATION', 'OR SUB-STERILIZATION', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'major_or_2', 'MAJOR OR 2', 'MAJOR OR 2', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'major_or_1', 'MAJOR OR 1', 'MAJOR OR 1', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'un-33', 'Unassigned Room 12', 'UN-33', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'un-34', 'Unassigned Room 13', 'UN-34', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'un-35', 'Unassigned Room 14', 'UN-35', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'meeting_room', 'MEETING ROOM', 'MEETING ROOM', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'labor_pre_assessment_rm', 'LABOR PRE ASSESSMENT RM', 'LABOR PRE ASSESSMENT RM', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'nurses_reception', 'NURSE\'S RECEPTION', 'NURSE\'S RECEPTION', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'recovery_room', 'RECOVERY ROOM', 'RECOVERY ROOM', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'dr_nurses_station_1', 'DR NURSE\'S STATION 1', 'DR NURSE\'S STATION 1', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'or_waiting_area', 'OR WAITING AREA', 'OR WAITING AREA', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'un-42', 'Unassigned Room 15', 'UN-42', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'recep.', 'RECEP.', 'RECEP.', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'consult._rm', 'CONSULT. RM', 'CONSULT. RM', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'custodian_area_cssr', 'CUSTODIAN AREA CSSR', 'CUSTODIAN AREA CSSR', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'picu_4', 'PICU 4', 'PICU 4', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'picu_3', 'PICU 3', 'PICU 3', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'picu_2', 'PICU 2 (W/ PROV. FOR DIALYSIS)', 'PICU 2', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'picu_1', 'PICU 1 (W/ PROV. FOR DIALYSIS)', 'PICU 1', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'picu_isolation', 'PICU ISOLATION (SEPTIC)', 'PICU ISOLATION', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'treatment_rm', 'TREATMENT RM', 'TREATMENT RM', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'sorting_&_cleaning', 'SORTING & CLEANING', 'SORTING & CLEANING', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'sterile_supply_sto_room', 'STERILE SUPPLY STO ROOM', 'STERILE SUPPLY STO ROOM', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'micu_nurses_station', 'MICU NURSE\'S STATION', 'MICU NURSE\'S STATION', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'picu_nurses_station', 'PICU NURSE\'S STATION', 'PICU NURSE\'S STATION', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'aux_utility', 'AUX UTILITY', 'AUX UTILITY', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'transaction_rm', 'TRANSACTION RM', 'TRANSACTION RM', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'eeme_rm', 'EEME RM', 'EEME RM', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'autoclave', 'AUTOCLAVE', 'AUTOCLAVE', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'general_supply_sto_room', 'GENERAL SUPPLY STO ROOM', 'GENERAL SUPPLY STO ROOM', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'micu_5', 'MICU 5', 'MICU 5', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'micu_4_acute_stroke_unit', 'MICU 4 ACUTE STROKE UNIT', 'MICU 4 ACUTE STROKE UNIT', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'micu_3', 'MICU 3 (W/ PROV. FOR DIALYSIS)', 'MICU 3', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'micu_2', 'MICU 2 (W/ PROV. FOR DIALYSIS)', 'MICU 2', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'micu_1', 'MICU 1 (W/ PROV. FOR DIALYSIS)', 'MICU 1', '2nd Floor Dept', 25, 25, 10, 2, 1),
+    room(2, 'micu_isolation', 'MICU ISOLATION', 'MICU ISOLATION', '2nd Floor Dept', 25, 25, 10, 2, 1),
   ],
   3: [
     room(3, 'dietary', 'Dietary and Canteen', 'DCT', 'Food and Nutrition', 27, 7, 45, 25, 3),
@@ -66,7 +198,7 @@ const featuredRoomsByFloor: Record<number, Room[]> = {
   ],
   5: [
     room(5, 'multipurpose', 'Multi-Purpose Hall', 'MPH', 'Administration', 20, 34, 33, 25, 2),
-    room(5, 'records', 'Medical Records and Archives', 'MRR', 'Medical Records Department', 52, 36, 29, 22, 4),
+    room(5, 'records', 'Medical Records', 'MRR', 'Medical Records Department', 52, 36, 29, 22, 4),
     room(5, 'accounting', 'Accounting Office', 'ACC', 'Finance Department', 53, 14, 23, 16, 3),
     room(5, 'boardroom', 'Boardroom', 'BRD', 'Executive Offices', 74, 13, 18, 17, 3),
   ],
@@ -84,7 +216,7 @@ const featuredRoomsByFloor: Record<number, Room[]> = {
   ],
 }
 
-const floorRoomCounts: Record<number, number> = { 1: 82, 2: 43, 3: 55, 4: 40, 5: 38, 6: 37, 7: 37 }
+const floorRoomCounts: Record<number, number> = { 1: 81, 2: 67, 3: 55, 4: 40, 5: 38, 6: 37, 7: 37 }
 
 const roomsByFloor: Record<number, Room[]> = Object.fromEntries(floors.map(floorItem => {
   const featured = featuredRoomsByFloor[floorItem.id] ?? []
@@ -126,15 +258,37 @@ export function App() {
   const [floor, setFloor] = useState<number | null>(null)
   const [roomId, setRoomId] = useState<string | null>(null)
   const [assetId, setAssetId] = useState<string | null>(null)
-  const room = allRooms.find(r => r.id === roomId)
-  const asset = room?.assets.find(a => a.id === assetId)
-  const selectedFloor = floor ? floors.find(item => item.id === floor) : null
-  const currentAssets = useMemo(() => allRooms.flatMap(item => item.assets), [])
-
   const { data: inventoryAssets = [] } = useQuery({
     queryKey: ['assets'],
     queryFn: () => AssetRepository.getAll(),
   })
+
+  const dynamicRoomsByFloor = useMemo(() => {
+    const map: Record<number, Room[]> = {}
+    for (const [floorId, rList] of Object.entries(roomsByFloor)) {
+      map[Number(floorId)] = rList.map(r => {
+        const roomLocationStr = `F${r.floor} · ${r.name}`
+        const assignedAssets = inventoryAssets.filter(a => a.location === roomLocationStr)
+        const assets: Asset[] = assignedAssets.map(a => ({
+          id: a.qrId || a.tag,
+          name: a.name,
+          status: a.state.toLowerCase() as Status,
+          kind: a.category === 'System Unit' || a.category === 'Laptop' || a.category === 'Server' ? 'Computer' : a.category,
+          detail: `${a.brand ?? ''} ${a.model ?? ''}`.trim() || 'Generic Device',
+          ip: a.ip || undefined
+        }))
+        return { ...r, assets }
+      })
+    }
+    return map
+  }, [inventoryAssets])
+
+  const dynamicAllRooms = useMemo(() => Object.values(dynamicRoomsByFloor).flat(), [dynamicRoomsByFloor])
+
+  const room = dynamicAllRooms.find(r => r.id === roomId)
+  const asset = room?.assets.find(a => a.id === assetId)
+  const selectedFloor = floor ? floors.find(item => item.id === floor) : null
+  const currentAssets = useMemo(() => dynamicAllRooms.flatMap(item => item.assets), [dynamicAllRooms])
 
   const total = inventoryAssets.length
   const active = inventoryAssets.filter(a => a.state === 'Active').length
@@ -157,7 +311,7 @@ export function App() {
       <header className="topbar"><div className="crumbs">{module === 'topology' ? <><button onClick={resetToFloors}>Live Mapping</button>{selectedFloor && <><span>/</span><button onClick={() => { setRoomId(null); setAssetId(null) }}>Floor {floor}</button></>}{room && <><span>/</span><button onClick={() => setAssetId(null)}>{room.name}</button></>}{asset && <><span>/</span><b>{asset.id}</b></>}</> : <><span>Hospital Inventory</span><span>/</span><b>{module === 'qr' ? 'QR Scanner' : module === 'network' ? 'Network Registry' : module === 'manual' ? 'System Manual' : module.charAt(0).toUpperCase() + module.slice(1)}</b></>}</div><div className="top-actions"><button className="ghost-btn">⌕ Search</button><button className="bell">◌</button><span className="avatar">AD</span></div></header>
       {module !== 'topology' && <SystemModulePage module={module} assignmentTarget={assignmentTarget} />}
       {module === 'topology' && !floor && <FloorTopology floors={floors} onSelect={setFloor} />}
-      {module === 'topology' && floor && !room && <FloorView floor={selectedFloor!} onBack={resetToFloors} rooms={roomsByFloor[floor] ?? []} onAssignEquipment={targetRoom => openRoomAssignment(floor, targetRoom)} />}
+      {module === 'topology' && floor && !room && <FloorView floor={selectedFloor!} onBack={resetToFloors} rooms={dynamicRoomsByFloor[floor] ?? []} onAssignEquipment={targetRoom => openRoomAssignment(floor, targetRoom)} />}
       {module === 'topology' && floor && room && !asset && <RoomView room={room} floor={floor} onBack={() => setRoomId(null)} onAsset={setAssetId} onAssignEquipment={() => openRoomAssignment(floor, room)} />}
       {module === 'topology' && floor && room && asset && <AssetView room={room} floor={floor} asset={asset} onBack={() => setAssetId(null)} />}
     </main>
@@ -215,6 +369,10 @@ function FloorTopology({ floors, onSelect }: { floors: Floor[]; onSelect:(id:num
 
 function FloorView({ floor, onBack, rooms, onAssignEquipment }: { floor:Floor;onBack:()=>void;rooms:Room[];onAssignEquipment:(room:Room)=>void }) {
   const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const dragStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
+  const dragMoved = useRef(false)
   const [directoryOpen, setDirectoryOpen] = useState(false)
   const [figmaRoomNames, setFigmaRoomNames] = useState<Record<string, string>>({})
   const [hoveredRoom, setHoveredRoom] = useState<string | null>(null)
@@ -295,12 +453,40 @@ function FloorView({ floor, onBack, rooms, onAssignEquipment }: { floor:Floor;on
               aria-expanded={directoryOpen}
               onClick={() => setDirectoryOpen(open => !open)}
             ><span aria-hidden="true">☷</span>{directoryOpen ? 'Hide directory' : 'Show directory'}</button>
-            <div className="zoom-controls"><button onClick={() => setZoom(value => Math.max(1, value - .2))} aria-label="Zoom out">−</button><button onClick={() => setZoom(1)} aria-label="Reset zoom">{Math.round(zoom * 100)}%</button><button onClick={() => setZoom(value => Math.min(2, value + .2))} aria-label="Zoom in">＋</button></div>
+            <div className="zoom-controls"><button onClick={() => setZoom(value => Math.max(.2, value - .2))} aria-label="Zoom out">−</button><button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }} aria-label="Reset zoom">{Math.round(zoom * 100)}%</button><button onClick={() => setZoom(value => Math.min(4, value + .2))} aria-label="Zoom in">＋</button></div>
           </div>
         </div>
-        <div className="map-viewport">
-          <div className="map-canvas figma-floor-map" style={{ transform: `scale(${zoom})`, aspectRatio: floorMapAspectRatios[floor.id] }} role="img" aria-label={`Interactive room layout for Floor ${floor.id}`}>
-            <InteractiveFloorSvg floor={floor} rooms={rooms} activeRoomId={hoveredRoom ?? openedRoomId} onSelect={openRoomDetails} onHover={handleMapHover} onRoomNames={setFigmaRoomNames} />
+        <div 
+          className="map-viewport"
+          style={{ cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none', overflow: 'hidden' }}
+          onPointerDown={e => {
+            if (e.button !== 0 && e.button !== 1) return
+            setIsDragging(true)
+            dragMoved.current = false
+            dragStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y }
+            e.currentTarget.setPointerCapture(e.pointerId)
+          }}
+          onPointerMove={e => {
+            if (!isDragging) return
+            const dx = e.clientX - dragStart.current.x
+            const dy = e.clientY - dragStart.current.y
+            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragMoved.current = true
+            setPan({ x: dragStart.current.panX + dx, y: dragStart.current.panY + dy })
+          }}
+          onPointerUp={e => {
+            setIsDragging(false)
+            e.currentTarget.releasePointerCapture(e.pointerId)
+          }}
+          onWheel={e => {
+            if (e.ctrlKey || e.metaKey) {
+              setZoom(z => Math.max(0.2, Math.min(4, z - e.deltaY * 0.005)))
+            } else {
+              setPan(p => ({ x: p.x - e.deltaX, y: p.y - e.deltaY }))
+            }
+          }}
+        >
+          <div className="map-canvas figma-floor-map" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, aspectRatio: floorMapAspectRatios[floor.id] }} role="img" aria-label={`Interactive room layout for Floor ${floor.id}`}>
+            <InteractiveFloorSvg floor={floor} rooms={rooms} activeRoomId={hoveredRoom ?? openedRoomId} onSelect={openRoomDetails} onHover={handleMapHover} onRoomNames={setFigmaRoomNames} dragMoved={dragMoved} />
           </div>
         </div>
         <div className="map-status"><span className="map-status-key"><i className="mapped"/>Mapped room</span><span className="map-status-key"><i className="computer"/>Computer present</span><span>Click a room to enter</span>{selectedRoom && <strong>{selectedRoom.name} · {selectedRoom.assets.length} assets</strong>}</div>
@@ -326,13 +512,13 @@ function FloorView({ floor, onBack, rooms, onAssignEquipment }: { floor:Floor;on
   </section>
 }
 
-function InteractiveFloorSvg({ floor, rooms, activeRoomId, onSelect, onHover, onRoomNames }: { floor: Floor; rooms: Room[]; activeRoomId: string | null; onSelect: (id: string) => void; onHover: (id: string | null, point?: { x: number; y: number }) => void; onRoomNames: (names: Record<string, string>) => void }) {
+function InteractiveFloorSvg({ floor, rooms, activeRoomId, onSelect, onHover, onRoomNames, dragMoved }: { floor: Floor; rooms: Room[]; activeRoomId: string | null; onSelect: (id: string) => void; onHover: (id: string | null, point?: { x: number; y: number }) => void; onRoomNames: (names: Record<string, string>) => void; dragMoved: React.MutableRefObject<boolean> }) {
   const [svgMarkup, setSvgMarkup] = useState('')
   const layerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let active = true
-    fetch(`/floor-plans/floor-${floor.id}.svg`)
+    fetch(`/floor-plans/floor-${floor.id}.svg?v=${Date.now()}`)
       .then(response => response.text())
       .then(source => {
         if (!active) return
@@ -396,7 +582,7 @@ function InteractiveFloorSvg({ floor, rooms, activeRoomId, onSelect, onHover, on
     ref={layerRef}
     className="floor-svg-layer"
     dangerouslySetInnerHTML={{ __html: svgMarkup }}
-    onPointerDownCapture={event => { if (event.button === 0) selectTarget(event.target) }}
+    onPointerUp={event => { if (event.button === 0 && !dragMoved.current) selectTarget(event.target) }}
     onMouseMove={event => {
       const roomId = roomIdFromTarget(event.target)
       if (roomId) onHover(roomId, { x: event.clientX, y: event.clientY })
@@ -458,8 +644,9 @@ function decorateRoomShape(document: Document, shape: SVGRectElement, mappedRoom
   const width = Number(shape.getAttribute('width') ?? 0)
   const height = Number(shape.getAttribute('height') ?? 0)
   const pcs = computerCount(mappedRoom)
+  const isGreen = pcs > 0 || (mappedRoom.floor === 2 && mappedRoom.assets.length > 0)
   const group = svgElement(document, 'g', {
-    class: `svg-room-node ${mappedRoom.assets.length ? 'has-assets' : ''} ${pcs ? 'has-computer' : ''}`,
+    class: `svg-room-node ${mappedRoom.assets.length ? 'has-assets' : ''} ${isGreen ? 'has-computer' : ''}`,
     'data-room-id': mappedRoom.id,
   })
   parent.insertBefore(group, shape)
