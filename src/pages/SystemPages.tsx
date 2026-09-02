@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -22,6 +22,7 @@ import roomsVerifiedMetricIcon from '../assets/metrics/rooms-verified.png'
 import '../device-workflow.css'
 
 export type SystemModule = 'dashboard' | 'assets' | 'assignments' | 'qr' | 'network' | 'maintenance' | 'reports' | 'users' | 'manual'
+export type AssignmentTarget = { floor: string; room: string; department: string }
 
 const assets: InventoryAsset[] = [
   { tag: 'PC-MRR-01', qrId: 'LIV-MRR0001', name: 'Dell OptiPlex 7090', category: 'System Unit', location: 'F5 · Medical Records', owner: 'IT Department', state: 'Active', ip: '10.20.5.31', brand: 'Dell', model: 'OptiPlex 7090', processor: 'Intel Core i5-10500', ramCapacityGb: 8, ramModules: 2, ssdCapacityGb: 512, ssdCount: 1 },
@@ -61,7 +62,7 @@ const moduleNames: Record<SystemModule, string> = {
   network: 'Network registry', maintenance: 'Maintenance', reports: 'Reports', users: 'Users & roles', manual: 'System manual',
 }
 
-export function SystemModulePage({ module }: { module: SystemModule }) {
+export function SystemModulePage({ module, assignmentTarget }: { module: SystemModule; assignmentTarget?: AssignmentTarget | null }) {
   const queryClient = useQueryClient()
   
   const { data: inventoryAssets = [], isLoading } = useQuery({
@@ -91,7 +92,7 @@ export function SystemModulePage({ module }: { module: SystemModule }) {
   const page = {
     dashboard: <DashboardPage inventoryAssets={inventoryAssets} />,
     assets: <AssetsPage inventoryAssets={inventoryAssets} onRegister={registerAsset} onUpdate={updateAsset} />,
-    assignments: <AssignmentsPage inventoryAssets={inventoryAssets} onAssign={registerAsset} />,
+    assignments: <AssignmentsPage inventoryAssets={inventoryAssets} onAssign={asset => updateAsset(asset.tag, asset)} initialTarget={assignmentTarget} />,
     qr: <QrPage inventoryAssets={inventoryAssets} onUpdate={updateAsset} />,
     network: <NetworkPage inventoryAssets={inventoryAssets} />,
     maintenance: <MaintenancePage inventoryAssets={inventoryAssets} />,
@@ -245,14 +246,32 @@ function DevicePreview({ asset, className = '' }: { asset: InventoryAsset; class
   </figure>
 }
 
-const departmentsByFloor: Record<string, string[]> = {
-  '1': ['Emergency Department', 'Laboratory Department', 'Radiology Department'],
-  '2': ['Surgical Services', 'Women and Children', 'Diagnostics Department'],
-  '3': ['Food and Nutrition', 'Diagnostics Department', 'Administration'],
-  '4': ['Outpatient Clinics', 'Dental Services', 'Specialty Services'],
-  '5': ['Medical Records', 'Finance Department', 'Human Resources'],
-  '6': ['Inpatient Services', 'Surgical Services', 'Women and Children'],
-  '7': ['Executive Offices', 'Administration', 'Inpatient Services'],
+type AssignmentLocation = { floor: string; room: string }
+const assignmentLocationKey = (location: AssignmentLocation) => `${location.floor}::${location.room}`
+const fallbackAssignmentLocations: AssignmentLocation[] = [
+  { floor: '1', room: 'E.R. RECEPTION' }, { floor: '1', room: 'LABORATORY' },
+  { floor: '2', room: 'OPERATING ROOM' }, { floor: '2', room: 'PICU' },
+  { floor: '3', room: 'BUSINESS OFFICE' }, { floor: '3', room: 'HEMODIALYSIS CENTER' },
+  { floor: '4', room: 'DENTAL CLINIC' }, { floor: '4', room: 'ENT CLINIC' },
+  { floor: '5', room: 'IT DEPARTMENT' }, { floor: '5', room: 'MEDICAL RECORDS' },
+  { floor: '6', room: 'PEDIA WARD' }, { floor: '6', room: 'NURSE’S STATION 1' },
+  { floor: '7', room: 'PRIVATE ROOM' }, { floor: '7', room: 'NURSE’S STATION 1' },
+]
+
+async function loadFigmaRoomLocations() {
+  const structuralId = /^(?:Rectangle|Group|Circle|Ellipse|Line|Path|Vector|clip|paint|filter|mask|liveinv)/i
+  const floorTitle = /^(?:GROUND|1ST|2ND|3RD|4TH|5TH|6TH|7TH)\s+FLOOR$/i
+  const floors = await Promise.all(Array.from({ length: 7 }, async (_, index) => {
+    const floor = String(index + 1)
+    const response = await fetch(`/floor-plans/floor-${floor}.svg`)
+    if (!response.ok) return []
+    const document = new DOMParser().parseFromString(await response.text(), 'image/svg+xml')
+    const names = Array.from(document.querySelectorAll<SVGGraphicsElement>('[id]'))
+      .map(element => element.id.replace(/_\d+$/, '').replace(/\s+/g, ' ').trim())
+      .filter(name => name && !structuralId.test(name) && !floorTitle.test(name))
+    return [...new Set(names)].map(room => ({ floor, room }))
+  }))
+  return floors.flat().sort((a, b) => Number(a.floor) - Number(b.floor) || a.room.localeCompare(b.room))
 }
 
 const deviceCategories: DeviceCategory[] = ['Printer', 'Monitor', 'Keyboard', 'System Unit', 'UPS', 'Scanner', 'Router']
@@ -451,33 +470,54 @@ function EditAssetDialog({ asset, onClose, onSave }: { asset: InventoryAsset; on
   </div>
 }
 
-function AssignmentsPage({ inventoryAssets, onAssign }: { inventoryAssets: InventoryAsset[]; onAssign: (asset: InventoryAsset) => void }) {
+function AssignmentsPage({ inventoryAssets, onAssign, initialTarget }: { inventoryAssets: InventoryAsset[]; onAssign: (asset: InventoryAsset) => void; initialTarget?: AssignmentTarget | null }) {
   const unassignedAssets = inventoryAssets.filter(item => !isAssetAssigned(item))
   const [selectedTag, setSelectedTag] = useState(unassignedAssets[0]?.tag || '')
   const [message, setMessage] = useState('')
+  const [roomLocations, setRoomLocations] = useState<AssignmentLocation[]>(() => initialTarget ? [{ floor: initialTarget.floor, room: initialTarget.room }] : fallbackAssignmentLocations)
   const selectedAsset = unassignedAssets.find(item => item.tag === selectedTag) || unassignedAssets[0]
 
+  const initialLocationKey = initialTarget ? assignmentLocationKey(initialTarget) : ''
   const { register, handleSubmit, watch, setValue, reset, formState: { errors, isValid } } = useForm<DeviceAssignmentData>({
     resolver: zodResolver(deviceAssignmentSchema),
-    defaultValues: { floor: '1', department: departmentsByFloor['1'][0], room: '' },
+    defaultValues: { floor: initialTarget?.floor ?? '', locationKey: initialLocationKey },
     mode: 'onChange'
   })
 
-  const watchedFloor = watch('floor')
+  const selectedFloor = watch('floor')
+  const selectedLocationKey = watch('locationKey')
+  const selectedLocation = roomLocations.find(location => assignmentLocationKey(location) === selectedLocationKey)
+
+  useEffect(() => {
+    let active = true
+    loadFigmaRoomLocations().then(locations => {
+      if (!active || !locations.length) return
+      const targetLocation = initialTarget ? { floor: initialTarget.floor, room: initialTarget.room } : null
+      const merged = targetLocation && !locations.some(location => assignmentLocationKey(location) === assignmentLocationKey(targetLocation)) ? [targetLocation, ...locations] : locations
+      setRoomLocations(merged)
+      if (targetLocation) {
+        setValue('floor', targetLocation.floor, { shouldValidate: true })
+        setValue('locationKey', assignmentLocationKey(targetLocation), { shouldValidate: true })
+      }
+    }).catch(() => undefined)
+    return () => { active = false }
+  }, [initialTarget, setValue])
 
   useEffect(() => {
     if (!unassignedAssets.some(item => item.tag === selectedTag)) setSelectedTag(unassignedAssets[0]?.tag || '')
   }, [inventoryAssets, selectedTag, unassignedAssets])
 
   const assignDevice = (data: DeviceAssignmentData) => {
-    if (!selectedAsset) return
-    onAssign({ ...selectedAsset, location: `F${data.floor} · ${data.room.trim()}`, owner: data.department })
-    setMessage(`${selectedAsset.tag} is now assigned to Floor ${data.floor}, ${data.department}, ${data.room.trim()}.`)
-    reset({ floor: data.floor, department: data.department, room: '' })
+    const location = roomLocations.find(item => item.floor === data.floor && assignmentLocationKey(item) === data.locationKey)
+    if (!selectedAsset || !location) return
+    const department = initialTarget && initialTarget.floor === location.floor && initialTarget.room === location.room ? initialTarget.department : location.room
+    onAssign({ ...selectedAsset, location: `F${location.floor} · ${location.room}`, owner: department })
+    setMessage(`${selectedAsset.tag} is now assigned to Floor ${location.floor}, ${location.room}.`)
+    reset({ floor: data.floor, locationKey: data.locationKey })
   }
 
   return <>
-    <ModuleHeading eyebrow="LOCATION CONTROL" title="Assign unassigned devices" description="Select a registered device, then give it a floor, department, and room when its destination is confirmed." />
+    <ModuleHeading eyebrow="LOCATION CONTROL" title="Assign unassigned devices" description="Select a registered device, choose its floor, then select a room or office from that floor." />
     <div className="assignment-layout">
       <article className="module-card transfer-card">
         <div className="assignment-form-heading"><div><AssignmentBadge assigned={false} /><h3>Device assignment</h3><p>Only devices without a hospital location appear here.</p></div><strong>{unassignedAssets.length} waiting</strong></div>
@@ -485,12 +525,11 @@ function AssignmentsPage({ inventoryAssets, onAssign }: { inventoryAssets: Inven
           <label>Unassigned device<select value={selectedAsset.tag} onChange={event => { setSelectedTag(event.target.value); setMessage('') }}>{unassignedAssets.map(item => <option key={item.tag} value={item.tag}>{item.tag} — {item.name}</option>)}</select></label>
           <div className="selected-asset assignment-selected"><span>{selectedAsset.category.slice(0, 2).toUpperCase()}</span><p><b>{selectedAsset.tag}</b><small>{selectedAsset.name} · QR ID {selectedAsset.qrId}</small></p><AssignmentBadge assigned={false} /></div>
           <div className="form-grid">
-            <label>Floor<select {...register('floor')} onChange={e => { register('floor').onChange(e); setValue('department', departmentsByFloor[e.target.value][0]) }}>{Object.keys(departmentsByFloor).map(item => <option key={item} value={item}>Floor {item}</option>)}</select></label>
-            <label>Department<select {...register('department')}>{departmentsByFloor[watchedFloor || '1'].map(item => <option key={item}>{item}</option>)}</select></label>
-            <label className="wide">Room or office<input {...register('room')} placeholder="e.g. Medical Records Archives Room" />{errors.room && <span className="field-error">{errors.room.message}</span>}</label>
+            <label className="wide">Floor<select {...register('floor')} onChange={event => { register('floor').onChange(event); setValue('locationKey', '', { shouldValidate: true }); setMessage('') }}><option value="">Select a floor</option>{Array.from({ length: 7 }, (_, index) => String(index + 1)).map(floor => <option key={floor} value={floor}>Floor {floor}</option>)}</select>{errors.floor && <span className="field-error">{errors.floor.message}</span>}</label>
+            {selectedFloor && <label className="wide">Room name or office<select {...register('locationKey')}><option value="">Select a room or office on Floor {selectedFloor}</option>{roomLocations.filter(location => location.floor === selectedFloor).map(location => <option key={assignmentLocationKey(location)} value={assignmentLocationKey(location)}>{location.room}</option>)}</select>{errors.locationKey && <span className="field-error">{errors.locationKey.message}</span>}</label>}
           </div>
           {message && <div className="assignment-success" role="status">✓ {message}</div>}
-          <div className="form-actions"><button type="button" className="export-btn" onClick={() => reset({ room: '' })}>Clear</button><button type="submit" className="primary-action" disabled={!isValid}>Assign device →</button></div>
+          <div className="form-actions"><button type="button" className="export-btn" onClick={() => reset({ floor: '', locationKey: '' })}>Clear</button><button type="submit" className="primary-action" disabled={!isValid || !selectedLocation}>Assign device →</button></div>
         </form> : <div className="assignment-empty"><span>✓</span><h3>All registered devices are assigned</h3><p>Newly added devices will appear here automatically with an Unassigned label.</p></div>}
       </article>
       <article className="module-card move-summary unassigned-queue"><CardTitle title="Unassigned queue" subtitle="Devices ready for a confirmed location" />{unassignedAssets.length ? unassignedAssets.map((item, index) => <button type="button" className={item.tag === selectedAsset?.tag ? 'queue-device selected' : 'queue-device'} key={item.tag} onClick={() => { setSelectedTag(item.tag); setMessage('') }}><span>{index + 1}</span><div><b>{item.tag}</b><small>{item.name}</small></div><AssignmentBadge assigned={false} /></button>) : <p className="queue-complete">No devices are waiting for assignment.</p>}</article>

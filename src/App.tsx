@@ -10,7 +10,7 @@ import qrScannerIcon from './assets/sidebar/qr-scanner.png'
 import reportsIcon from './assets/sidebar/reports.png'
 import { HospitalBuilding3D } from './components/ui/hospital-building-3d'
 import { Toaster } from './components/ui/toast'
-import { SystemModulePage, type SystemModule } from './pages/SystemPages'
+import { SystemModulePage, type AssignmentTarget, type SystemModule } from './pages/SystemPages'
 
 type Status = 'Active' | 'Maintenance' | 'Broken'
 type Asset = { id: string; name: string; kind: 'Computer' | 'Printer' | 'Monitor'; status: Status; detail: string; ip?: string }
@@ -122,6 +122,7 @@ const computerCount = (roomItem: Room) => roomItem.assets.filter(assetItem => as
 export function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [module, setModule] = useState<SystemModule | 'topology'>('topology')
+  const [assignmentTarget, setAssignmentTarget] = useState<AssignmentTarget | null>(null)
   const [floor, setFloor] = useState<number | null>(null)
   const [roomId, setRoomId] = useState<string | null>(null)
   const [assetId, setAssetId] = useState<string | null>(null)
@@ -142,16 +143,22 @@ export function App() {
   const recentAssets = inventoryAssets.slice(0, 3)
 
   const resetToFloors = () => { setFloor(null); setRoomId(null); setAssetId(null) }
-  const openModule = (next: SystemModule | 'topology') => { setModule(next); resetToFloors(); window.scrollTo({ top: 0, behavior: 'auto' }) }
+  const openModule = (next: SystemModule | 'topology') => { if (next !== 'assignments') setAssignmentTarget(null); setModule(next); resetToFloors(); window.scrollTo({ top: 0, behavior: 'auto' }) }
+  const openRoomAssignment = (targetFloor: number, targetRoom: Room) => {
+    setAssignmentTarget({ floor: String(targetFloor), room: targetRoom.name, department: targetRoom.department })
+    setModule('assignments')
+    resetToFloors()
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  }
 
   return <div className={`app-shell module-${module} ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
     <LiveInvSidebar module={module} expanded={sidebarOpen} onToggle={() => setSidebarOpen(open => !open)} onNavigate={openModule} totalAssets={total} />
     <main>
       <header className="topbar"><div className="crumbs">{module === 'topology' ? <><button onClick={resetToFloors}>Live Mapping</button>{selectedFloor && <><span>/</span><button onClick={() => { setRoomId(null); setAssetId(null) }}>Floor {floor}</button></>}{room && <><span>/</span><button onClick={() => setAssetId(null)}>{room.name}</button></>}{asset && <><span>/</span><b>{asset.id}</b></>}</> : <><span>Hospital Inventory</span><span>/</span><b>{module === 'qr' ? 'QR Scanner' : module === 'network' ? 'Network Registry' : module === 'manual' ? 'System Manual' : module.charAt(0).toUpperCase() + module.slice(1)}</b></>}</div><div className="top-actions"><button className="ghost-btn">⌕ Search</button><button className="bell">◌</button><span className="avatar">AD</span></div></header>
-      {module !== 'topology' && <SystemModulePage module={module} />}
+      {module !== 'topology' && <SystemModulePage module={module} assignmentTarget={assignmentTarget} />}
       {module === 'topology' && !floor && <FloorTopology floors={floors} onSelect={setFloor} />}
-      {module === 'topology' && floor && !room && <FloorView floor={selectedFloor!} onBack={resetToFloors} rooms={roomsByFloor[floor] ?? []} />}
-      {module === 'topology' && floor && room && !asset && <RoomView room={room} floor={floor} onBack={() => setRoomId(null)} onAsset={setAssetId} />}
+      {module === 'topology' && floor && !room && <FloorView floor={selectedFloor!} onBack={resetToFloors} rooms={roomsByFloor[floor] ?? []} onAssignEquipment={targetRoom => openRoomAssignment(floor, targetRoom)} />}
+      {module === 'topology' && floor && room && !asset && <RoomView room={room} floor={floor} onBack={() => setRoomId(null)} onAsset={setAssetId} onAssignEquipment={() => openRoomAssignment(floor, room)} />}
       {module === 'topology' && floor && room && asset && <AssetView room={room} floor={floor} asset={asset} onBack={() => setAssetId(null)} />}
     </main>
     <aside className="insights-panel"><h3>Live status</h3><p className="muted">Hospital inventory at a glance</p><div className="stat"><span>Total assets</span><b>{total}</b><small>Across 7 floors</small></div><div className="status-list"><StatusRow color="green" label="Active" value={String(active)} /><StatusRow color="amber" label="Maintenance" value={String(maintenance)} /><StatusRow color="red" label="Broken" value={String(broken)} /></div><div className="divider"/><h4>Quick actions</h4><button className="quick primary" onClick={() => openModule('assets')}>＋ Add new asset</button><button className="quick" onClick={() => openModule('qr')}>▣ Scan QR code</button><button className="quick" onClick={() => openModule('assignments')}>⇄ Assign an item</button><div className="recent"><h4>Recently added</h4>{recentAssets.map(item => <button key={item.tag} onClick={() => openModule('assets')}><span className={`dot ${item.state.toLowerCase()}`} />{item.tag}<small>{item.category}</small></button>)}</div></aside>
@@ -206,7 +213,7 @@ function FloorTopology({ floors, onSelect }: { floors: Floor[]; onSelect:(id:num
   return <section className="workspace topology-workspace hospital-topology-workspace" aria-label={`${floors.length} hospital floors available`}><div className="section-heading"><span className="eyebrow">VISUAL INVENTORY</span><h1>Hospital topology</h1><p>Rotate the 3D hospital, inspect each floor, and explore its rooms and assigned inventory.</p></div><HospitalBuilding3D floors={modelFloors} onExplore={onSelect} /></section>
 }
 
-function FloorView({ floor, onBack, rooms }: { floor:Floor;onBack:()=>void;rooms:Room[] }) {
+function FloorView({ floor, onBack, rooms, onAssignEquipment }: { floor:Floor;onBack:()=>void;rooms:Room[];onAssignEquipment:(room:Room)=>void }) {
   const [zoom, setZoom] = useState(1)
   const [directoryOpen, setDirectoryOpen] = useState(false)
   const [figmaRoomNames, setFigmaRoomNames] = useState<Record<string, string>>({})
@@ -276,14 +283,10 @@ function FloorView({ floor, onBack, rooms }: { floor:Floor;onBack:()=>void;rooms
   }
 
   return <section className="workspace floor-workspace">
-    <div className="page-heading floor-heading">
-      <div><button className="back" onClick={onBack}>← All floors</button><span className="eyebrow">FLOOR {floor.id} / {floor.label.toUpperCase()}</span><h1>Interactive hospital map</h1><p>Hover over a highlighted room for a summary, then select it to view assigned assets.</p></div>
-      <div className="floor-summary"><b>{rooms.length}</b><span>mapped rooms</span><b>{rooms.reduce((total, item) => total + item.assets.length, 0)}</b><span>demo assets</span></div>
-    </div>
     <div className={`floor-map-layout ${directoryOpen ? '' : 'directory-collapsed'}`}>
       <div className="map-card floor-map-card">
         <div className="map-toolbar">
-          <div><b>{floor.label}</b><span>Interactive room layout</span></div>
+          <div className="map-toolbar-leading"><button type="button" className="map-toolbar-back" onClick={onBack}>← All floors</button><div><b>{floor.label}</b><span>Floor {floor.id} · {rooms.length} mapped rooms</span></div></div>
           <div className="map-toolbar-actions">
             <button
               type="button"
@@ -319,7 +322,7 @@ function FloorView({ floor, onBack, rooms }: { floor:Floor;onBack:()=>void;rooms
         {hoveredRoomDetails.assets.length ? hoveredRoomDetails.assets.slice(0, 4).map(device => <div key={device.id}><i className={`dot ${statusClass(device.status)}`} /><span><b>{device.id}</b><small>{device.kind} · {device.detail}</small></span><em>{device.status}</em></div>) : <div className="room-hover-empty">No devices assigned to this room.</div>}
       </div>
     </div>}
-    {openedRoom && <RoomEquipmentDialog key={openedRoom.id} room={openedRoom} floor={floor.id} onClose={() => setOpenedRoomId(null)} />}
+    {openedRoom && <RoomEquipmentDialog key={openedRoom.id} room={openedRoom} floor={floor.id} onClose={() => setOpenedRoomId(null)} onAssignEquipment={() => onAssignEquipment(openedRoom)} />}
   </section>
 }
 
@@ -427,6 +430,13 @@ function prepareFloorPlanSvg(document: Document) {
   root.setAttribute('class', 'architectural-floor-plan')
   root.querySelectorAll<SVGElement>('[fill="white"]').forEach(background => background.setAttribute('fill', '#F4F6F5'))
   root.querySelectorAll<SVGElement>('[fill="#1E1E1E"]').forEach(background => background.setAttribute('fill', '#E8ECEA'))
+  const floorTitle = /^(?:GROUND|1ST|2ND|3RD|4TH|5TH|6TH|7TH)\s+FLOOR$/i
+  const structuralId = /^(?:Rectangle|Group|Circle|Ellipse|Line|Path|Vector|clip|paint|filter|mask|liveinv)/i
+  root.querySelectorAll<SVGGraphicsElement>('[id]').forEach(element => {
+    const label = cleanFigmaLabel(element.id)
+    if (floorTitle.test(label)) element.remove()
+    else if (label && !structuralId.test(label)) element.classList.add('figma-room-label')
+  })
 
   const defs = svgElement(document, 'defs', {})
   const neutralPattern = svgElement(document, 'pattern', { id: 'liveinv-room-floor', width: '30', height: '30', patternUnits: 'userSpaceOnUse' })
@@ -455,7 +465,21 @@ function decorateRoomShape(document: Document, shape: SVGRectElement, mappedRoom
   parent.insertBefore(group, shape)
   group.appendChild(shape)
   shape.classList.add('svg-room-box')
+  shape.setAttribute('rx', String(Math.min(5, width * .035, height * .035)))
+  shape.setAttribute('ry', String(Math.min(5, width * .035, height * .035)))
   shape.setAttribute('vector-effect', 'non-scaling-stroke')
+
+  const innerWall = svgElement(document, 'rect', {
+    class: 'svg-room-inner-wall',
+    x: String(x + 8),
+    y: String(y + 8),
+    width: String(Math.max(1, width - 16)),
+    height: String(Math.max(1, height - 16)),
+    rx: '3',
+    ry: '3',
+    'vector-effect': 'non-scaling-stroke',
+  })
+  group.appendChild(innerWall)
 
   const title = svgElement(document, 'title', {})
   title.textContent = `${mappedRoom.name} · ${mappedRoom.code} · ${mappedRoom.assets.length} assets`
@@ -481,7 +505,7 @@ function decorateRoomShape(document: Document, shape: SVGRectElement, mappedRoom
 
 type EquipmentFilter = 'All' | Asset['kind']
 
-function RoomEquipmentDialog({ room, floor, onClose }: { room: Room; floor: number; onClose: () => void }) {
+function RoomEquipmentDialog({ room, floor, onClose, onAssignEquipment }: { room: Room; floor: number; onClose: () => void; onAssignEquipment: () => void }) {
   const [filter, setFilter] = useState<EquipmentFilter>('All')
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(room.assets[0]?.id ?? null)
   const selectedAsset = room.assets.find(assetItem => assetItem.id === selectedAssetId) ?? room.assets[0]
@@ -522,7 +546,7 @@ function RoomEquipmentDialog({ room, floor, onClose }: { room: Room; floor: numb
         <div><span className="equipment-kind-icon printer">▤</span><span>Printers</span><b>{counts.Printer}</b></div>
         <div><span className="equipment-kind-icon monitor">▱</span><span>Monitors</span><b>{counts.Monitor}</b></div>
       </div>
-      {room.assets.length === 0 ? <div className="equipment-empty"><span>▣</span><h3>No equipment assigned</h3><p>This room does not currently have registered computers or equipment.</p><button type="button">＋ Assign equipment</button></div> : <div className="room-focus-layout">
+      {room.assets.length === 0 ? <div className="equipment-empty"><span>▣</span><h3>No equipment assigned</h3><p>This room does not currently have registered computers or equipment.</p><button type="button" onClick={() => { onClose(); onAssignEquipment() }}>＋ Assign equipment</button></div> : <div className="room-focus-layout">
         <section className="room-focus-visual" aria-label={`2D view of ${room.name}`}>
           <div className="room-focus-heading"><div><span>2D ROOM VIEW</span><h3>{room.name}</h3></div><strong>{computers.length} PC{computers.length === 1 ? '' : 's'}</strong></div>
           <div className="room-focus-plan">
@@ -566,12 +590,12 @@ function RoomEquipmentDialog({ room, floor, onClose }: { room: Room; floor: numb
   </div>
 }
 
-function RoomView({ room, floor, onBack, onAsset }: { room:Room;floor:number;onBack:()=>void;onAsset:(id:string)=>void }) {
+function RoomView({ room, floor, onBack, onAsset, onAssignEquipment }: { room:Room;floor:number;onBack:()=>void;onAsset:(id:string)=>void;onAssignEquipment:()=>void }) {
   const counts = room.assets.reduce<Record<string, number>>((result, asset) => ({ ...result, [asset.kind]: (result[asset.kind] ?? 0) + 1 }), {})
   return <section className="workspace room-workspace">
-    <div className="page-heading room-heading"><div><button className="back" onClick={onBack}>← Floor {floor} map</button><span className="eyebrow">ROOM {room.code} / FLOOR {floor}</span><h1>{room.name}</h1><p>{room.assets.length} assets assigned · {room.department}</p></div><button className="primary-action">＋ Assign item</button></div>
+    <div className="page-heading room-heading"><div><button className="back" onClick={onBack}>← Floor {floor} map</button><span className="eyebrow">ROOM {room.code} / FLOOR {floor}</span><h1>{room.name}</h1><p>{room.assets.length} assets assigned · {room.department}</p></div><button className="primary-action" onClick={onAssignEquipment}>＋ Assign item</button></div>
     <div className="room-category-strip"><div><span>Total assets</span><b>{room.assets.length}</b></div>{(['Computer', 'Printer', 'Monitor'] as const).map(kind => <div key={kind}><span>{kind}s</span><b>{counts[kind] ?? 0}</b></div>)}<div><span>Room code</span><b>{room.code}</b></div></div>
-    <div className="room-stage"><div className="room-plan"><div className="room-grid"/><div className="plan-title">{room.name}<small>Interactive asset placement · hover or click a marker</small></div><div className="desk desk-one"/><div className="desk desk-two"/><div className="desk desk-three"/>{room.assets.map((item,index) => <button key={item.id} className={`asset-pin pin-${index} ${statusClass(item.status)}`} onClick={() => onAsset(item.id)}><span>{item.kind === 'Printer' ? '▤' : item.kind === 'Monitor' ? '▱' : '▣'}</span><b>{item.id}</b><small>{item.detail}</small></button>)}</div><div className="room-side"><h3>Assets in this room</h3><p className="muted">Select an item to view its details, network data, and assignment history.</p>{room.assets.map(asset => <button className="asset-list-item" key={asset.id} onClick={() => onAsset(asset.id)}><span className={`asset-kind ${statusClass(asset.status)}`}>{asset.kind === 'Printer' ? '▤' : asset.kind === 'Monitor' ? '▱' : '▣'}</span><span><b>{asset.id}</b><small>{asset.detail}</small></span><i>→</i></button>)}<button className="outline-full">＋ Assign item to this room</button></div></div>
+    <div className="room-stage"><div className="room-plan"><div className="room-grid"/><div className="plan-title">{room.name}<small>Interactive asset placement · hover or click a marker</small></div><div className="desk desk-one"/><div className="desk desk-two"/><div className="desk desk-three"/>{room.assets.map((item,index) => <button key={item.id} className={`asset-pin pin-${index} ${statusClass(item.status)}`} onClick={() => onAsset(item.id)}><span>{item.kind === 'Printer' ? '▤' : item.kind === 'Monitor' ? '▱' : '▣'}</span><b>{item.id}</b><small>{item.detail}</small></button>)}</div><div className="room-side"><h3>Assets in this room</h3><p className="muted">Select an item to view its details, network data, and assignment history.</p>{room.assets.map(asset => <button className="asset-list-item" key={asset.id} onClick={() => onAsset(asset.id)}><span className={`asset-kind ${statusClass(asset.status)}`}>{asset.kind === 'Printer' ? '▤' : asset.kind === 'Monitor' ? '▱' : '▣'}</span><span><b>{asset.id}</b><small>{asset.detail}</small></span><i>→</i></button>)}<button className="outline-full" onClick={onAssignEquipment}>＋ Assign item to this room</button></div></div>
   </section>
 }
 

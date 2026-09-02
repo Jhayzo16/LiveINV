@@ -29,9 +29,8 @@ export const deviceRegistrationSchema = z.object({
 export type DeviceRegistrationData = z.infer<typeof deviceRegistrationSchema>
 
 export const deviceAssignmentSchema = z.object({
-  floor: z.string().min(1, 'Floor is required'),
-  department: z.string().min(1, 'Department is required'),
-  room: z.string().min(1, 'Room is required'),
+  floor: z.string().min(1, 'Select a floor'),
+  locationKey: z.string().min(1, 'Select a room or office'),
 })
 
 export type DeviceAssignmentData = z.infer<typeof deviceAssignmentSchema>
