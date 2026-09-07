@@ -728,7 +728,7 @@ function RoomEquipmentDialog({ room, floor, inventoryAssets, availableAssets, on
           {selectedAsset && <article className="room-focus-selected">
             <div className="room-focus-selected-heading"><div><small>SELECTED EQUIPMENT</small><h3>{selectedAsset.id}</h3><p>{selectedAsset.detail}</p></div><em className={statusClass(selectedAsset.status)}><i />{selectedAsset.status}</em></div>
             <div className="room-focus-selected-grid"><Detail label="Type" value={selectedAsset.kind} /><Detail label="Model" value={selectedAsset.detail} /><Detail label="Department" value={selectedAsset.owner} />{selectedAsset.ip && <Detail label="IP address" value={selectedAsset.ip} />}</div>
-            <div className="room-unassign-action"><button type="button" onClick={event => { recordTrigger.current = event.currentTarget; setViewedAssetTag(selectedAsset.id) }}>View record</button><button type="button" disabled={isAssigning || isUnassigning} onClick={() => { setAssignmentError(''); setAssignmentMessage(''); setPendingUnassign(selectedAsset) }}>Unassign from room</button></div>
+            <div className="room-unassign-action"><button type="button" disabled={isAssigning || isUnassigning} onClick={() => { setAssignmentError(''); setAssignmentMessage(''); setPendingUnassign(selectedAsset) }}>Unassign from room</button></div>
             <AssetQrCode tag={selectedAsset.id} qrId={selectedAsset.qrId} />
           </article>}
         </section>
