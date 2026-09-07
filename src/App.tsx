@@ -17,7 +17,7 @@ import reportsIcon from './assets/sidebar/reports.png'
 import { EquipmentEmptyState, EquipmentIcon } from './components/ui/equipment-empty-state'
 import { HospitalBuilding3D } from './components/ui/hospital-building-3d'
 import { Toaster } from './components/ui/toast'
-import { SystemModulePage, type AssignmentTarget, type SystemModule } from './pages/SystemPages'
+import { FullDeviceRecordDialog, SystemModulePage, type AssignmentTarget, type SystemModule } from './pages/SystemPages'
 
 type Status = AssetState
 type AssetKind = DeviceCategory | 'Other'
@@ -393,7 +393,7 @@ function FloorView({ floor, onBack, rooms, inventoryAssets, availableAssets, onA
         </div>
       </> : <EquipmentEmptyState className="room-hover-empty" title="No devices assigned" description="This room is ready for equipment." />}
     </div>}
-    {openedRoom && <RoomEquipmentDialog key={openedRoom.id} room={openedRoom} floor={floor.id} availableAssets={availableAssets} onClose={() => setOpenedRoomId(null)} onAssignAvailableAsset={asset => onAssignAvailableAsset(asset, openedRoom)} onUnassignAsset={tag => onUnassignAsset(tag, openedRoom)} />}
+    {openedRoom && <RoomEquipmentDialog key={openedRoom.id} room={openedRoom} floor={floor.id} inventoryAssets={inventoryAssets} availableAssets={availableAssets} onClose={() => setOpenedRoomId(null)} onAssignAvailableAsset={asset => onAssignAvailableAsset(asset, openedRoom)} onUnassignAsset={tag => onUnassignAsset(tag, openedRoom)} />}
   </section>
 }
 
@@ -590,7 +590,7 @@ function decorateRoomShape(document: Document, shape: SVGRectElement, mappedRoom
 
 type EquipmentFilter = 'All' | Asset['kind']
 
-function RoomEquipmentDialog({ room, floor, availableAssets, onClose, onAssignAvailableAsset, onUnassignAsset }: { room: Room; floor: number; availableAssets: InventoryAsset[]; onClose: () => void; onAssignAvailableAsset: (asset: InventoryAsset) => Promise<void>; onUnassignAsset: (tag: string) => Promise<void> }) {
+function RoomEquipmentDialog({ room, floor, inventoryAssets, availableAssets, onClose, onAssignAvailableAsset, onUnassignAsset }: { room: Room; floor: number; inventoryAssets: InventoryAsset[]; availableAssets: InventoryAsset[]; onClose: () => void; onAssignAvailableAsset: (asset: InventoryAsset) => Promise<void>; onUnassignAsset: (tag: string) => Promise<void> }) {
   const sortedRoomAssets = useMemo(() => [...room.assets].sort((a, b) => assetTagCollator.compare(a.id, b.id)), [room.assets])
   const [filter, setFilter] = useState<EquipmentFilter>('All')
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(sortedRoomAssets[0]?.id ?? null)
@@ -601,6 +601,15 @@ function RoomEquipmentDialog({ room, floor, availableAssets, onClose, onAssignAv
   const [pendingUnassign, setPendingUnassign] = useState<Asset | null>(null)
   const [isUnassigning, setIsUnassigning] = useState(false)
   const mutationPending = useRef(false)
+  const [viewedAssetTag, setViewedAssetTag] = useState<string | null>(null)
+  const viewedAsset = inventoryAssets.find(item => item.tag === viewedAssetTag)
+  const recordTrigger = useRef<HTMLButtonElement | null>(null)
+  useEffect(() => {
+    if (!viewedAsset && recordTrigger.current) {
+      recordTrigger.current.focus()
+      recordTrigger.current = null
+    }
+  }, [viewedAsset])
   const effectiveFilter = filter === 'All' || sortedRoomAssets.some(item => item.kind === filter) ? filter : 'All'
   const filteredAssets = effectiveFilter === 'All' ? sortedRoomAssets : sortedRoomAssets.filter(assetItem => assetItem.kind === effectiveFilter)
   const selectedAsset = filteredAssets.find(assetItem => assetItem.id === selectedAssetId) ?? filteredAssets[0]
@@ -611,10 +620,10 @@ function RoomEquipmentDialog({ room, floor, availableAssets, onClose, onAssignAv
   const representedKinds = equipmentKinds.filter(kind => counts[kind] > 0)
   const filters: EquipmentFilter[] = ['All', ...representedKinds]
   useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => { if (event.key === 'Escape' && !event.defaultPrevented && !pendingUnassign && !mutationPending.current) onClose() }
+    const handleEscape = (event: KeyboardEvent) => { if (event.key === 'Escape' && !event.defaultPrevented && !pendingUnassign && !viewedAsset && !mutationPending.current) onClose() }
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
-  }, [onClose, pendingUnassign])
+  }, [onClose, pendingUnassign, viewedAsset])
 
   useEffect(() => { if (effectiveFilter !== filter) setFilter(effectiveFilter) }, [effectiveFilter, filter])
 
@@ -666,8 +675,8 @@ function RoomEquipmentDialog({ room, floor, availableAssets, onClose, onAssignAv
     }
   }
 
-  return createPortal(<div className="equipment-dialog-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget && !pendingUnassign && !mutationPending.current) onClose() }}>
-    <section className="equipment-dialog" role="dialog" aria-modal="true" aria-labelledby="equipment-dialog-title">
+  return createPortal(<div className="equipment-dialog-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget && !pendingUnassign && !viewedAsset && !mutationPending.current) onClose() }}>
+    <section className="equipment-dialog" role="dialog" aria-modal="true" aria-labelledby="equipment-dialog-title" inert={Boolean(viewedAsset)} aria-hidden={viewedAsset ? true : undefined}>
       <header className="equipment-dialog-header">
         <div><span>FLOOR {floor} · ROOM {room.code}</span><h2 id="equipment-dialog-title">{room.name}</h2><p>{room.department} · Select equipment to view its details.</p></div>
         <button type="button" className="equipment-dialog-close" aria-label="Close equipment popup" disabled={isAssigning || isUnassigning || Boolean(pendingUnassign)} onClick={onClose}>×</button>
@@ -710,11 +719,14 @@ function RoomEquipmentDialog({ room, floor, availableAssets, onClose, onAssignAv
             {filters.map(item => <button type="button" key={item} className={effectiveFilter === item ? 'active' : ''} aria-pressed={effectiveFilter === item} onClick={() => chooseFilter(item)}>{item === 'All' ? `All ${room.assets.length}` : `${equipmentLabels[item]} ${counts[item]}`}</button>)}
           </div>
           <div className="room-focus-device-list" aria-label="Equipment in this room">
-            {filteredAssets.length ? filteredAssets.map(assetItem => <button type="button" key={assetItem.id} aria-label={`Select ${assetItem.id}`} className={assetItem.id === selectedAsset?.id ? 'selected' : ''} onClick={() => setSelectedAssetId(assetItem.id)}>
-              <span className={`equipment-list-icon ${equipmentKindClass(assetItem.kind)}`}><EquipmentIcon kind={assetItem.kind} /></span>
-              <span><b>{assetItem.id}</b><small>{assetItem.detail}</small></span>
-              <i className={`dot ${statusClass(assetItem.status)}`} />
-            </button>) : <EquipmentEmptyState className="equipment-filter-empty" size="compact" kind={filter === 'All' ? 'System Unit' : filter} title={`No ${filter.toLowerCase()} assigned`} description="Choose another equipment filter or assign a matching device." />}
+            {filteredAssets.length ? filteredAssets.map(assetItem => <div key={assetItem.id} className={`room-device-row ${assetItem.id === selectedAsset?.id ? 'selected' : ''}`}>
+              <button type="button" className="room-device-select" aria-label={`Select ${assetItem.id}`} aria-pressed={assetItem.id === selectedAsset?.id} onClick={() => setSelectedAssetId(assetItem.id)}>
+                <span className={`equipment-list-icon ${equipmentKindClass(assetItem.kind)}`}><EquipmentIcon kind={assetItem.kind} /></span>
+                <span><b>{assetItem.id}</b><small>{assetItem.detail}</small></span>
+                <i className={`dot ${statusClass(assetItem.status)}`} />
+              </button>
+              <button type="button" className="room-device-record-button" aria-label={`View record for ${assetItem.id}`} onClick={event => { recordTrigger.current = event.currentTarget; setViewedAssetTag(assetItem.id) }}>View record</button>
+            </div>) : <EquipmentEmptyState className="equipment-filter-empty" size="compact" kind={filter === 'All' ? 'System Unit' : filter} title={`No ${filter.toLowerCase()} assigned`} description="Choose another equipment filter or assign a matching device." />}
           </div>
           {selectedAsset && <article className="room-focus-selected">
             <div className="room-focus-selected-heading"><div><small>SELECTED EQUIPMENT</small><h3>{selectedAsset.id}</h3><p>{selectedAsset.detail}</p></div><em className={statusClass(selectedAsset.status)}><i />{selectedAsset.status}</em></div>
@@ -725,6 +737,7 @@ function RoomEquipmentDialog({ room, floor, availableAssets, onClose, onAssignAv
         </section>
       </div>}
     </section>
+    {viewedAsset && <FullDeviceRecordDialog asset={viewedAsset} onClose={() => setViewedAssetTag(null)} />}
     <AlertDialog open={Boolean(pendingUnassign)} onOpenChange={open => { if (!open && !mutationPending.current) { setPendingUnassign(null); setAssignmentError('') } }}>
       <AlertDialogContent>
         <AlertDialogHeader><AlertDialogTitle>Unassign {pendingUnassign?.id}?</AlertDialogTitle><AlertDialogDescription>Remove this device from {room.name}? Its record and QR number will be kept, and it will be available to assign to another room.</AlertDialogDescription></AlertDialogHeader>

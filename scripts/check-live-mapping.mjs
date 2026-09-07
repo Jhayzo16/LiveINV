@@ -62,6 +62,17 @@ try {
   await expect(page.getByRole('dialog')).toHaveCount(1)
   await expect(page.locator('.device-record-dialog')).toHaveCount(0)
   await expect(dialog.getByText('View record →', { exact: true })).toHaveCount(0)
+  await expect(dialog.getByRole('button', { name: 'View record for AP-OR-03', exact: true })).toHaveCount(1)
+  await dialog.getByRole('button', { name: 'View record for AP-OR-03', exact: true }).click()
+  const fullRecord = page.getByRole('dialog', { name: 'AP-OR-03', exact: true })
+  await expect(fullRecord.getByRole('img', { name: 'QR code for AP-OR-03', exact: true })).toHaveAttribute('src', originalQr)
+  await expect(fullRecord).toContainText('10.20.2.11')
+  await fullRecord.getByRole('button', { name: 'Close', exact: true }).click()
+  await expect(dialog.getByRole('button', { name: 'View record for AP-OR-03', exact: true })).toBeFocused()
+  await dialog.getByRole('button', { name: 'View record for AP-OR-03', exact: true }).click()
+  await fullRecord.press('Escape')
+  await expect(fullRecord).toHaveCount(0)
+  await expect(dialog).toBeVisible()
   const savesBeforeCancel = updateCount
   await dialog.getByRole('button', { name: 'Unassign from room', exact: true }).click()
   await page.getByRole('alertdialog').getByRole('button', { name: 'Cancel', exact: true }).click()
@@ -89,6 +100,26 @@ try {
   await expect(dialog.locator('.room-focus-selected').getByRole('heading', { name: 'TEST-NEW', exact: true })).toBeVisible()
   await expect(dialog.getByRole('img', { name: 'QR code for TEST-NEW', exact: true })).toBeVisible()
   await expect(page.locator('.device-record-dialog')).toHaveCount(0)
+  await dialog.getByRole('button', { name: 'View record for TEST-NEW', exact: true }).click()
+  const pcRecord = page.getByRole('dialog', { name: 'TEST-NEW', exact: true })
+  await expect(pcRecord).toContainText('Intel Core i5 test processor')
+  for (const viewport of [{ width: 1440, height: 1000 }, { width: 1280, height: 720 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport)
+    const clipped = await pcRecord.locator('.device-record-content > section').evaluateAll(sections => sections.filter(section => section.scrollHeight > section.clientHeight + 1).map(section => section.querySelector('h3')?.textContent))
+    expect(clipped, `No hidden detail fields at ${viewport.width} × ${viewport.height}`).toEqual([])
+    for (const title of ['Device identity', 'Hospital assignment', 'System specifications', 'Network information']) {
+      const section = pcRecord.locator('section').filter({ has: page.getByRole('heading', { name: title, exact: true }) })
+      const lastValue = section.locator('dd').last()
+      await lastValue.scrollIntoViewIfNeeded()
+      await expect(lastValue).toBeInViewport({ ratio: 1 })
+    }
+    if (process.env.CAPTURE_MAPPING_UI) {
+      mkdirSync('.tmp', { recursive: true })
+      await page.screenshot({ path: `.tmp/full-record-details-${viewport.width}.png`, animations: 'disabled' })
+    }
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await pcRecord.getByRole('button', { name: 'Close full device record', exact: true }).click()
   await dialog.getByRole('button', { name: 'Routers 1', exact: true }).click()
   await dialog.getByRole('button', { name: 'Unassign from room', exact: true }).click()
   await page.getByRole('alertdialog').getByRole('button', { name: 'Confirm unassign', exact: true }).click()
@@ -122,6 +153,11 @@ try {
     await page.screenshot({ path: '.tmp/room-device-mobile.png' })
     await dialog.getByRole('button', { name: 'Select AP-OR-03', exact: true }).click()
     await expect(page.locator('.device-record-dialog')).toHaveCount(0)
+    await expect(dialog.getByRole('button', { name: 'View record for AP-OR-03', exact: true })).toBeInViewport({ ratio: 1 })
+    await page.screenshot({ path: '.tmp/room-record-button-mobile.png', animations: 'disabled' })
+    await dialog.getByRole('button', { name: 'View record for AP-OR-03', exact: true }).click()
+    await expect(fullRecord).toBeVisible()
+    await fullRecord.getByRole('button', { name: 'Close full device record', exact: true }).click()
     await page.setViewportSize({ width: 1440, height: 1000 })
   }
   await page.reload()
@@ -150,8 +186,10 @@ try {
   await page.locator('.asset-device-card').filter({ hasText: 'AP-OR-03' }).click()
   await expect(page.getByRole('dialog').getByRole('img', { name: 'QR code for AP-OR-03', exact: true })).toHaveAttribute('src', originalQr)
   await expect(page.getByRole('dialog').getByRole('img', { name: 'QR code for AP-OR-03', exact: true })).toBeInViewport({ ratio: 1 })
+  const clippedSections = await page.locator('.device-record-content > section').evaluateAll(sections => sections.filter(section => section.scrollHeight > section.clientHeight + 1).map(section => ({ title: section.querySelector('h3')?.textContent, height: section.clientHeight, contentHeight: section.scrollHeight })))
+  expect(clippedSections, 'Full record sections must not clip their details').toEqual([])
   expect(errors).toEqual([])
-  console.log('Passed: room device selection without opening records, QR labels, room unassignment, cancel, Escape, failed save, category fallback, empty room, reassignment, persistence, missing-room visibility, highlighting, inactive equipment, duplicate room names; no browser errors.')
+  console.log('Passed: separate row selection and View record actions, complete unclipped record details at desktop and mobile sizes, QR labels, room unassignment, cancel, Escape, failed save, category fallback, empty room, reassignment, persistence, missing-room visibility, highlighting, inactive equipment, duplicate room names; no browser errors.')
 } finally {
   await browser.close()
 }

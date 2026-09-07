@@ -238,9 +238,13 @@
 .room-focus-details .equipment-filter-tabs { gap: 5px; margin: 0 -2px 11px; padding: 0; border: 0; background: transparent; }
 .room-focus-details .equipment-filter-tabs button { padding: 6px 9px; }
 .room-focus-device-list { max-height: 176px; overflow-y: auto; display: grid; gap: 6px; padding-right: 3px; }
-.room-focus-device-list > button { width: 100%; border: 1px solid #e3e8e5; border-radius: 10px; display: grid; grid-template-columns: 34px minmax(0, 1fr) 7px; align-items: center; gap: 9px; padding: 8px; background: #fff; color: #2b3730; text-align: left; cursor: pointer; transition: border-color .15s ease, background .15s ease, transform .15s ease; }
-.room-focus-device-list > button:hover, .room-focus-device-list > button:focus-visible { border-color: #9fcbaa; background: #f6fbf7; transform: translateY(-1px); outline: none; }
-.room-focus-device-list > button.selected { border-color: #4ca267; background: #eef8f1; box-shadow: inset 3px 0 #1B6C24; }
+.room-device-row { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; border: 1px solid #e3e8e5; border-radius: 10px; padding-right: 8px; background: #fff; }
+.room-device-row:hover, .room-device-row:focus-within { border-color: #9fcbaa; background: #f6fbf7; }
+.room-device-row.selected { border-color: #4ca267; background: #eef8f1; box-shadow: inset 3px 0 #1B6C24; }
+.room-device-select { width: 100%; min-width: 0; border: 0; border-radius: 10px; display: grid; grid-template-columns: 34px minmax(0, 1fr) 7px; align-items: center; gap: 9px; padding: 8px; background: transparent; color: #2b3730; text-align: left; cursor: pointer; }
+.room-device-record-button { border: 1px solid #dbadb0; border-radius: 7px; padding: 8px 10px; background: #fff; color: #8b1d24; font: inherit; font-size: 10px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.room-device-record-button:hover { background: #fff1f2; }
+.room-device-select:focus-visible, .room-device-record-button:focus-visible { outline: 2px solid #1b6c24; outline-offset: 1px; }
 .room-focus-device-list .equipment-list-icon { width: 34px; height: 34px; border-radius: 9px; font-size: 15px; }
 .room-focus-device-list button > span:nth-child(2) { min-width: 0; }
 .room-focus-device-list button b, .room-focus-device-list button small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
