@@ -1,0 +1,24 @@
+.admin-auth-page { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 32px 20px; background: radial-gradient(ellipse at 15% 15%, #dcebe1 0, transparent 55%), radial-gradient(ellipse at 90% 85%, #efe4df 0, transparent 48%), #f4f7f5; color: #193b2c; }
+.admin-auth-card { width: 100%; max-width: 460px; padding: 38px; background: #fff; border: 1px solid #dce7df; border-radius: 24px; box-shadow: 0 20px 65px #153c2910; }
+.admin-auth-logo { width: 154px; height: auto; object-fit: contain; margin-bottom: 32px; }
+.admin-auth-eyebrow { display: block; font-size: 11px; font-weight: 700; letter-spacing: .14em; color: #417251; margin-bottom: 12px; }
+.admin-auth-card h1 { margin: 0 0 12px; font-size: 30px; line-height: 1.2; letter-spacing: -.04em; }
+.admin-auth-card p { font-size: 14px; line-height: 1.65; color: #63716a; margin: 0 0 24px; }
+.admin-login-form { display: flex; flex-direction: column; gap: 10px; margin-top: 30px; }
+.admin-login-form label { font-size: 13px; font-weight: 600; }
+.admin-login-form > input { margin-bottom: 12px; }
+.admin-login-form input { width: 100%; min-width: 0; border: 1px solid #cddbd2; border-radius: 10px; padding: 13px 14px; font: inherit; font-size: 14px; color: #193b2c; background: #fafcfb; }
+.admin-password-field { position: relative; }
+.admin-password-field input { padding-right: 65px; }
+.admin-password-field button { position: absolute; right: 5px; top: 5px; bottom: 5px; border: 0; border-radius: 6px; background: transparent; color: #385c44; padding: 0 10px; cursor: pointer; }
+.admin-auth-primary, .admin-auth-secondary { width: 100%; min-height: 46px; padding: 12px 18px; font: inherit; font-weight: 600; font-size: 14px; border: 0; border-radius: 10px; cursor: pointer; }
+.admin-auth-primary { background: #2c653e; color: white; margin-top: 14px; }
+.admin-auth-primary:hover { background: #204e2e; }
+.admin-auth-primary:disabled { opacity: .65; cursor: wait; }
+.admin-auth-secondary { color: #345b42; background: #f0f5f1; margin-top: 10px; }
+.admin-auth-page :focus-visible, .admin-sign-out:focus-visible { outline: 3px solid #9abb8d; outline-offset: 3px; }
+.admin-auth-card .admin-auth-error { padding: 10px 12px; margin: 4px 0 0; border-radius: 8px; background: #fff0ef; color: #9a2633; font-size: 13px; }
+.admin-auth-card .admin-auth-help { font-size: 12px; margin: 24px 0; }
+.admin-auth-card footer { border-top: 1px solid #e5ece7; padding-top: 20px; color: #7a877f; font-size: 11px; text-align: center; }
+.admin-sign-out { margin-top: 10px; width: 100%; padding: 9px; border: 1px solid #d6e2d9; border-radius: 9px; background: transparent; color: #315d40; cursor: pointer; font: inherit; font-size: 12px; }
+@media (max-width: 480px) { .admin-auth-page { padding: 20px 14px; } .admin-auth-card { padding: 28px 24px; } .admin-auth-card h1 { font-size: 27px; } }

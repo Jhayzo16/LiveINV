@@ -46,8 +46,8 @@ LiveINV is a visual hospital inventory tracking system designed for Tagum Global
 ## Backend setup
 
 1. Create a Supabase project and add its URL and anon key to `.env` as `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-2. Run every SQL file in `supabase/migrations` in filename order using the Supabase SQL editor or migration tooling.
-3. Start the app. Device registration, editing, assignment, consumable receipts, and live assignment refreshes will use the configured project.
+2. Apply the inventory migrations, then follow [Admin login setup](docs/admin-login-setup.md) to create the admin account and apply the admin access migration. That migration requires the account to exist first.
+3. Start the app and sign in. Device registration, editing, assignment, consumable receipts, and live assignment refreshes use the configured project.
 
 The assignment migration keeps the legacy `location` and `owner` values synchronized while adding structured floor, room, department, time, user, and method fields. This lets existing reports remain compatible while Live Mapping uses stable assignment data.
 
@@ -67,5 +67,5 @@ Shared inventory failures are shown explicitly. Sample records and earlier brows
 npm run build
 ```
 
-If the backend is temporarily unavailable, the app can display its bundled demonstration inventory. Database migrations should be applied before production use.
+The login screen protects all app modules. Supabase access rules must also be applied before production use; see [Admin login setup](docs/admin-login-setup.md). A failed connection shows an error instead of sample inventory.
 

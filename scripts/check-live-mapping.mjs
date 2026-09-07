@@ -1,5 +1,6 @@
 import { chromium, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
+import { mockAdminAuth, signInMockAdmin } from './mock-admin-auth.mjs'
 
 // Browser regression with an intercepted database; no live inventory writes.
 const catalog = JSON.parse(readFileSync(new URL('../src/lib/room-catalog.json', import.meta.url), 'utf8'))
@@ -13,6 +14,7 @@ const rows = [
 const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) })
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
+  await mockAdminAuth(page)
   const errors = []
   page.on('pageerror', error => errors.push(error.message))
   await page.route('**/rest/v1/assets?*', async route => {
@@ -27,11 +29,13 @@ try {
     }
   })
   const openFloor = async floor => {
+    await page.getByRole('navigation').getByRole('button', { name: 'Live Mapping', exact: true }).click()
     await page.getByRole('button', { name: new RegExp(`Select Floor ${floor},`) }).hover()
     await page.getByRole('button', { name: `Explore Floor ${floor}`, exact: true }).click()
     await expect(page.locator('.svg-room-hit-target')).toHaveCount(catalog[floor].rooms.length)
   }
   await page.goto(process.env.TEST_BASE_URL || 'http://localhost:5173')
+  await signInMockAdmin(page)
   await expect(page.getByRole('status').filter({ hasText: 'Loading shared inventory' })).toHaveCount(0)
   await openFloor(2)
   await expect(page.getByRole('region', { name: 'Assets needing a room' })).toContainText('AP-OR-03')

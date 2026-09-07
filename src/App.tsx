@@ -52,10 +52,10 @@ const assetTagCollator = new Intl.Collator('en', { numeric: true, sensitivity: '
 const statusClass = (status: Status) => status.toLowerCase()
 const computerCount = (roomItem: Room) => roomItem.assets.filter(assetItem => assetItem.kind === 'System Unit').length
 
-export function App() {
+export function App({ adminEmail, onSignOut }: { adminEmail?: string; onSignOut: () => Promise<void> }) {
   const queryClient = useQueryClient()
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [module, setModule] = useState<SystemModule | 'topology'>('topology')
+  const [module, setModule] = useState<SystemModule | 'topology'>('dashboard')
   const [assignmentTarget, setAssignmentTarget] = useState<AssignmentTarget | null>(null)
   const [floor, setFloor] = useState<number | null>(null)
   const [roomId, setRoomId] = useState<string | null>(null)
@@ -143,7 +143,7 @@ export function App() {
   }
 
   return <div className={`app-shell module-${module} ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
-    <LiveInvSidebar module={module} expanded={sidebarOpen} onToggle={() => setSidebarOpen(open => !open)} onNavigate={openModule} totalAssets={total} />
+    <LiveInvSidebar module={module} expanded={sidebarOpen} onToggle={() => setSidebarOpen(open => !open)} onNavigate={openModule} totalAssets={total} adminEmail={adminEmail} onSignOut={onSignOut} />
     <main>
       {inventoryError && <div className="unresolved-locations" role="alert">Shared inventory could not be refreshed. {inventoryAssets.length ? 'The last loaded records are shown.' : 'Asset counts are unavailable.'} <button type="button" onClick={() => void refetchInventoryAssets()}>Retry inventory</button></div>}
       {inventoryLoading && <p role="status">Loading shared inventory…</p>}
@@ -160,12 +160,14 @@ export function App() {
   </div>
 }
 
-function LiveInvSidebar({ module, expanded, onToggle, onNavigate, totalAssets = 0 }: {
+function LiveInvSidebar({ module, expanded, onToggle, onNavigate, totalAssets = 0, adminEmail, onSignOut }: {
   module: SystemModule | 'topology'
   expanded: boolean
   onToggle: () => void
   onNavigate: (module: SystemModule | 'topology') => void
   totalAssets?: number
+  adminEmail?: string
+  onSignOut: () => Promise<void>
 }) {
   const activeNavIndex = ['dashboard', 'topology', 'assets', 'consumables', 'assignments', 'qr', 'reports', 'manual'].indexOf(module)
 
@@ -197,6 +199,7 @@ function LiveInvSidebar({ module, expanded, onToggle, onNavigate, totalAssets = 
     </div>
     <footer className="liveinv-sidebar-footer">
       <div className="sidebar-profile-button sidebar-admin-profile" aria-label="Current user: Admin"><span className="avatar">AD</span><span className="sidebar-profile-copy"><b>Admin</b><small>Administrator</small></span></div>
+      <button type="button" className="admin-sign-out" title={adminEmail ? `Sign out ${adminEmail}` : 'Sign out'} onClick={() => void onSignOut()}>Sign out</button>
     </footer>
   </aside>
 }

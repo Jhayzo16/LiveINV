@@ -93,6 +93,12 @@ type ConsumableReceiptInsert = {
 export interface Database {
   public: {
     Tables: {
+      admin_users: {
+        Row: { user_id: string; created_at: string }
+        Insert: { user_id: string; created_at?: string }
+        Update: { user_id?: string; created_at?: string }
+        Relationships: []
+      }
       assets: {
         Row: AssetRow
         Insert: AssetInsert
