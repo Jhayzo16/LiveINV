@@ -1,5 +1,5 @@
 import { chromium, expect } from '@playwright/test'
-import { readFileSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import { mockAdminAuth, signInMockAdmin } from './mock-admin-auth.mjs'
 
 // Browser regression with an intercepted database; no live inventory writes.
@@ -9,17 +9,25 @@ const rows = [
   { tag: 'AP-OR-03', name: 'Aruba AP-515', category: 'Router', location: 'F2 · Operating Room', state: 'Active', owner: 'IT Department', ip: '10.20.2.11' },
   { tag: 'MON-HR-04', name: 'Dell Monitor', category: 'Monitor', location: 'F5 · HR Office', state: 'Active', owner: 'Human Resources', ip: '—' },
   { tag: 'UPS-LAB-02', name: 'APC UPS', category: 'UPS', location: 'F1 · Laboratory', state: 'Inactive', owner: 'Laboratory', ip: '—' },
-  { tag: 'TEST-NEW', name: 'Test PC', category: 'System Unit', location: 'Unassigned', state: 'Active', owner: 'Unassigned', ip: '—' },
+  { tag: 'TEST-NEW', name: 'Test PC', category: 'System Unit', location: 'Unassigned', state: 'Active', owner: 'Unassigned', ip: '—', processor: 'Intel Core i5 test processor' },
 ].map((row, index) => ({ ...row, id: String(index), qr_id: `LIV-TEST${index}`, created_at: '2026-09-05T00:00:00Z' }))
 const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) })
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
   await mockAdminAuth(page)
   const errors = []
+  let rejectNextUpdate = false
+  let updateCount = 0
   page.on('pageerror', error => errors.push(error.message))
   await page.route('**/rest/v1/assets?*', async route => {
     const request = route.request()
     if (request.method() === 'PATCH') {
+      updateCount++
+      if (rejectNextUpdate) {
+        rejectNextUpdate = false
+        await route.fulfill({ status: 500, json: { message: 'Test save failure' } })
+        return
+      }
       const tag = new URL(request.url()).searchParams.get('tag').replace(/^eq\./, '')
       const row = rows.find(row => row.tag === tag)
       Object.assign(row, request.postDataJSON())
@@ -46,6 +54,94 @@ try {
   await page.locator(`.svg-room-hit-target[data-room-id="${roomId(2, 'MAJOR OR 1')}"]`).press('Enter')
   await expect(page.getByRole('dialog')).toContainText('AP-OR-03')
   await expect(page.getByRole('dialog')).toContainText('IT Department')
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('img', { name: 'QR code for AP-OR-03', exact: true })).toBeVisible()
+  await expect(dialog).toContainText('LIV-TEST0')
+  const originalQr = await dialog.getByRole('img', { name: 'QR code for AP-OR-03', exact: true }).getAttribute('src')
+  const savesBeforeViewing = updateCount
+  await dialog.getByRole('button', { name: 'View record for AP-OR-03', exact: true }).click()
+  const fullRecord = page.getByRole('dialog', { name: 'AP-OR-03', exact: true })
+  await expect(fullRecord.getByRole('heading', { name: 'Device identity' })).toBeVisible()
+  await expect(fullRecord).toContainText('10.20.2.11')
+  await expect(fullRecord).toContainText('IT Department')
+  await expect(fullRecord.getByRole('img', { name: 'QR code for AP-OR-03', exact: true })).toHaveAttribute('src', originalQr)
+  await expect(fullRecord.locator('.device-record-content > :first-child')).toHaveClass('asset-qr-label')
+  await expect(fullRecord.getByRole('img', { name: 'QR code for AP-OR-03', exact: true })).toBeInViewport({ ratio: 1 })
+  await expect(page.locator('.equipment-dialog')).toHaveAttribute('inert', '')
+  await fullRecord.getByRole('button', { name: 'Close', exact: true }).click()
+  await expect(page.locator('.equipment-dialog')).not.toHaveAttribute('inert', '')
+  await expect(dialog.getByRole('button', { name: 'View record for AP-OR-03', exact: true })).toBeFocused()
+  await dialog.getByRole('button', { name: 'View record', exact: true }).click()
+  await fullRecord.press('Escape')
+  await expect(fullRecord).toHaveCount(0)
+  await expect(dialog).toBeVisible()
+  expect(updateCount).toBe(savesBeforeViewing)
+  const savesBeforeCancel = updateCount
+  await dialog.getByRole('button', { name: 'Unassign from room', exact: true }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Cancel', exact: true }).click()
+  expect(updateCount).toBe(savesBeforeCancel)
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: 'Unassign from room', exact: true }).click()
+  await page.getByRole('alertdialog').press('Escape')
+  await expect(page.getByRole('alertdialog')).toHaveCount(0)
+  await expect(dialog).toBeVisible()
+  expect(updateCount).toBe(savesBeforeCancel)
+
+  // A rejected save leaves both the record and room intact and allows retry.
+  rejectNextUpdate = true
+  await dialog.getByRole('button', { name: 'Unassign from room', exact: true }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Confirm unassign', exact: true }).click()
+  await expect(page.getByRole('alertdialog').getByRole('alert')).toContainText('Test save failure')
+  expect(rows[0].assignment_room_id).toBe(roomId(2, 'MAJOR OR 1'))
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Cancel', exact: true }).click()
+
+  // Removing the last device in the selected category selects the remaining device.
+  await dialog.getByLabel('Available asset or device').selectOption('TEST-NEW')
+  await dialog.getByRole('button', { name: 'Assign to this room', exact: true }).click()
+  await expect(dialog.getByRole('button', { name: 'All 2', exact: true })).toBeVisible()
+  await dialog.getByRole('button', { name: 'View record for TEST-NEW', exact: true }).click()
+  const pcRecord = page.getByRole('dialog', { name: 'TEST-NEW', exact: true })
+  await expect(pcRecord).toContainText('Intel Core i5 test processor')
+  await expect(pcRecord.getByRole('img', { name: 'QR code for TEST-NEW', exact: true })).toBeVisible()
+  await pcRecord.getByRole('button', { name: 'Close full device record', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Routers 1', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Unassign from room', exact: true }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Confirm unassign', exact: true }).click()
+  await expect(page.getByRole('alertdialog')).toHaveCount(0)
+  await expect(dialog.getByRole('status')).toContainText('AP-OR-03 was unassigned')
+  await expect(dialog.getByRole('img', { name: 'QR code for TEST-NEW', exact: true })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'All 1', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  expect(rows[0].location).toBe('Unassigned')
+  expect(rows[0].assignment_room_id).toBeNull()
+  expect(rows[0].qr_id).toBe('LIV-TEST0')
+  await expect(dialog.getByLabel('Available asset or device').locator('option[value="AP-OR-03"]')).toHaveCount(1)
+
+  // Empty rooms lose their map highlight; both devices remain available.
+  await dialog.getByRole('button', { name: 'Unassign from room', exact: true }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Confirm unassign', exact: true }).click()
+  await expect(dialog).toContainText('No equipment assigned')
+  await expect(page.locator(`.svg-room-node[data-room-id="${roomId(2, 'MAJOR OR 1')}"]`)).not.toHaveClass(/has-device/)
+  await page.reload()
+  await openFloor(2)
+  await page.locator(`.svg-room-hit-target[data-room-id="${roomId(2, 'MAJOR OR 1')}"]`).press('Enter')
+  await expect(dialog).toContainText('No equipment assigned')
+  await dialog.getByLabel('Available asset or device').selectOption('AP-OR-03')
+  await dialog.getByRole('button', { name: 'Assign to this room', exact: true }).click()
+  await expect(dialog.getByRole('img', { name: 'QR code for AP-OR-03', exact: true })).toHaveAttribute('src', originalQr)
+  if (process.env.CAPTURE_MAPPING_UI) {
+    mkdirSync('.tmp', { recursive: true })
+    await page.screenshot({ path: '.tmp/room-device-desktop.png' })
+    await page.setViewportSize({ width: 390, height: 844 })
+    await dialog.locator('.asset-qr-copy').scrollIntoViewIfNeeded()
+    expect(await dialog.locator('.room-focus-layout').evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+    await page.screenshot({ path: '.tmp/room-device-mobile.png' })
+    await dialog.getByRole('button', { name: 'View record', exact: true }).click()
+    await expect(fullRecord).toBeVisible()
+    await expect(fullRecord.getByRole('img', { name: 'QR code for AP-OR-03', exact: true })).toBeInViewport({ ratio: 1 })
+    await page.screenshot({ path: '.tmp/room-full-record-mobile.png', animations: 'disabled' })
+    await fullRecord.getByRole('button', { name: 'Close full device record', exact: true }).click()
+    await page.setViewportSize({ width: 1440, height: 1000 })
+  }
   await page.reload()
   await openFloor(2)
   await expect(page.locator(`.svg-room-node[data-room-id="${roomId(2, 'MAJOR OR 1')}"]`)).toHaveClass(/has-device/)
@@ -68,8 +164,12 @@ try {
   await expect(page.getByRole('region', { name: 'Assets needing a room' })).toContainText('MON-HR-04')
   await expect(page.locator(`.svg-room-node[data-room-id="${privateRooms[1].id}"]`)).toHaveClass(/has-device/)
   await expect(page.locator(`.svg-room-node[data-room-id="${privateRooms[0].id}"]`)).not.toHaveClass(/has-device/)
+  await page.getByRole('navigation').getByRole('button', { name: /^Assets/ }).click()
+  await page.locator('.asset-device-card').filter({ hasText: 'AP-OR-03' }).click()
+  await expect(page.getByRole('dialog').getByRole('img', { name: 'QR code for AP-OR-03', exact: true })).toHaveAttribute('src', originalQr)
+  await expect(page.getByRole('dialog').getByRole('img', { name: 'QR code for AP-OR-03', exact: true })).toBeInViewport({ ratio: 1 })
   expect(errors).toEqual([])
-  console.log('Passed: missing-room visibility, assignment save, reload, highlighting, inactive equipment, duplicate room names, shared assignment IDs; no browser errors.')
+  console.log('Passed: full records from room devices, canonical specifications, nested popup close and focus, QR labels, room unassignment, cancel, Escape, failed save, category fallback, empty room, reassignment, persistence, missing-room visibility, highlighting, inactive equipment, duplicate room names; no browser errors.')
 } finally {
   await browser.close()
 }

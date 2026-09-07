@@ -584,7 +584,7 @@
 
 .device-record-backdrop {
   position: fixed;
-  z-index: 220;
+  z-index: 1100;
   inset: 0;
   display: grid;
   place-items: center;
@@ -650,6 +650,7 @@
 }
 
 .device-record-content > section { min-width: 0; border: 1px solid #e0e7e2; border-radius: 13px; overflow: hidden; background: #fff; }
+.device-record-content > .asset-qr-label { grid-column: 1 / -1; }
 .device-record-preview-card {
   grid-column: 1 / -1;
   min-height: 150px;

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -9,6 +10,7 @@ import { assignmentLocations } from '../lib/rooms'
 import { assignAsset, floorIdFromLocation, isAssetAssigned, unassignAsset } from '../lib/assignments'
 import { BrowserQRCodeReader, type IScannerControls } from '@zxing/browser'
 import QRCode from 'qrcode'
+import { AssetQrCode } from '../components/ui/asset-qr-code'
 import { toast } from '@/components/ui/toast'
 import { EquipmentEmptyState, EquipmentIcon, type EquipmentKind } from '@/components/ui/equipment-empty-state'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -675,7 +677,10 @@ function QrAssetDetails({ asset, onClear, onUpdate }: { asset: InventoryAsset; o
   </div>
 }
 
-function FullDeviceRecordDialog({ asset, onClose, onEdit }: { asset: InventoryAsset; onClose: () => void; onEdit?: () => void }) {
+export function FullDeviceRecordDialog({ asset, onClose, onEdit }: { asset: InventoryAsset; onClose: () => void; onEdit?: () => void }) {
+  const dialogRef = useRef<HTMLElement>(null)
+  const closeRef = useRef(onClose)
+  closeRef.current = onClose
   const assigned = isAssetAssigned(asset)
   const [floorCode, legacyRoomName = 'Not assigned'] = asset.location.split(' · ')
   const roomName = asset.assignment?.roomName || legacyRoomName
@@ -684,16 +689,33 @@ function FullDeviceRecordDialog({ asset, onClose, onEdit }: { asset: InventoryAs
   const supportsNetwork = asset.category === 'System Unit' || asset.category === 'Printer' || asset.category === 'Router'
 
   useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
+    const previousFocus = document.activeElement as HTMLElement | null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    dialogRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); closeRef.current(); return }
+      if (event.key !== 'Tab') return
+      const controls = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])') ?? [])
+      const first = controls[0]
+      const last = controls[controls.length - 1]
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+    }
     window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [onClose])
+    return () => {
+      window.removeEventListener('keydown', closeOnEscape)
+      document.body.style.overflow = previousOverflow
+      previousFocus?.focus()
+    }
+  }, [])
 
-  return <div className="device-record-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
-    <section className="device-record-dialog" role="dialog" aria-modal="true" aria-labelledby="device-record-title">
+  return createPortal(<div className="device-record-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
+    <section ref={dialogRef} className="device-record-dialog" role="dialog" aria-modal="true" aria-labelledby="device-record-title">
       <header className="device-record-header"><div><span>FULL DEVICE RECORD</span><h2 id="device-record-title">{asset.tag}</h2><p>{asset.name}</p></div><button type="button" aria-label="Close full device record" onClick={onClose}>×</button></header>
       <div className="device-record-status"><div><span>QR fallback ID</span><b className="mono">{asset.qrId}</b></div><div><span>Category</span><b>{asset.category}</b></div><div><span>Assignment</span><AssignmentBadge assigned={assigned} /></div><div><span>Status</span><StatusBadge state={asset.state} /></div></div>
       <div className="device-record-content">
+        <AssetQrCode tag={asset.tag} qrId={asset.qrId} />
         <section className="device-record-preview-card"><DevicePreview asset={asset} className="device-record-preview" /><div><span>DEVICE PREVIEW</span><h3>{asset.category}</h3><p>{asset.brand || 'Brand not recorded'} · {asset.model || asset.name}</p><small>Visual reference for quick equipment identification.</small></div></section>
         <section><h3>Device identity</h3><dl><div><dt>Asset tag</dt><dd>{asset.tag}</dd></div><div><dt>QR identification ID</dt><dd className="mono">{asset.qrId}</dd></div><div><dt>Brand</dt><dd>{asset.brand || 'Not recorded'}</dd></div><div><dt>Model</dt><dd>{asset.model || asset.name}</dd></div></dl></section>
         <section><h3>Hospital assignment</h3><dl><div><dt>Assignment status</dt><dd>{assigned ? 'Assigned' : 'Unassigned'}</dd></div><div><dt>Floor</dt><dd>{floorLabel}</dd></div><div><dt>Room</dt><dd>{assigned ? roomName : 'Not assigned'}</dd></div><div><dt>Department</dt><dd>{assigned ? (asset.assignment?.departmentId || asset.owner) : 'Not assigned'}</dd></div>{asset.assignment && <><div><dt>Assigned by</dt><dd>{asset.assignment.assignedBy}</dd></div><div><dt>Assigned on</dt><dd>{new Date(asset.assignment.assignedAt).toLocaleString()}</dd></div><div><dt>Method</dt><dd>{asset.assignment.method === 'qr' ? 'QR scan' : 'Manual assignment'}</dd></div></>}</dl></section>
@@ -702,7 +724,7 @@ function FullDeviceRecordDialog({ asset, onClose, onEdit }: { asset: InventoryAs
       </div>
       <footer className="device-record-actions"><button type="button" className="export-btn" onClick={onClose}>Close</button>{onEdit && <button type="button" className="primary-action" onClick={onEdit}>Edit device</button>}</footer>
     </section>
-  </div>
+  </div>, document.body)
 }
 
 function NetworkPage({ inventoryAssets }: { inventoryAssets: InventoryAsset[] }) {

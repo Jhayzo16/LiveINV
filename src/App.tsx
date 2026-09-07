@@ -3,7 +3,9 @@ import { createPortal } from 'react-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AssetRepository } from './lib/repositories'
 import { type AssetState, type DeviceCategory, type InventoryAsset } from './lib/types'
-import { resolveAssetRoom, assignAsset, floorIdFromLocation, isAssetAssigned } from './lib/assignments'
+import { resolveAssetRoom, assignAsset, floorIdFromLocation, isAssetAssigned, unassignAsset } from './lib/assignments'
+import { AssetQrCode } from './components/ui/asset-qr-code'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './components/ui/alert-dialog'
 import { hospitalFloors, hospitalRooms } from './lib/rooms'
 import liveInvLogo from './assets/liveinv-logo.png'
 import dashboardIcon from './assets/sidebar/dashboard.png'
@@ -15,11 +17,11 @@ import reportsIcon from './assets/sidebar/reports.png'
 import { EquipmentEmptyState, EquipmentIcon } from './components/ui/equipment-empty-state'
 import { HospitalBuilding3D } from './components/ui/hospital-building-3d'
 import { Toaster } from './components/ui/toast'
-import { SystemModulePage, type AssignmentTarget, type SystemModule } from './pages/SystemPages'
+import { FullDeviceRecordDialog, SystemModulePage, type AssignmentTarget, type SystemModule } from './pages/SystemPages'
 
 type Status = AssetState
 type AssetKind = DeviceCategory | 'Other'
-type Asset = { id: string; name: string; kind: AssetKind; status: Status; detail: string; owner: string; ip?: string }
+type Asset = { id: string; qrId: string; name: string; kind: AssetKind; status: Status; detail: string; owner: string; ip?: string }
 type Room = { shapeId: string; legacyIds: string[]; id: string; floor: number; name: string; code: string; department: string; assets: Asset[]; x: number; y: number; w: number; h: number }
 type Floor = { id: number; label: string; assets: number }
 
@@ -84,6 +86,7 @@ export function App({ adminEmail, onSignOut }: { adminEmail?: string; onSignOut:
           const kind = assetKind(a.category)
           return {
             id: a.tag,
+            qrId: a.qrId,
             name: a.name,
             owner: a.assignment?.departmentId || a.owner,
             status: a.state as Status,
@@ -142,6 +145,18 @@ export function App({ adminEmail, onSignOut }: { adminEmail?: string; onSignOut:
     await refetchInventoryAssets()
   }
 
+  const unassignRoomAsset = async (tag: string, targetRoom: Room) => {
+    const record = inventoryAssets.find(item => item.tag === tag)
+    if (!record || resolveAssetRoom(record, dynamicAllRooms)?.id !== targetRoom.id) {
+      throw new Error('This device is no longer assigned to this room. Refresh the inventory and try again.')
+    }
+    const updated = unassignAsset(record)
+    await AssetRepository.update(tag, updated)
+    await queryClient.cancelQueries({ queryKey: ['assets'] })
+    queryClient.setQueryData<InventoryAsset[]>(['assets'], current => current?.map(item => item.tag === tag ? updated : item))
+    await queryClient.invalidateQueries({ queryKey: ['assets'] })
+  }
+
   return <div className={`app-shell module-${module} ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
     <LiveInvSidebar module={module} expanded={sidebarOpen} onToggle={() => setSidebarOpen(open => !open)} onNavigate={openModule} totalAssets={total} adminEmail={adminEmail} onSignOut={onSignOut} />
     <main>
@@ -151,7 +166,7 @@ export function App({ adminEmail, onSignOut }: { adminEmail?: string; onSignOut:
       <header className="topbar"><div className="crumbs">{module === 'topology' ? <><button onClick={resetToFloors}>Live Mapping</button>{selectedFloor && <><span>/</span><button onClick={() => { setRoomId(null); setAssetId(null) }}>Floor {floor}</button></>}{room && <><span>/</span><button onClick={() => setAssetId(null)}>{room.name}</button></>}{asset && <><span>/</span><b>{asset.id}</b></>}</> : <><span>Hospital Inventory</span><span>/</span><b>{module === 'qr' ? 'QR Scanner' : module === 'network' ? 'Network Registry' : module === 'manual' ? 'System Manual' : module.charAt(0).toUpperCase() + module.slice(1)}</b></>}</div><div className="top-actions"><button className="ghost-btn">⌕ Search</button><button className="bell">◌</button><span className="avatar">AD</span></div></header>
       {module !== 'topology' && <SystemModulePage module={module} assignmentTarget={assignmentTarget} />}
       {module === 'topology' && !floor && <FloorTopology floors={liveFloors} onSelect={setFloor} />}
-      {module === 'topology' && floor && !room && <FloorView floor={selectedFloor!} onBack={resetToFloors} rooms={dynamicRoomsByFloor[floor] ?? []} inventoryAssets={inventoryAssets} availableAssets={availableAssets} onAssignAvailableAsset={assignAvailableAssetToRoom} />}
+      {module === 'topology' && floor && !room && <FloorView floor={selectedFloor!} onBack={resetToFloors} rooms={dynamicRoomsByFloor[floor] ?? []} inventoryAssets={inventoryAssets} availableAssets={availableAssets} onAssignAvailableAsset={assignAvailableAssetToRoom} onUnassignAsset={unassignRoomAsset} />}
       {module === 'topology' && floor && room && !asset && <RoomView room={room} floor={floor} onBack={() => setRoomId(null)} onAsset={setAssetId} onAssignEquipment={() => openRoomAssignment(floor, room)} />}
       {module === 'topology' && floor && room && asset && <AssetView room={room} floor={floor} asset={asset} onBack={() => setAssetId(null)} />}
     </main>
@@ -211,7 +226,7 @@ function FloorTopology({ floors, onSelect }: { floors: Floor[]; onSelect:(id:num
   return <section className="workspace topology-workspace hospital-topology-workspace" aria-label={`${floors.length} hospital floors available`}><div className="section-heading"><span className="eyebrow">VISUAL INVENTORY</span><h1>Hospital topology</h1><p>Rotate the 3D hospital, inspect each floor, and explore its rooms and assigned inventory.</p></div><HospitalBuilding3D floors={modelFloors} onExplore={onSelect} /></section>
 }
 
-function FloorView({ floor, onBack, rooms, inventoryAssets, availableAssets, onAssignAvailableAsset }: { floor:Floor;onBack:()=>void;rooms:Room[];inventoryAssets:InventoryAsset[];availableAssets:InventoryAsset[];onAssignAvailableAsset:(asset:InventoryAsset,room:Room)=>Promise<void> }) {
+function FloorView({ floor, onBack, rooms, inventoryAssets, availableAssets, onAssignAvailableAsset, onUnassignAsset }: { floor:Floor;onBack:()=>void;rooms:Room[];inventoryAssets:InventoryAsset[];availableAssets:InventoryAsset[];onAssignAvailableAsset:(asset:InventoryAsset,room:Room)=>Promise<void>;onUnassignAsset:(tag:string,room:Room)=>Promise<void> }) {
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
@@ -378,7 +393,7 @@ function FloorView({ floor, onBack, rooms, inventoryAssets, availableAssets, onA
         </div>
       </> : <EquipmentEmptyState className="room-hover-empty" title="No devices assigned" description="This room is ready for equipment." />}
     </div>}
-    {openedRoom && <RoomEquipmentDialog key={openedRoom.id} room={openedRoom} floor={floor.id} availableAssets={availableAssets} onClose={() => setOpenedRoomId(null)} onAssignAvailableAsset={asset => onAssignAvailableAsset(asset, openedRoom)} />}
+    {openedRoom && <RoomEquipmentDialog key={openedRoom.id} room={openedRoom} floor={floor.id} inventoryAssets={inventoryAssets} availableAssets={availableAssets} onClose={() => setOpenedRoomId(null)} onAssignAvailableAsset={asset => onAssignAvailableAsset(asset, openedRoom)} onUnassignAsset={tag => onUnassignAsset(tag, openedRoom)} />}
   </section>
 }
 
@@ -575,7 +590,7 @@ function decorateRoomShape(document: Document, shape: SVGRectElement, mappedRoom
 
 type EquipmentFilter = 'All' | Asset['kind']
 
-function RoomEquipmentDialog({ room, floor, availableAssets, onClose, onAssignAvailableAsset }: { room: Room; floor: number; availableAssets: InventoryAsset[]; onClose: () => void; onAssignAvailableAsset: (asset: InventoryAsset) => Promise<void> }) {
+function RoomEquipmentDialog({ room, floor, inventoryAssets, availableAssets, onClose, onAssignAvailableAsset, onUnassignAsset }: { room: Room; floor: number; inventoryAssets: InventoryAsset[]; availableAssets: InventoryAsset[]; onClose: () => void; onAssignAvailableAsset: (asset: InventoryAsset) => Promise<void>; onUnassignAsset: (tag: string) => Promise<void> }) {
   const sortedRoomAssets = useMemo(() => [...room.assets].sort((a, b) => assetTagCollator.compare(a.id, b.id)), [room.assets])
   const [filter, setFilter] = useState<EquipmentFilter>('All')
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(sortedRoomAssets[0]?.id ?? null)
@@ -583,8 +598,21 @@ function RoomEquipmentDialog({ room, floor, availableAssets, onClose, onAssignAv
   const [isAssigning, setIsAssigning] = useState(false)
   const [assignmentMessage, setAssignmentMessage] = useState('')
   const [assignmentError, setAssignmentError] = useState('')
-  const selectedAsset = sortedRoomAssets.find(assetItem => assetItem.id === selectedAssetId) ?? sortedRoomAssets[0]
-  const filteredAssets = filter === 'All' ? sortedRoomAssets : sortedRoomAssets.filter(assetItem => assetItem.kind === filter)
+  const [pendingUnassign, setPendingUnassign] = useState<Asset | null>(null)
+  const [isUnassigning, setIsUnassigning] = useState(false)
+  const mutationPending = useRef(false)
+  const [viewedAssetTag, setViewedAssetTag] = useState<string | null>(null)
+  const viewedAsset = inventoryAssets.find(item => item.tag === viewedAssetTag)
+  const recordTrigger = useRef<HTMLButtonElement | null>(null)
+  useEffect(() => {
+    if (!viewedAsset && recordTrigger.current) {
+      recordTrigger.current.focus()
+      recordTrigger.current = null
+    }
+  }, [viewedAsset])
+  const effectiveFilter = filter === 'All' || sortedRoomAssets.some(item => item.kind === filter) ? filter : 'All'
+  const filteredAssets = effectiveFilter === 'All' ? sortedRoomAssets : sortedRoomAssets.filter(assetItem => assetItem.kind === effectiveFilter)
+  const selectedAsset = filteredAssets.find(assetItem => assetItem.id === selectedAssetId) ?? filteredAssets[0]
   const counts = room.assets.reduce<Record<AssetKind, number>>((result, assetItem) => {
     result[assetItem.kind] += 1
     return result
@@ -592,10 +620,12 @@ function RoomEquipmentDialog({ room, floor, availableAssets, onClose, onAssignAv
   const representedKinds = equipmentKinds.filter(kind => counts[kind] > 0)
   const filters: EquipmentFilter[] = ['All', ...representedKinds]
   useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
+    const handleEscape = (event: KeyboardEvent) => { if (event.key === 'Escape' && !event.defaultPrevented && !pendingUnassign && !viewedAsset && !mutationPending.current) onClose() }
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
-  }, [onClose])
+  }, [onClose, pendingUnassign, viewedAsset])
+
+  useEffect(() => { if (effectiveFilter !== filter) setFilter(effectiveFilter) }, [effectiveFilter, filter])
 
   useEffect(() => {
     if (!availableAssets.some(assetItem => assetItem.tag === availableAssetTag)) {
@@ -611,7 +641,8 @@ function RoomEquipmentDialog({ room, floor, availableAssets, onClose, onAssignAv
 
   const assignSelectedAsset = async () => {
     const availableAsset = availableAssets.find(assetItem => assetItem.tag === availableAssetTag)
-    if (!availableAsset) return
+    if (!availableAsset || mutationPending.current) return
+    mutationPending.current = true
     setAssignmentMessage('')
     setAssignmentError('')
     setIsAssigning(true)
@@ -621,15 +652,34 @@ function RoomEquipmentDialog({ room, floor, availableAssets, onClose, onAssignAv
     } catch (error) {
       setAssignmentError(error instanceof Error ? error.message : 'The asset could not be assigned. Please try again.')
     } finally {
+      mutationPending.current = false
       setIsAssigning(false)
     }
   }
 
-  return createPortal(<div className="equipment-dialog-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
-    <section className="equipment-dialog" role="dialog" aria-modal="true" aria-labelledby="equipment-dialog-title">
+  const confirmUnassign = async () => {
+    if (!pendingUnassign || mutationPending.current) return
+    mutationPending.current = true
+    setIsUnassigning(true)
+    setAssignmentMessage('')
+    setAssignmentError('')
+    try {
+      await onUnassignAsset(pendingUnassign.id)
+      setAssignmentMessage(`${pendingUnassign.id} was unassigned from ${room.name} and is available for reassignment.`)
+      setPendingUnassign(null)
+    } catch (error) {
+      setAssignmentError(error instanceof Error ? error.message : 'The device could not be unassigned. Please try again.')
+    } finally {
+      mutationPending.current = false
+      setIsUnassigning(false)
+    }
+  }
+
+  return createPortal(<div className="equipment-dialog-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget && !pendingUnassign && !viewedAsset && !mutationPending.current) onClose() }}>
+    <section className="equipment-dialog" role="dialog" aria-modal="true" aria-labelledby="equipment-dialog-title" inert={Boolean(viewedAsset)} aria-hidden={viewedAsset ? true : undefined}>
       <header className="equipment-dialog-header">
         <div><span>FLOOR {floor} · ROOM {room.code}</span><h2 id="equipment-dialog-title">{room.name}</h2><p>{room.department} · Select equipment to view its details.</p></div>
-        <button type="button" className="equipment-dialog-close" aria-label="Close equipment popup" onClick={onClose}>×</button>
+        <button type="button" className="equipment-dialog-close" aria-label="Close equipment popup" disabled={isAssigning || isUnassigning || Boolean(pendingUnassign)} onClick={onClose}>×</button>
       </header>
       <div className="equipment-summary-strip">
         <div><span>Total equipment</span><b>{room.assets.length}</b></div>
@@ -639,10 +689,10 @@ function RoomEquipmentDialog({ room, floor, availableAssets, onClose, onAssignAv
         <div className="room-inline-assignment-copy"><span>ASSIGN AVAILABLE ASSET</span><b>Add a device to {room.name}</b><small>The device will immediately appear in this room.</small></div>
         {availableAssets.length ? <>
           <label><span>Available asset or device</span><select aria-label="Available asset or device" value={availableAssetTag} onChange={event => { setAvailableAssetTag(event.target.value); setAssignmentMessage(''); setAssignmentError('') }}>{availableAssets.map(assetItem => <option key={assetItem.tag} value={assetItem.tag}>{assetItem.tag} — {assetItem.name}</option>)}</select></label>
-          <button type="button" onClick={assignSelectedAsset} disabled={isAssigning || !availableAssetTag}>{isAssigning ? 'Assigning…' : 'Assign to this room'}</button>
+          <button type="button" onClick={assignSelectedAsset} disabled={isAssigning || isUnassigning || Boolean(pendingUnassign) || !availableAssetTag}>{isAssigning ? 'Assigning…' : 'Assign to this room'}</button>
         </> : <EquipmentEmptyState className="room-inline-assignment-empty" size="inline" title="No assets available" description="All registered assets are already assigned." />}
         {assignmentMessage && <p className="room-inline-assignment-success" role="status">✓ {assignmentMessage}</p>}
-        {assignmentError && <p className="room-inline-assignment-error" role="alert">{assignmentError}</p>}
+        {assignmentError && !pendingUnassign && <p className="room-inline-assignment-error" role="alert">{assignmentError}</p>}
       </section>
       {room.assets.length === 0 ? <EquipmentEmptyState className="equipment-empty" title="No equipment assigned" description="Choose an available asset above to add equipment to this room. It will appear here immediately." /> : <div className="room-focus-layout">
         <section className="room-focus-visual" aria-label={`2D view of ${room.name}`}>
@@ -666,22 +716,32 @@ function RoomEquipmentDialog({ room, floor, availableAssets, onClose, onAssignAv
         <section className="room-focus-details">
           <div className="room-focus-details-heading"><div><span>ASSIGNED EQUIPMENT</span><h3>Devices and models</h3></div><b>{room.assets.length}</b></div>
           <div className="equipment-filter-tabs" aria-label="Filter room equipment">
-            {filters.map(item => <button type="button" key={item} className={filter === item ? 'active' : ''} aria-pressed={filter === item} onClick={() => chooseFilter(item)}>{item === 'All' ? `All ${room.assets.length}` : `${equipmentLabels[item]} ${counts[item]}`}</button>)}
+            {filters.map(item => <button type="button" key={item} className={effectiveFilter === item ? 'active' : ''} aria-pressed={effectiveFilter === item} onClick={() => chooseFilter(item)}>{item === 'All' ? `All ${room.assets.length}` : `${equipmentLabels[item]} ${counts[item]}`}</button>)}
           </div>
           <div className="room-focus-device-list" aria-label="Equipment in this room">
-            {filteredAssets.length ? filteredAssets.map(assetItem => <button type="button" key={assetItem.id} className={assetItem.id === selectedAsset?.id ? 'selected' : ''} onClick={() => setSelectedAssetId(assetItem.id)}>
+            {filteredAssets.length ? filteredAssets.map(assetItem => <button type="button" key={assetItem.id} aria-label={`View record for ${assetItem.id}`} className={assetItem.id === selectedAsset?.id ? 'selected' : ''} onClick={event => { recordTrigger.current = event.currentTarget; setSelectedAssetId(assetItem.id); setViewedAssetTag(assetItem.id) }}>
               <span className={`equipment-list-icon ${equipmentKindClass(assetItem.kind)}`}><EquipmentIcon kind={assetItem.kind} /></span>
-              <span><b>{assetItem.id}</b><small>{assetItem.detail}</small></span>
+              <span><b>{assetItem.id}</b><small>{assetItem.detail}</small><span className="room-device-view-record">View record →</span></span>
               <i className={`dot ${statusClass(assetItem.status)}`} />
             </button>) : <EquipmentEmptyState className="equipment-filter-empty" size="compact" kind={filter === 'All' ? 'System Unit' : filter} title={`No ${filter.toLowerCase()} assigned`} description="Choose another equipment filter or assign a matching device." />}
           </div>
           {selectedAsset && <article className="room-focus-selected">
             <div className="room-focus-selected-heading"><div><small>SELECTED EQUIPMENT</small><h3>{selectedAsset.id}</h3><p>{selectedAsset.detail}</p></div><em className={statusClass(selectedAsset.status)}><i />{selectedAsset.status}</em></div>
             <div className="room-focus-selected-grid"><Detail label="Type" value={selectedAsset.kind} /><Detail label="Model" value={selectedAsset.detail} /><Detail label="Department" value={selectedAsset.owner} />{selectedAsset.ip && <Detail label="IP address" value={selectedAsset.ip} />}</div>
+            <div className="room-unassign-action"><button type="button" onClick={event => { recordTrigger.current = event.currentTarget; setViewedAssetTag(selectedAsset.id) }}>View record</button><button type="button" disabled={isAssigning || isUnassigning} onClick={() => { setAssignmentError(''); setAssignmentMessage(''); setPendingUnassign(selectedAsset) }}>Unassign from room</button></div>
+            <AssetQrCode tag={selectedAsset.id} qrId={selectedAsset.qrId} />
           </article>}
         </section>
       </div>}
     </section>
+    {viewedAsset && <FullDeviceRecordDialog asset={viewedAsset} onClose={() => setViewedAssetTag(null)} />}
+    <AlertDialog open={Boolean(pendingUnassign)} onOpenChange={open => { if (!open && !mutationPending.current) { setPendingUnassign(null); setAssignmentError('') } }}>
+      <AlertDialogContent>
+        <AlertDialogHeader><AlertDialogTitle>Unassign {pendingUnassign?.id}?</AlertDialogTitle><AlertDialogDescription>Remove this device from {room.name}? Its record and QR number will be kept, and it will be available to assign to another room.</AlertDialogDescription></AlertDialogHeader>
+        {assignmentError && <p className="room-inline-assignment-error" role="alert">{assignmentError}</p>}
+        <AlertDialogFooter><AlertDialogCancel disabled={isUnassigning} /><AlertDialogAction disabled={isUnassigning} onClick={event => { event.preventDefault(); void confirmUnassign() }}>{isUnassigning ? 'Unassigning…' : 'Confirm unassign'}</AlertDialogAction></AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>, document.body)
 }
 
@@ -695,5 +755,5 @@ function RoomView({ room, floor, onBack, onAsset, onAssignEquipment }: { room:Ro
   </section>
 }
 
-function AssetView({ room, floor, asset, onBack }: {room:Room;floor:number;asset:Asset;onBack:()=>void}) { return <section className="workspace"><div className="page-heading asset-heading"><div><button className="back" onClick={onBack}>← {room.name}</button><span className="eyebrow">ASSET DETAILS</span><h1>{asset.id} <em className={statusClass(asset.status)}>{asset.status}</em></h1><p>{asset.detail} · {asset.kind}</p></div><button className="primary-action">Edit asset</button></div><div className="asset-detail-grid"><div className="asset-hero"><div className={`asset-illustration ${equipmentKindClass(asset.kind)}`}><EquipmentIcon kind={asset.kind} /></div><h2>{asset.id}</h2><p>{asset.detail}</p><div className="qr-card"><div className="fake-qr">▦</div><span><b>QR asset label</b><small>Scan to view or reassign</small></span><button>⌄</button></div></div><div className="detail-card"><div className="tabs"><b>Details</b><span>Specifications</span><span>History</span></div><div className="details"><Detail label="Category" value={asset.kind} /><Detail label="Status" value={asset.status} dot={asset.status}/><Detail label="Assigned to" value={`Floor ${floor} / ${room.name}`} /><Detail label="Asset tag" value={asset.id} /><Detail label="Brand" value="Dell" /><Detail label="Model" value={asset.detail.replace('Dell ', '')} />{asset.ip && <><Detail label="IPv4 address" value={asset.ip} /><Detail label="Hostname" value="HOSP-MEDREC-034" /><Detail label="Address method" value="DHCP reservation" /></>}</div></div></div></section> }
+function AssetView({ room, floor, asset, onBack }: {room:Room;floor:number;asset:Asset;onBack:()=>void}) { return <section className="workspace"><div className="page-heading asset-heading"><div><button className="back" onClick={onBack}>← {room.name}</button><span className="eyebrow">ASSET DETAILS</span><h1>{asset.id} <em className={statusClass(asset.status)}>{asset.status}</em></h1><p>{asset.detail} · {asset.kind}</p></div><button className="primary-action">Edit asset</button></div><div className="asset-detail-grid"><div className="asset-hero"><div className={`asset-illustration ${equipmentKindClass(asset.kind)}`}><EquipmentIcon kind={asset.kind} /></div><h2>{asset.id}</h2><p>{asset.detail}</p><AssetQrCode tag={asset.id} qrId={asset.qrId} /></div><div className="detail-card"><div className="tabs"><b>Details</b><span>Specifications</span><span>History</span></div><div className="details"><Detail label="Category" value={asset.kind} /><Detail label="Status" value={asset.status} dot={asset.status}/><Detail label="Assigned to" value={`Floor ${floor} / ${room.name}`} /><Detail label="Asset tag" value={asset.id} /><Detail label="Brand" value="Dell" /><Detail label="Model" value={asset.detail.replace('Dell ', '')} />{asset.ip && <><Detail label="IPv4 address" value={asset.ip} /><Detail label="Hostname" value="HOSP-MEDREC-034" /><Detail label="Address method" value="DHCP reservation" /></>}</div></div></div></section> }
 function Detail({label,value,dot}:{label:string;value:string;dot?:Status}) { return <div className="detail"><span>{label}</span><b>{dot && <i className={`dot ${statusClass(dot)}`}/>} {value}</b></div> }

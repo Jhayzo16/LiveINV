@@ -245,6 +245,7 @@
 .room-focus-device-list button > span:nth-child(2) { min-width: 0; }
 .room-focus-device-list button b, .room-focus-device-list button small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .room-focus-device-list button b { font-size: 9px; }.room-focus-device-list button small { margin-top: 3px; color: #7e8982; font-size: 7.5px; }
+.room-device-view-record { display: block; margin-top: 6px; color: #8b1d24; font-size: 10px; font-weight: 700; }
 .room-focus-selected { margin-top: 14px; border: 1px solid #e0e7e2; border-radius: 13px; overflow: hidden; background: #fbfcfb; }
 .room-focus-selected-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px; border-bottom: 1px solid #e4e9e6; background: #f5f9f6; }
 .room-focus-selected-heading small { color: #1B6C24; font-size: 7px; font-weight: 850; letter-spacing: .1em; }
@@ -292,6 +293,14 @@
   .floor-map-card, .floor-room-directory { min-height: 650px; height: calc(100vh - 114px); }
   .room-workspace .room-stage { grid-template-columns: 1fr; }
   .room-workspace .room-side { display: block; }
+}
+
+@media (max-width: 960px) {
+  .room-focus-layout { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
+  .room-focus-visual { overflow: visible; border-right: 0; border-bottom: 1px solid #dde5df; }
+  .room-focus-plan { min-height: 280px; }
+  .room-focus-details { overflow: visible; }
+  .room-focus-legend { flex-wrap: wrap; }
 }
 
 @media (max-width: 760px) {

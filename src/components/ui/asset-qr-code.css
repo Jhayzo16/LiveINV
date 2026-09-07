@@ -1,0 +1,13 @@
+.asset-qr-label { display: flex; align-items: center; gap: 16px; padding: 16px; background: #fff; border: 1px solid #e0e7e2; border-radius: 12px; }
+.asset-qr-label img { display: block; width: 160px; height: 160px; flex: 0 0 auto; }
+.asset-qr-copy { min-width: 0; display: grid; gap: 5px; text-align: left; }
+.asset-qr-copy > span { font-size: 11px; color: #68786d; }
+.asset-qr-copy strong, .asset-qr-copy b { font-family: monospace; font-size: 13px; overflow-wrap: anywhere; color: #203d28; }
+.asset-qr-copy small { margin-top: 5px; color: #68786d; font-size: 11px; line-height: 1.5; }
+.asset-qr-placeholder { max-width: 160px; font-size: 12px; color: #68786d; }
+.room-focus-selected .asset-qr-label { border-width: 1px 0 0; border-radius: 0; }
+.room-unassign-action { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding: 12px; border-top: 1px solid #e0e7e2; }
+.room-unassign-action button { border: 1px solid #dbadb0; border-radius: 8px; padding: 10px 14px; color: #8b1d24; background: #fff; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.room-unassign-action button:hover { background: #fff1f2; }
+.room-unassign-action button:disabled { opacity: .5; cursor: wait; }
+@media (max-width: 440px) { .asset-qr-label { flex-direction: column; align-items: flex-start; } }
