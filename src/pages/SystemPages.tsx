@@ -5,9 +5,13 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { AssetRepository } from '../lib/repositories'
 import { deviceRegistrationSchema, deviceAssignmentSchema, type DeviceRegistrationData, type DeviceAssignmentData } from '../lib/schemas'
 import { type InventoryAsset, type AssetState, type DeviceCategory } from '../lib/types'
+import { assignmentLocations } from '../lib/rooms'
+import { assignAsset, floorIdFromLocation, isAssetAssigned, unassignAsset } from '../lib/assignments'
 import { BrowserQRCodeReader, type IScannerControls } from '@zxing/browser'
 import QRCode from 'qrcode'
 import { toast } from '@/components/ui/toast'
+import { EquipmentEmptyState, EquipmentIcon, type EquipmentKind } from '@/components/ui/equipment-empty-state'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import keyboardDeviceImage from '@/assets/device-keyboard.png'
 import monitorDeviceImage from '@/assets/device-monitor.png'
 import printerDeviceImage from '@/assets/device-printer.jpeg'
@@ -23,19 +27,8 @@ import '../device-workflow.css'
 import { ConsumablesPage } from './ConsumablesPage'
 
 export type SystemModule = 'dashboard' | 'assets' | 'consumables' | 'assignments' | 'qr' | 'network' | 'maintenance' | 'reports' | 'users' | 'manual'
-export type AssignmentTarget = { floor: string; room: string; department: string }
+export type AssignmentTarget = { floor: string; roomId: string; room: string; department: string }
 
-const assets: InventoryAsset[] = [
-  { tag: 'PC-MRR-01', qrId: 'LIV-MRR0001', name: 'Dell OptiPlex 7090', category: 'System Unit', location: 'F5 · Medical Records', owner: 'IT Department', state: 'Active', ip: '10.20.5.31', brand: 'Dell', model: 'OptiPlex 7090', processor: 'Intel Core i5-10500', ramCapacityGb: 8, ramModules: 2, ssdCapacityGb: 512, ssdCount: 1 },
-  { tag: 'PRN-ACC-02', qrId: 'LIV-ACC0002', name: 'HP LaserJet Pro M404', category: 'Printer', location: 'F5 · Accounting', owner: 'Finance', state: 'Maintenance', ip: '10.20.5.52', brand: 'HP', model: 'LaserJet Pro M404' },
-  { tag: 'MON-HR-04', qrId: 'LIV-HR00004', name: 'Dell P2422H Display', category: 'Monitor', location: 'F5 · HR Office', owner: 'Human Resources', state: 'Active', ip: '—', brand: 'Dell', model: 'P2422H Display' },
-  { tag: 'PC-ER-12', qrId: 'LIV-ER00012', name: 'Lenovo ThinkCentre M80', category: 'System Unit', location: 'F1 · ER Reception', owner: 'Emergency', state: 'Broken', ip: '10.20.1.42', brand: 'Lenovo', model: 'ThinkCentre M80', processor: 'Intel Core i5-10500', ramCapacityGb: 8, ramModules: 2, ssdCapacityGb: 256, ssdCount: 1 },
-  { tag: 'AP-OR-03', qrId: 'LIV-OR00003', name: 'Aruba AP-515', category: 'Router', location: 'F2 · Operating Room', owner: 'IT Department', state: 'Active', ip: '10.20.2.11', brand: 'Aruba', model: 'AP-515' },
-  { tag: 'UPS-LAB-02', qrId: 'LIV-LAB0002', name: 'APC Smart-UPS 1500', category: 'UPS', location: 'F1 · Laboratory', owner: 'Laboratory', state: 'Inactive', ip: '—', brand: 'APC', model: 'Smart-UPS 1500' },
-  { tag: 'PC-NEW-07', qrId: 'LIV-NEW0007', name: 'Acer Veriton X', category: 'System Unit', location: 'Unassigned', owner: 'Unassigned', state: 'Active', ip: '—', brand: 'Acer', model: 'Veriton X', processor: 'Intel Core i5-12400', ramCapacityGb: 8, ramModules: 1, ssdCapacityGb: 512, ssdCount: 1 },
-]
-
-const SAVED_ASSETS_KEY = 'liveinv-registered-assets'
 const createQrId = () => `LIV-${crypto.randomUUID().replaceAll('-', '').slice(0, 8).toUpperCase()}`
 
 const devicePreviewImages: Record<string, string> = {
@@ -66,7 +59,7 @@ const moduleNames: Record<SystemModule, string> = {
 export function SystemModulePage({ module, assignmentTarget }: { module: SystemModule; assignmentTarget?: AssignmentTarget | null }) {
   const queryClient = useQueryClient()
   
-  const { data: inventoryAssets = [], isLoading } = useQuery({
+  const { data: inventoryAssets = [], isLoading, error, refetch } = useQuery({
     queryKey: ['assets'],
     queryFn: () => AssetRepository.getAll(),
   })
@@ -90,6 +83,7 @@ export function SystemModulePage({ module, assignmentTarget }: { module: SystemM
   }
 
   if (isLoading) return <section className="workspace module-workspace"><div style={{ padding: '40px', color: '#666' }}>Loading inventory...</div></section>
+  if (error && !inventoryAssets.length) return <section className="workspace module-workspace"><p role="alert">Shared inventory could not be loaded.</p><button type="button" onClick={() => void refetch()}>Retry</button></section>
   const page = {
     dashboard: <DashboardPage inventoryAssets={inventoryAssets} />,
     assets: <AssetsPage inventoryAssets={inventoryAssets} onRegister={registerAsset} onUpdate={updateAsset} />,
@@ -128,29 +122,29 @@ function DashboardPage({ inventoryAssets }: { inventoryAssets: InventoryAsset[] 
   const broken = inventoryAssets.filter(a => a.state === 'Broken').length
   const needsAttention = maintenance + broken
   const activePercent = total > 0 ? Math.round((active / total) * 100) : 0
-  const assigned = inventoryAssets.filter(a => a.location !== 'Unassigned').length
+  const assigned = inventoryAssets.filter(isAssetAssigned).length
 
   const floorCounts: Record<string, number> = {}
   inventoryAssets.forEach(a => {
-    const match = a.location.match(/^F(\d)/)
-    if (match) floorCounts[match[1]] = (floorCounts[match[1]] || 0) + 1
+    const floorId = a.assignment?.floorId || floorIdFromLocation(a.location)
+    if (floorId) floorCounts[floorId] = (floorCounts[floorId] || 0) + 1
   })
   const maxFloorCount = Math.max(...Object.values(floorCounts), 1)
 
-  const recentAssets = inventoryAssets.slice(0, 4).map(a => [`${a.tag} — ${a.name}`, a.state === 'Active' ? 'Registered and assigned' : `Status: ${a.state}`])
+  const recentAssets = inventoryAssets.slice(0, 4).map(a => [`${a.tag} — ${a.name}`, isAssetAssigned(a) ? `Assigned to ${a.location}` : 'Registered · awaiting assignment'])
 
   return <>
     <ModuleHeading eyebrow="OPERATIONS OVERVIEW" title="Good morning, Inventory Team" description="A clear view of hospital assets, service risks, and inventory activity for today." />
     <div className="metric-grid">
-      <Metric label="Registered assets" value={String(total)} note={`${inventoryAssets.filter(a => a.location === 'Unassigned').length} unassigned`} icon={registeredAssetsMetricIcon} />
+      <Metric label="Registered assets" value={String(total)} note={`${inventoryAssets.filter(a => !isAssetAssigned(a)).length} unassigned`} icon={registeredAssetsMetricIcon} />
       <Metric label="Active and ready" value={String(active)} note={`${activePercent}% of inventory`} tone="green" icon={activeReadyMetricIcon} />
       <Metric label="Needs attention" value={String(needsAttention)} note={`${maintenance} maintenance · ${broken} broken`} tone="maroon" icon={needsAttentionMetricIcon} />
       <Metric label="Assigned to rooms" value={String(assigned)} note={`${total - assigned} awaiting placement`} tone="amber" icon={roomsVerifiedMetricIcon} />
     </div>
     <div className="dashboard-grid">
       <article className="module-card asset-health"><CardTitle title="Asset health" subtitle="Current equipment condition" /><div className="health-layout"><div className="health-ring"><strong>{activePercent}%</strong><span>operational</span></div><div className="health-legend"><StatusLine label="Active" value={String(active)} color="green" /><StatusLine label="Maintenance" value={String(maintenance)} color="amber" /><StatusLine label="Broken" value={String(broken)} color="red" /></div></div></article>
-      <article className="module-card floor-coverage"><CardTitle title="Assets by floor" subtitle="Distribution across hospital floors" />{Object.entries(floorCounts).sort(([a],[b]) => a.localeCompare(b)).map(([floor, count]) => <div className="coverage-row" key={floor}><span>Floor {floor}</span><div><i style={{width:`${Math.round((count/maxFloorCount)*100)}%`}} /></div><b>{count}</b></div>)}</article>
-      <article className="module-card activity-card"><CardTitle title="Recent inventory" subtitle="Latest registered assets" />{recentAssets.map(item => <div className="activity-row" key={item[0]}><i /><span><b>{item[0]}</b><small>{item[1]}</small></span></div>)}</article>
+      <article className="module-card floor-coverage"><CardTitle title="Assets by floor" subtitle="Distribution across hospital floors" />{Object.keys(floorCounts).length ? Object.entries(floorCounts).sort(([a],[b]) => a.localeCompare(b)).map(([floor, count]) => <div className="coverage-row" key={floor}><span>Floor {floor}</span><div><i style={{width:`${Math.round((count/maxFloorCount)*100)}%`}} /></div><b>{count}</b></div>) : <EquipmentEmptyState className="dashboard-empty" size="compact" kind="Monitor" title="No floor assignments yet" description="Assigned devices will appear here by floor." />}</article>
+      <article className="module-card activity-card"><CardTitle title="Recent inventory" subtitle="Latest registered assets" />{recentAssets.length ? recentAssets.map(item => <div className="activity-row" key={item[0]}><i /><span><b>{item[0]}</b><small>{item[1]}</small></span></div>) : <EquipmentEmptyState className="dashboard-empty" size="compact" title="No recent inventory" description="Newly registered devices will appear here." />}</article>
       <article className="module-card attention-card"><span className="attention-label">PRIORITY</span><h3>{needsAttention > 0 ? `${needsAttention} device${needsAttention !== 1 ? 's need' : ' needs'} attention` : 'All devices are operational'}</h3><p>{needsAttention > 0 ? `${broken} broken and ${maintenance} under maintenance. Review equipment status and update records as needed.` : 'No broken or maintenance-flagged equipment at this time.'}</p></article>
     </div>
   </>
@@ -158,35 +152,30 @@ function DashboardPage({ inventoryAssets }: { inventoryAssets: InventoryAsset[] 
 
 function AssetsPage({ inventoryAssets, onRegister, onUpdate }: { inventoryAssets: InventoryAsset[]; onRegister: (asset: InventoryAsset) => void; onUpdate: (originalTag: string, asset: InventoryAsset) => void }) {
   const [registrationOpen, setRegistrationOpen] = useState(false)
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'system' | 'display' | 'printer' | 'network'>('all')
+  const [categoryFilter, setCategoryFilter] = useState<'all' | DeviceCategory>('all')
   const [statusFilter, setStatusFilter] = useState<'recent' | 'active' | 'maintenance'>('recent')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedAsset, setSelectedAsset] = useState<InventoryAsset | null>(null)
   const [editingAsset, setEditingAsset] = useState<InventoryAsset | null>(null)
   const normalizedQuery = searchQuery.trim().toLowerCase()
   const visibleAssets = inventoryAssets.filter(item => {
-    const matchesCategory = categoryFilter === 'all'
-      || (categoryFilter === 'system' && item.category === 'System Unit')
-      || (categoryFilter === 'display' && item.category === 'Monitor')
-      || (categoryFilter === 'printer' && item.category === 'Printer')
-      || (categoryFilter === 'network' && ['Router', 'Printer', 'System Unit'].includes(item.category))
+    const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter
     const matchesStatus = statusFilter === 'recent' || (statusFilter === 'active' && item.state === 'Active') || (statusFilter === 'maintenance' && item.state === 'Maintenance')
     const searchable = [item.tag, item.qrId, item.name, item.category, item.brand, item.model, item.location, item.owner, item.ip, item.processor, item.state].filter(Boolean).join(' ').toLowerCase()
     return matchesCategory && matchesStatus && (!normalizedQuery || searchable.includes(normalizedQuery))
   })
-  const systemUnitCount = inventoryAssets.filter(item => item.category === 'System Unit').length
-  const displayCount = inventoryAssets.filter(item => item.category === 'Monitor').length
-  const printerCount = inventoryAssets.filter(item => item.category === 'Printer').length
-  const networkCount = inventoryAssets.filter(item => ['System Unit', 'Printer', 'Router'].includes(item.category)).length
-
-  const categoryViews = [
-    { key: 'system' as const, icon: '▥', label: 'System units', count: systemUnitCount },
-    { key: 'display' as const, icon: '▰', label: 'Displays', count: displayCount },
-    { key: 'printer' as const, icon: '▤', label: 'Printers', count: printerCount },
-    { key: 'network' as const, icon: '⌁', label: 'Network equipment', count: networkCount },
+  const categoryViews: Array<{ key: 'all' | DeviceCategory; label: string; kind?: EquipmentKind; count: number }> = [
+    { key: 'all', label: 'All assets', count: inventoryAssets.length },
+    { key: 'System Unit', label: 'System Unit', kind: 'System Unit', count: inventoryAssets.filter(item => item.category === 'System Unit').length },
+    { key: 'Monitor', label: 'Monitor', kind: 'Monitor', count: inventoryAssets.filter(item => item.category === 'Monitor').length },
+    { key: 'UPS', label: 'UPS', kind: 'UPS', count: inventoryAssets.filter(item => item.category === 'UPS').length },
+    { key: 'Printer', label: 'Printer', kind: 'Printer', count: inventoryAssets.filter(item => item.category === 'Printer').length },
+    { key: 'Router', label: 'Router', kind: 'Router', count: inventoryAssets.filter(item => item.category === 'Router').length },
+    { key: 'Keyboard', label: 'Keyboard', kind: 'Keyboard', count: inventoryAssets.filter(item => item.category === 'Keyboard').length },
+    { key: 'Scanner', label: 'Scanner', kind: 'Scanner', count: inventoryAssets.filter(item => item.category === 'Scanner').length },
   ]
 
-  const viewTitle = categoryFilter === 'all' ? 'All devices' : categoryViews.find(view => view.key === categoryFilter)?.label || 'All devices'
+  const viewTitle = categoryViews.find(view => view.key === categoryFilter)?.label || 'All assets'
 
   const exportRegistry = () => {
     const escapeCell = (value: string | number | undefined) => `"${String(value ?? '').replaceAll('"', '""')}"`
@@ -213,7 +202,7 @@ function AssetsPage({ inventoryAssets, onRegister, onUpdate }: { inventoryAssets
       <div className="asset-gallery-actions"><span className="asset-total-pill">{inventoryAssets.length} total assets</span><button className="export-btn" onClick={exportRegistry}>Export</button><button className="primary-action" onClick={() => setRegistrationOpen(true)}>＋ Add device</button></div>
     </header>
     <nav className="asset-category-grid" aria-label="Asset categories">
-      {categoryViews.map((view, index) => <button type="button" key={view.key} className={`asset-category-card ${(categoryFilter === view.key || (categoryFilter === 'all' && index === 0)) ? 'selected' : ''}`} aria-pressed={categoryFilter === view.key} onClick={() => setCategoryFilter(current => current === view.key ? 'all' : view.key)}><span>{view.icon}</span><div><b>{view.label}</b><small>{view.count} devices</small></div></button>)}
+      {categoryViews.map(view => <button type="button" key={view.key} className={`asset-category-card ${categoryFilter === view.key ? 'selected' : ''}`} aria-pressed={categoryFilter === view.key} onClick={() => setCategoryFilter(view.key)}><span>{view.kind ? <EquipmentIcon kind={view.kind} /> : '▦'}</span><div><b>{view.label}</b><small>{view.count} {view.count === 1 ? 'device' : 'devices'}</small></div></button>)}
     </nav>
     <section className="module-card asset-gallery-toolbar" aria-label="Asset search and filters">
       <label className="search-field">⌕ <input aria-label="Search assets" value={searchQuery} onChange={event => setSearchQuery(event.target.value)} placeholder="Search all devices by asset tag, room, or model" /></label>
@@ -228,16 +217,12 @@ function AssetsPage({ inventoryAssets, onRegister, onUpdate }: { inventoryAssets
 }
 
 function AssetCardGrid({ inventoryAssets, onSelect, searchActive }: { inventoryAssets: InventoryAsset[]; onSelect: (asset: InventoryAsset) => void; searchActive: boolean }) {
-  if (!inventoryAssets.length) return <div className="module-card asset-gallery-empty"><span>⌕</span><h3>No assets found</h3><p>{searchActive ? 'Try another search term or change the selected filter.' : 'No devices are registered yet.'}</p></div>
+  if (!inventoryAssets.length) return <EquipmentEmptyState className="module-card asset-gallery-empty" title={searchActive ? 'No matching assets' : 'No assets registered'} description={searchActive ? 'Try another search term or change the selected filter.' : 'Add a device to begin building the hospital inventory.'} />
 
   return <div className="asset-device-grid">{inventoryAssets.map(item => <button type="button" className="asset-device-card" key={item.tag} onClick={() => onSelect(item)} aria-label={`Open full record for ${item.tag}`}>
     <div className="asset-device-visual"><DevicePreview asset={item} className="asset-card-preview" /><StatusBadge state={item.state} /></div>
     <div className="asset-device-copy"><span className="asset-device-category">{item.category}</span><h3>{item.tag}</h3><p>{item.name}</p><dl><div><dt>Location</dt><dd>{item.location}</dd></div><div><dt>Department</dt><dd>{item.owner}</dd></div></dl><footer><span className="mono">{item.ip === '—' ? 'No network' : item.ip}</span><b>View record →</b></footer></div>
   </button>)}</div>
-}
-
-function isAssetAssigned(asset: InventoryAsset) {
-  return asset.location !== 'Unassigned' && asset.owner !== 'Unassigned'
 }
 
 function DevicePreview({ asset, className = '' }: { asset: InventoryAsset; className?: string }) {
@@ -248,33 +233,8 @@ function DevicePreview({ asset, className = '' }: { asset: InventoryAsset; class
   </figure>
 }
 
-type AssignmentLocation = { floor: string; room: string }
-const assignmentLocationKey = (location: AssignmentLocation) => `${location.floor}::${location.room}`
-const fallbackAssignmentLocations: AssignmentLocation[] = [
-  { floor: '1', room: 'E.R. RECEPTION' }, { floor: '1', room: 'LABORATORY' },
-  { floor: '2', room: 'OPERATING ROOM' }, { floor: '2', room: 'PICU' },
-  { floor: '3', room: 'BUSINESS OFFICE' }, { floor: '3', room: 'HEMODIALYSIS CENTER' },
-  { floor: '4', room: 'DENTAL CLINIC' }, { floor: '4', room: 'ENT CLINIC' },
-  { floor: '5', room: 'IT DEPARTMENT' }, { floor: '5', room: 'MEDICAL RECORDS' },
-  { floor: '6', room: 'PEDIA WARD' }, { floor: '6', room: 'NURSE’S STATION 1' },
-  { floor: '7', room: 'PRIVATE ROOM' }, { floor: '7', room: 'NURSE’S STATION 1' },
-]
-
-async function loadFigmaRoomLocations() {
-  const structuralId = /^(?:Rectangle|Group|Circle|Ellipse|Line|Path|Vector|clip|paint|filter|mask|liveinv)/i
-  const floorTitle = /^(?:GROUND|1ST|2ND|3RD|4TH|5TH|6TH|7TH)\s+FLOOR$/i
-  const floors = await Promise.all(Array.from({ length: 7 }, async (_, index) => {
-    const floor = String(index + 1)
-    const response = await fetch(`/floor-plans/floor-${floor}.svg?v=${Date.now()}`)
-    if (!response.ok) return []
-    const document = new DOMParser().parseFromString(await response.text(), 'image/svg+xml')
-    const names = Array.from(document.querySelectorAll<SVGGraphicsElement>('[id]'))
-      .map(element => element.id.replace(/_\d+$/, '').replace(/\s+/g, ' ').trim())
-      .filter(name => name && !structuralId.test(name) && !floorTitle.test(name))
-    return [...new Set(names)].map(room => ({ floor, room }))
-  }))
-  return floors.flat().sort((a, b) => Number(a.floor) - Number(b.floor) || a.room.localeCompare(b.room))
-}
+type AssignmentLocation = { floor: string; roomId: string; room: string; department?: string; label?: string }
+const assignmentLocationKey = (location: AssignmentLocation) => location.roomId
 
 const deviceCategories: DeviceCategory[] = ['Printer', 'Monitor', 'Keyboard', 'System Unit', 'UPS', 'Scanner', 'Router']
 const RECENT_PROCESSORS_KEY = 'liveinv-recent-processors'
@@ -474,11 +434,18 @@ function EditAssetDialog({ asset, onClose, onSave }: { asset: InventoryAsset; on
 
 function AssignmentsPage({ inventoryAssets, onAssign, initialTarget }: { inventoryAssets: InventoryAsset[]; onAssign: (asset: InventoryAsset) => Promise<void>; initialTarget?: AssignmentTarget | null }) {
   const unassignedAssets = inventoryAssets.filter(item => !isAssetAssigned(item))
+  const assignedAssets = inventoryAssets
+    .filter(isAssetAssigned)
+    .sort((left, right) => left.tag.localeCompare(right.tag, undefined, { numeric: true, sensitivity: 'base' }))
   const [selectedTag, setSelectedTag] = useState(unassignedAssets[0]?.tag || '')
-  const [message, setMessage] = useState('')
   const [assignmentError, setAssignmentError] = useState('')
   const [isAssigning, setIsAssigning] = useState(false)
-  const [roomLocations, setRoomLocations] = useState<AssignmentLocation[]>(() => initialTarget ? [{ floor: initialTarget.floor, room: initialTarget.room }] : fallbackAssignmentLocations)
+  const [unassigningTag, setUnassigningTag] = useState('')
+  const [confirmingUnassignTag, setConfirmingUnassignTag] = useState('')
+  const [assignedFloorFilter, setAssignedFloorFilter] = useState('all')
+  const [assignedCategoryFilter, setAssignedCategoryFilter] = useState('all')
+  const [pendingTransferTag, setPendingTransferTag] = useState('')
+  const roomLocations: AssignmentLocation[] = assignmentLocations
   const selectedAsset = unassignedAssets.find(item => item.tag === selectedTag) || unassignedAssets[0]
 
   const initialLocationKey = initialTarget ? assignmentLocationKey(initialTarget) : ''
@@ -491,36 +458,53 @@ function AssignmentsPage({ inventoryAssets, onAssign, initialTarget }: { invento
   const selectedFloor = watch('floor')
   const selectedLocationKey = watch('locationKey')
   const selectedLocation = roomLocations.find(location => assignmentLocationKey(location) === selectedLocationKey)
+  const floorForAsset = (asset: InventoryAsset) => asset.assignment?.floorId || floorIdFromLocation(asset.location)
+  const assignedFloorOptions = [...new Set(assignedAssets.map(floorForAsset).filter(Boolean))].sort((left, right) => Number(left) - Number(right))
+  const assignedCategoryOptions = [...new Set(assignedAssets.map(asset => asset.category))].sort((left, right) => left.localeCompare(right))
+  const filteredAssignedAssets = assignedAssets.filter(asset => (assignedFloorFilter === 'all' || floorForAsset(asset) === assignedFloorFilter) && (assignedCategoryFilter === 'all' || asset.category === assignedCategoryFilter))
+  const activeAssignedFilters = Number(assignedFloorFilter !== 'all') + Number(assignedCategoryFilter !== 'all')
+  const assetPendingUnassign = assignedAssets.find(asset => asset.tag === confirmingUnassignTag)
+  const equipmentKind = (category: string): EquipmentKind => deviceCategories.includes(category as DeviceCategory) ? category as DeviceCategory : 'Other'
 
   useEffect(() => {
-    let active = true
-    loadFigmaRoomLocations().then(locations => {
-      if (!active || !locations.length) return
-      const targetLocation = initialTarget ? { floor: initialTarget.floor, room: initialTarget.room } : null
-      const merged = targetLocation && !locations.some(location => assignmentLocationKey(location) === assignmentLocationKey(targetLocation)) ? [targetLocation, ...locations] : locations
-      setRoomLocations(merged)
-      if (targetLocation) {
-        setValue('floor', targetLocation.floor, { shouldValidate: true })
-        setValue('locationKey', assignmentLocationKey(targetLocation), { shouldValidate: true })
-      }
-    }).catch(() => undefined)
-    return () => { active = false }
+    if (initialTarget && assignmentLocations.some(room => room.roomId === initialTarget.roomId)) {
+      setValue('floor', initialTarget.floor, { shouldValidate: true })
+      setValue('locationKey', initialTarget.roomId, { shouldValidate: true })
+    }
   }, [initialTarget, setValue])
 
   useEffect(() => {
     if (!unassignedAssets.some(item => item.tag === selectedTag)) setSelectedTag(unassignedAssets[0]?.tag || '')
   }, [inventoryAssets, selectedTag, unassignedAssets])
 
+  useEffect(() => {
+    if (!pendingTransferTag || !unassignedAssets.some(item => item.tag === pendingTransferTag)) return
+    setSelectedTag(pendingTransferTag)
+    setPendingTransferTag('')
+  }, [pendingTransferTag, unassignedAssets])
+
   const assignDevice = async (data: DeviceAssignmentData) => {
     const location = roomLocations.find(item => item.floor === data.floor && assignmentLocationKey(item) === data.locationKey)
     if (!selectedAsset || !location) return
-    const department = initialTarget && initialTarget.floor === location.floor && initialTarget.room === location.room ? initialTarget.department : location.room
-    setMessage('')
+    const department = location.department ?? location.room
     setAssignmentError('')
     setIsAssigning(true)
     try {
-      await onAssign({ ...selectedAsset, location: `F${location.floor} · ${location.room}`, owner: department })
-      setMessage(`${selectedAsset.tag} is now assigned to Floor ${location.floor}, ${location.room}.`)
+      await toast.promise(onAssign(assignAsset(selectedAsset, {
+        floorId: location.floor,
+        roomId: location.roomId,
+        roomName: location.room,
+        departmentId: department,
+        assignedBy: 'Admin',
+        method: 'manual',
+      })), {
+        loadingTitle: 'Assigning device',
+        loading: `Assigning ${selectedAsset.tag} to ${location.room}…`,
+        successTitle: 'Device assigned',
+        success: `${selectedAsset.tag} assigned to Floor ${location.floor}, ${location.room}.`,
+        errorTitle: 'Assignment failed',
+        error: `Could not assign ${selectedAsset.tag} to ${location.room}.`,
+      })
       reset({ floor: data.floor, locationKey: data.locationKey })
     } catch (error) {
       setAssignmentError(error instanceof Error ? error.message : 'The device could not be assigned. Please try again.')
@@ -529,25 +513,76 @@ function AssignmentsPage({ inventoryAssets, onAssign, initialTarget }: { invento
     }
   }
 
-  return <>
-    <ModuleHeading eyebrow="LOCATION CONTROL" title="Assign unassigned devices" description="Select a registered device, choose its floor, then select a room or office from that floor." />
+  const unassignDevice = async (asset: InventoryAsset) => {
+    setAssignmentError('')
+    setUnassigningTag(asset.tag)
+    try {
+      await toast.promise(onAssign(unassignAsset(asset)), {
+        loadingTitle: 'Unassigning device',
+        loading: `Removing ${asset.tag} from ${asset.location}…`,
+        successTitle: 'Device unassigned',
+        success: `${asset.tag} is now unassigned and ready for transfer.`,
+        errorTitle: 'Unassignment failed',
+        error: `Could not unassign ${asset.tag}.`,
+      })
+      setPendingTransferTag(asset.tag)
+      setConfirmingUnassignTag('')
+    } catch (error) {
+      setAssignmentError(error instanceof Error ? error.message : 'The device could not be unassigned. Please try again.')
+    } finally {
+      setUnassigningTag('')
+    }
+  }
+
+    return <>
+    <ModuleHeading eyebrow="LOCATION CONTROL" title="Assign and transfer devices" description="Assign registered devices to a room, or unassign an existing device before moving it to a new location." />
+    {assignmentError && <div className="assignment-page-feedback assignment-error" role="alert">{assignmentError}</div>}
     <div className="assignment-layout">
       <article className="module-card transfer-card">
         <div className="assignment-form-heading"><div><AssignmentBadge assigned={false} /><h3>Device assignment</h3><p>Only devices without a hospital location appear here.</p></div><strong>{unassignedAssets.length} waiting</strong></div>
         {selectedAsset ? <form onSubmit={handleSubmit(assignDevice)}>
-          <label>Unassigned device<select value={selectedAsset.tag} onChange={event => { setSelectedTag(event.target.value); setMessage(''); setAssignmentError('') }}>{unassignedAssets.map(item => <option key={item.tag} value={item.tag}>{item.tag} — {item.name}</option>)}</select></label>
+          <label>Unassigned device<select value={selectedAsset.tag} onChange={event => { setSelectedTag(event.target.value); setAssignmentError('') }}>{unassignedAssets.map(item => <option key={item.tag} value={item.tag}>{item.tag} — {item.name}</option>)}</select></label>
           <div className="selected-asset assignment-selected"><span>{selectedAsset.category.slice(0, 2).toUpperCase()}</span><p><b>{selectedAsset.tag}</b><small>{selectedAsset.name} · QR ID {selectedAsset.qrId}</small></p><AssignmentBadge assigned={false} /></div>
           <div className="form-grid">
-            <label className="wide">Floor<select {...register('floor')} onChange={event => { register('floor').onChange(event); setValue('locationKey', '', { shouldValidate: true }); setMessage(''); setAssignmentError('') }}><option value="">Select a floor</option>{Array.from({ length: 7 }, (_, index) => String(index + 1)).map(floor => <option key={floor} value={floor}>Floor {floor}</option>)}</select>{errors.floor && <span className="field-error">{errors.floor.message}</span>}</label>
-            {selectedFloor && <label className="wide">Room name or office<select {...register('locationKey')}><option value="">Select a room or office on Floor {selectedFloor}</option>{roomLocations.filter(location => location.floor === selectedFloor).map(location => <option key={assignmentLocationKey(location)} value={assignmentLocationKey(location)}>{location.room}</option>)}</select>{errors.locationKey && <span className="field-error">{errors.locationKey.message}</span>}</label>}
+            <label className="wide">Floor<select {...register('floor')} onChange={event => { register('floor').onChange(event); setValue('locationKey', '', { shouldValidate: true }); setAssignmentError('') }}><option value="">Select a floor</option>{Array.from({ length: 7 }, (_, index) => String(index + 1)).map(floor => <option key={floor} value={floor}>Floor {floor}</option>)}</select>{errors.floor && <span className="field-error">{errors.floor.message}</span>}</label>
+            {selectedFloor && <label className="wide">Room name or office<select {...register('locationKey')}><option value="">Select a room or office on Floor {selectedFloor}</option>{roomLocations.filter(location => location.floor === selectedFloor).map(location => <option key={assignmentLocationKey(location)} value={assignmentLocationKey(location)}>{location.label ?? location.room}</option>)}</select>{errors.locationKey && <span className="field-error">{errors.locationKey.message}</span>}</label>}
           </div>
-          {message && <div className="assignment-success" role="status">✓ {message}</div>}
-          {assignmentError && <div className="assignment-error" role="alert">{assignmentError}</div>}
-          <div className="form-actions"><button type="button" className="export-btn" onClick={() => { reset({ floor: '', locationKey: '' }); setMessage(''); setAssignmentError('') }}>Clear</button><button type="submit" className="primary-action" disabled={isAssigning || !isValid || !selectedLocation}>{isAssigning ? 'Assigning…' : 'Assign device →'}</button></div>
-        </form> : <div className="assignment-empty"><span>✓</span><h3>All registered devices are assigned</h3><p>Newly added devices will appear here automatically with an Unassigned label.</p></div>}
+          <div className="form-actions"><button type="button" className="export-btn" onClick={() => { reset({ floor: '', locationKey: '' }); setAssignmentError('') }}>Clear</button><button type="submit" className="primary-action" disabled={isAssigning || !isValid || !selectedLocation}>{isAssigning ? 'Assigning…' : 'Assign device →'}</button></div>
+        </form> : <EquipmentEmptyState className="assignment-empty" title="All registered devices are assigned" description="Newly added devices will appear here automatically with an Unassigned label." />}
       </article>
-      <article className="module-card move-summary unassigned-queue"><CardTitle title="Unassigned queue" subtitle="Devices ready for a confirmed location" />{unassignedAssets.length ? unassignedAssets.map((item, index) => <button type="button" className={item.tag === selectedAsset?.tag ? 'queue-device selected' : 'queue-device'} key={item.tag} onClick={() => { setSelectedTag(item.tag); setMessage('') }}><span>{index + 1}</span><div><b>{item.tag}</b><small>{item.name}</small></div><AssignmentBadge assigned={false} /></button>) : <p className="queue-complete">No devices are waiting for assignment.</p>}</article>
+      <article className="module-card move-summary unassigned-queue"><CardTitle title="Unassigned queue" subtitle="Devices ready for a confirmed location" />{unassignedAssets.length ? unassignedAssets.map((item, index) => <button type="button" className={item.tag === selectedAsset?.tag ? 'queue-device selected' : 'queue-device'} key={item.tag} onClick={() => setSelectedTag(item.tag)}><span>{index + 1}</span><div><b>{item.tag}</b><small>{item.name}</small></div><AssignmentBadge assigned={false} /></button>) : <EquipmentEmptyState className="queue-complete" size="compact" title="Assignment queue is clear" description="No devices are waiting for a room." />}</article>
     </div>
+    <article className="module-card assigned-transfer-card">
+      <div className="assigned-transfer-heading"><CardTitle title="Assigned devices" subtitle="Filter by floor or category, then remove a room assignment to prepare a transfer" /><strong>{activeAssignedFilters ? `${filteredAssignedAssets.length} of ${assignedAssets.length}` : assignedAssets.length} assigned</strong></div>
+      {assignedAssets.length > 0 && <div className="assigned-transfer-filters">
+        <label><span>Floor</span><select value={assignedFloorFilter} onChange={event => setAssignedFloorFilter(event.target.value)}><option value="all">All floors</option>{assignedFloorOptions.map(floor => <option key={floor} value={floor}>Floor {floor}</option>)}</select></label>
+        <label><span>Device category</span><select value={assignedCategoryFilter} onChange={event => setAssignedCategoryFilter(event.target.value)}><option value="all">All categories</option>{assignedCategoryOptions.map(category => <option key={category} value={category}>{category}</option>)}</select></label>
+        {activeAssignedFilters > 0 && <button type="button" onClick={() => { setAssignedFloorFilter('all'); setAssignedCategoryFilter('all') }}>Clear filters</button>}
+      </div>}
+      {filteredAssignedAssets.length ? <div className="assigned-transfer-list">{filteredAssignedAssets.map(item => {
+        const isUnassigning = unassigningTag === item.tag
+        return <div className="assigned-transfer-row" key={item.tag}>
+          <span className="assigned-transfer-icon"><EquipmentIcon kind={equipmentKind(item.category)} /></span>
+          <div className="assigned-transfer-device"><b>{item.tag}</b><small>{item.name}</small></div>
+          <div className="assigned-transfer-location"><span>Current room</span><b>{item.location}</b><small>{item.owner}</small></div>
+          <AssignmentBadge assigned />
+          <button type="button" className="unassign-device-button" disabled={Boolean(unassigningTag)} onClick={() => { setConfirmingUnassignTag(item.tag); setAssignmentError('') }}>{isUnassigning ? 'Unassigning…' : 'Unassign'}</button>
+        </div>
+      })}</div> : <EquipmentEmptyState className="assigned-filter-empty" size="compact" kind={assignedCategoryFilter === 'all' ? 'System Unit' : equipmentKind(assignedCategoryFilter)} title={assignedAssets.length ? 'No assigned devices match these filters' : 'No assigned devices'} description={assignedAssets.length ? 'Try another floor or category, or clear the selected filters.' : 'Assigned devices will appear here with an option to prepare them for transfer.'} />}
+    </article>
+    <AlertDialog open={Boolean(assetPendingUnassign)} onOpenChange={open => { if (!open && !unassigningTag) setConfirmingUnassignTag('') }}>
+      <AlertDialogContent className="unassign-alert-dialog">
+        {assetPendingUnassign && <>
+          <AlertDialogHeader>
+            <span className="unassign-alert-icon" aria-hidden="true">✓</span>
+            <AlertDialogTitle>Unassign {assetPendingUnassign.tag}?</AlertDialogTitle>
+            <AlertDialogDescription>This will remove the device from its current room. Its inventory record will stay intact, and it will return to the Unassigned queue ready for transfer.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="unassign-alert-summary"><span>Current assignment</span><b>{assetPendingUnassign.location}</b><small>{assetPendingUnassign.owner} · {assetPendingUnassign.category}</small></div>
+          <AlertDialogFooter><AlertDialogCancel disabled={Boolean(unassigningTag)}>Cancel</AlertDialogCancel><AlertDialogAction disabled={Boolean(unassigningTag)} onClick={event => { event.preventDefault(); void unassignDevice(assetPendingUnassign) }}>{unassigningTag ? 'Processing…' : 'Confirm'}</AlertDialogAction></AlertDialogFooter>
+        </>}
+      </AlertDialogContent>
+    </AlertDialog>
   </>
 }
 
@@ -614,8 +649,8 @@ function QrPage({ inventoryAssets, onUpdate }: { inventoryAssets: InventoryAsset
       </article>
 
       <article className="module-card qr-information-panel">
-        {scannedAsset ? <QrAssetDetails asset={scannedAsset} onClear={() => { setScannedAsset(null); setScanMessage('') }} onUpdate={(originalTag, updatedAsset) => { onUpdate(originalTag, updatedAsset); setScannedAsset(updatedAsset) }} /> : <><CardTitle title="Awaiting a QR scan" subtitle="The identified device record will appear here" /><div className="qr-empty-state"><span>▦</span><h3>No device scanned yet</h3><p>Start the camera, enter an asset tag, or choose one of the recent devices below.</p></div></>}
-        <div className="recent-scan-section"><CardTitle title="Recent devices" subtitle="Select one to preview the scan result" />{inventoryAssets.slice(0,5).map(item => <button type="button" className="scan-row" key={item.tag} onClick={() => { setScannedAsset(item); setScanMessage(`Device ${item.tag} identified successfully.`) }}><span>▦</span><div><b>{item.tag}</b><small>{item.location}</small></div><StatusBadge state={item.state}/></button>)}</div>
+        {scannedAsset ? <QrAssetDetails asset={scannedAsset} onClear={() => { setScannedAsset(null); setScanMessage('') }} onUpdate={(originalTag, updatedAsset) => { onUpdate(originalTag, updatedAsset); setScannedAsset(updatedAsset) }} /> : <><CardTitle title="Awaiting a QR scan" subtitle="The identified device record will appear here" /><EquipmentEmptyState className="qr-empty-state" size="compact" kind="Scanner" title="No device scanned yet" description="Start the camera, enter an asset tag, or choose one of the recent devices below." /></>}
+        <div className="recent-scan-section"><CardTitle title="Recent devices" subtitle="Select one to preview the scan result" />{inventoryAssets.length ? inventoryAssets.slice(0,5).map(item => <button type="button" className="scan-row" key={item.tag} onClick={() => { setScannedAsset(item); setScanMessage(`Device ${item.tag} identified successfully.`) }}><span>▦</span><div><b>{item.tag}</b><small>{item.location}</small></div><StatusBadge state={item.state}/></button>) : <EquipmentEmptyState className="recent-devices-empty" size="inline" kind="Scanner" title="No recent devices" description="Register a device to make it available for scanning." />}</div>
         <div className="privacy-note"><b>Secure QR rule</b><p>Labels contain only an asset token—never passwords, IP addresses, or clinical information.</p></div>
       </article>
     </div>
@@ -626,8 +661,10 @@ function QrAssetDetails({ asset, onClear, onUpdate }: { asset: InventoryAsset; o
   const [fullRecordOpen, setFullRecordOpen] = useState(false)
   const [editing, setEditing] = useState(false)
   const assigned = isAssetAssigned(asset)
-  const [floorCode, roomName = 'Not assigned'] = asset.location.split(' · ')
-  const floorLabel = assigned && /^F\d+$/i.test(floorCode) ? `Floor ${floorCode.slice(1)}` : 'Not assigned'
+  const [floorCode, legacyRoomName = 'Not assigned'] = asset.location.split(' · ')
+  const roomName = asset.assignment?.roomName || legacyRoomName
+  const floorId = asset.assignment?.floorId || (/^F\d+$/i.test(floorCode) ? floorCode.slice(1) : '')
+  const floorLabel = assigned && floorId ? `Floor ${floorId}` : 'Not assigned'
   return <div className="qr-asset-result">
     <header><div><span>DEVICE IDENTIFIED</span><h2>{asset.tag}</h2><p>{asset.name}</p></div><div className="qr-result-labels"><AssignmentBadge assigned={assigned} /><StatusBadge state={asset.state} /></div></header>
     <DevicePreview asset={asset} className="qr-device-preview" />
@@ -640,8 +677,10 @@ function QrAssetDetails({ asset, onClear, onUpdate }: { asset: InventoryAsset; o
 
 function FullDeviceRecordDialog({ asset, onClose, onEdit }: { asset: InventoryAsset; onClose: () => void; onEdit?: () => void }) {
   const assigned = isAssetAssigned(asset)
-  const [floorCode, roomName = 'Not assigned'] = asset.location.split(' · ')
-  const floorLabel = assigned && /^F\d+$/i.test(floorCode) ? `Floor ${floorCode.slice(1)}` : 'Not assigned'
+  const [floorCode, legacyRoomName = 'Not assigned'] = asset.location.split(' · ')
+  const roomName = asset.assignment?.roomName || legacyRoomName
+  const floorId = asset.assignment?.floorId || (/^F\d+$/i.test(floorCode) ? floorCode.slice(1) : '')
+  const floorLabel = assigned && floorId ? `Floor ${floorId}` : 'Not assigned'
   const supportsNetwork = asset.category === 'System Unit' || asset.category === 'Printer' || asset.category === 'Router'
 
   useEffect(() => {
@@ -657,7 +696,7 @@ function FullDeviceRecordDialog({ asset, onClose, onEdit }: { asset: InventoryAs
       <div className="device-record-content">
         <section className="device-record-preview-card"><DevicePreview asset={asset} className="device-record-preview" /><div><span>DEVICE PREVIEW</span><h3>{asset.category}</h3><p>{asset.brand || 'Brand not recorded'} · {asset.model || asset.name}</p><small>Visual reference for quick equipment identification.</small></div></section>
         <section><h3>Device identity</h3><dl><div><dt>Asset tag</dt><dd>{asset.tag}</dd></div><div><dt>QR identification ID</dt><dd className="mono">{asset.qrId}</dd></div><div><dt>Brand</dt><dd>{asset.brand || 'Not recorded'}</dd></div><div><dt>Model</dt><dd>{asset.model || asset.name}</dd></div></dl></section>
-        <section><h3>Hospital assignment</h3><dl><div><dt>Assignment status</dt><dd>{assigned ? 'Assigned' : 'Unassigned'}</dd></div><div><dt>Floor</dt><dd>{floorLabel}</dd></div><div><dt>Room</dt><dd>{assigned ? roomName : 'Not assigned'}</dd></div><div><dt>Department</dt><dd>{assigned ? asset.owner : 'Not assigned'}</dd></div></dl></section>
+        <section><h3>Hospital assignment</h3><dl><div><dt>Assignment status</dt><dd>{assigned ? 'Assigned' : 'Unassigned'}</dd></div><div><dt>Floor</dt><dd>{floorLabel}</dd></div><div><dt>Room</dt><dd>{assigned ? roomName : 'Not assigned'}</dd></div><div><dt>Department</dt><dd>{assigned ? (asset.assignment?.departmentId || asset.owner) : 'Not assigned'}</dd></div>{asset.assignment && <><div><dt>Assigned by</dt><dd>{asset.assignment.assignedBy}</dd></div><div><dt>Assigned on</dt><dd>{new Date(asset.assignment.assignedAt).toLocaleString()}</dd></div><div><dt>Method</dt><dd>{asset.assignment.method === 'qr' ? 'QR scan' : 'Manual assignment'}</dd></div></>}</dl></section>
         {asset.category === 'System Unit' && <section><h3>System specifications</h3><dl><div><dt>Processor</dt><dd>{asset.processor || 'Not recorded'}</dd></div><div><dt>RAM modules</dt><dd>{asset.ramModules || 0}</dd></div><div><dt>RAM per module</dt><dd>{asset.ramCapacityGb || 0} GB</dd></div><div><dt>Total RAM</dt><dd>{(asset.ramModules || 0) * (asset.ramCapacityGb || 0)} GB</dd></div><div><dt>SSD drives</dt><dd>{asset.ssdCount || 0}</dd></div><div><dt>SSD per drive</dt><dd>{asset.ssdCapacityGb || 0} GB</dd></div><div><dt>Total SSD storage</dt><dd>{(asset.ssdCount || 0) * (asset.ssdCapacityGb || 0)} GB</dd></div></dl></section>}
         <section><h3>Network information</h3><dl><div><dt>Network capable</dt><dd>{supportsNetwork ? 'Yes' : 'No'}</dd></div><div><dt>IP address</dt><dd className="mono">{supportsNetwork ? asset.ip : 'Not applicable'}</dd></div></dl></section>
       </div>
@@ -687,7 +726,7 @@ function NetworkPage({ inventoryAssets }: { inventoryAssets: InventoryAsset[] })
   return <>
     <ModuleHeading eyebrow="IT OPERATIONS" title="Network registry" description="Monitor address assignments and verification status for network-capable equipment." />
     <div className="network-summary"><article><span>Address pool</span><b>10.20.0.0/16</b><small>Hospital private network</small></article><article><span>Assigned addresses</span><b>{assignedCount}</b><div><i style={{width:`${Math.min(Math.round((assignedCount / Math.max(inventoryAssets.length, 1)) * 100), 100)}%`}} /></div><small>{assignedCount} network-capable devices</small></article><article><span>Needs review</span><b className={maintenanceCount > 0 ? 'danger' : ''}>{maintenanceCount}</b><small>{maintenanceCount > 0 ? 'Devices not in active state' : 'All network devices active'}</small></article></div>
-    <article className="module-card registry-card"><div className="registry-toolbar"><label className="search-field">⌕ <input aria-label="Search network registry" placeholder="Search IP, hostname, MAC, or asset" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} /></label><div className="filter-pills"><button className={filter === 'all' ? 'selected' : ''} onClick={() => setFilter('all')}>All profiles</button><button className={filter === 'active' ? 'selected' : ''} onClick={() => setFilter('active')}>Active</button><button className={filter === 'maintenance' ? 'selected' : ''} onClick={() => setFilter('maintenance')}>Needs review</button></div></div><div className="data-table network-table"><div className="table-row table-head"><span>Asset / hostname</span><span>IPv4 address</span><span>Category</span><span>Location</span><span>Owner</span><span>Status</span></div>{filtered.length ? filtered.map(item => <div className="table-row" key={item.tag}><span className="asset-cell"><i>IP</i><span><b>{item.tag}</b><small>{item.name}</small></span></span><span className="mono">{item.ip}</span><span>{item.category}</span><span>{item.location}</span><span>{item.owner}</span><span><StatusBadge state={item.state}/></span></div>) : <div className="table-row" style={{justifyContent:'center', color:'#888', padding:'32px'}}>No network devices match your search.</div>}</div></article>
+    <article className="module-card registry-card"><div className="registry-toolbar"><label className="search-field">⌕ <input aria-label="Search network registry" placeholder="Search IP, hostname, MAC, or asset" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} /></label><div className="filter-pills"><button className={filter === 'all' ? 'selected' : ''} onClick={() => setFilter('all')}>All profiles</button><button className={filter === 'active' ? 'selected' : ''} onClick={() => setFilter('active')}>Active</button><button className={filter === 'maintenance' ? 'selected' : ''} onClick={() => setFilter('maintenance')}>Needs review</button></div></div><div className="data-table network-table"><div className="table-row table-head"><span>Asset / hostname</span><span>IPv4 address</span><span>Category</span><span>Location</span><span>Owner</span><span>Status</span></div>{filtered.length ? filtered.map(item => <div className="table-row" key={item.tag}><span className="asset-cell"><i>IP</i><span><b>{item.tag}</b><small>{item.name}</small></span></span><span className="mono">{item.ip}</span><span>{item.category}</span><span>{item.location}</span><span>{item.owner}</span><span><StatusBadge state={item.state}/></span></div>) : <EquipmentEmptyState className="registry-empty network-empty" size="compact" kind="Router" title="No network devices found" description="Try another search or change the selected status filter." />}</div></article>
   </>
 }
 
@@ -702,21 +741,32 @@ function MaintenancePage({ inventoryAssets }: { inventoryAssets: InventoryAsset[
     ...maintenanceAssets.map(a => [a.tag, a.tag, `${a.name} — scheduled service`, 'Medium', 'In progress']),
   ].slice(0, 8)
 
-  return <><ModuleHeading eyebrow="SERVICE OPERATIONS" title="Maintenance queue" description="Prioritize repairs, preventive inspections, and equipment return-to-service." /><div className="metric-grid compact"><Metric label="Open work orders" value={String(totalIssues)} note={`${brokenAssets.length} critical`} /><Metric label="Critical" value={String(brokenAssets.length)} note="Immediate attention" tone="maroon" /><Metric label="Under maintenance" value={String(maintenanceAssets.length)} note="Scheduled service" tone="amber" /><Metric label="Active devices" value={String(activeAssets.length)} note={`${Math.round((activeAssets.length / Math.max(inventoryAssets.length, 1)) * 100)}% operational`} tone="green" /></div><div className="maintenance-layout"><article className="module-card work-orders"><CardTitle title="Active work orders" subtitle="Sorted by operational priority" /><div className="ticket-head"><span>Asset</span><span>Issue</span><span>Priority</span><span>Stage</span></div>{tickets.length ? tickets.map(ticket => <button className="ticket-row" key={ticket[0]}><span><b>{ticket[0]}</b><small>{ticket[1]}</small></span><span>{ticket[2]}</span><span className={`priority ${ticket[3].toLowerCase()}`}>{ticket[3]}</span><span>{ticket[4]}</span></button>) : <div style={{padding:'24px',color:'#888',textAlign:'center'}}>No devices currently need maintenance.</div>}</article><article className="module-card maintenance-schedule"><CardTitle title="Equipment status" subtitle="Devices needing attention" />{[...brokenAssets, ...maintenanceAssets].slice(0, 4).map((item, index) => <div className="schedule-row" key={item.tag}><time><b>{item.state === 'Broken' ? '⚠' : '⚒'}</b></time><span><b>{item.tag} — {item.name}</b><small>{item.location} · {item.state}</small></span></div>)}{totalIssues === 0 && <div style={{padding:'24px',color:'#888',textAlign:'center'}}>All equipment is operational.</div>}</article></div></>
+  return <><ModuleHeading eyebrow="SERVICE OPERATIONS" title="Maintenance queue" description="Prioritize repairs, preventive inspections, and equipment return-to-service." /><div className="metric-grid compact"><Metric label="Open work orders" value={String(totalIssues)} note={`${brokenAssets.length} critical`} /><Metric label="Critical" value={String(brokenAssets.length)} note="Immediate attention" tone="maroon" /><Metric label="Under maintenance" value={String(maintenanceAssets.length)} note="Scheduled service" tone="amber" /><Metric label="Active devices" value={String(activeAssets.length)} note={`${Math.round((activeAssets.length / Math.max(inventoryAssets.length, 1)) * 100)}% operational`} tone="green" /></div><div className="maintenance-layout"><article className="module-card work-orders"><CardTitle title="Active work orders" subtitle="Sorted by operational priority" /><div className="ticket-head"><span>Asset</span><span>Issue</span><span>Priority</span><span>Stage</span></div>{tickets.length ? tickets.map(ticket => <button className="ticket-row" key={ticket[0]}><span><b>{ticket[0]}</b><small>{ticket[1]}</small></span><span>{ticket[2]}</span><span className={`priority ${ticket[3].toLowerCase()}`}>{ticket[3]}</span><span>{ticket[4]}</span></button>) : <EquipmentEmptyState className="maintenance-empty" size="compact" kind="System Unit" title="No maintenance needed" description="There are no open work orders right now." />}</article><article className="module-card maintenance-schedule"><CardTitle title="Equipment status" subtitle="Devices needing attention" />{[...brokenAssets, ...maintenanceAssets].slice(0, 4).map((item, index) => <div className="schedule-row" key={item.tag}><time><b>{item.state === 'Broken' ? '⚠' : '⚒'}</b></time><span><b>{item.tag} — {item.name}</b><small>{item.location} · {item.state}</small></span></div>)}{totalIssues === 0 && <EquipmentEmptyState className="maintenance-empty" size="compact" kind="UPS" title="All equipment is operational" description="No devices currently need attention." />}</article></div></>
 }
 
 function ReportsPage({ inventoryAssets }: { inventoryAssets: InventoryAsset[] }) {
   const floorCounts: number[] = [0, 0, 0, 0, 0, 0, 0]
   inventoryAssets.forEach(a => {
-    const match = a.location.match(/^F(\d)/)
-    if (match) floorCounts[parseInt(match[1]) - 1] = (floorCounts[parseInt(match[1]) - 1] || 0) + 1
+    const floorId = a.assignment?.floorId || floorIdFromLocation(a.location)
+    if (floorId) floorCounts[parseInt(floorId) - 1] = (floorCounts[parseInt(floorId) - 1] || 0) + 1
   })
-  const unassigned = inventoryAssets.filter(a => a.location === 'Unassigned').length
+  const unassigned = inventoryAssets.filter(a => !isAssetAssigned(a)).length
   const maxBar = Math.max(...floorCounts, 1)
 
   const downloadCsv = (title: string) => {
-    const rows = [['Tag', 'Name', 'Category', 'Location', 'Owner', 'State', 'IP'].join(',')]
-    inventoryAssets.forEach(a => rows.push([a.tag, a.name, a.category, `"${a.location}"`, `"${a.owner}"`, a.state, a.ip].join(',')))
+    const csvCell = (value: string) => `"${value.replaceAll('"', '""')}"`
+    const rows = [['Tag', 'Name', 'Category', 'Assignment status', 'Floor', 'Room', 'Department', 'Assigned at', 'Assigned by', 'Method', 'State', 'IP'].join(',')]
+    inventoryAssets.forEach(a => {
+      const assigned = isAssetAssigned(a)
+      const [, legacyRoom = ''] = a.location.split(' · ')
+      rows.push([
+        a.tag, a.name, a.category, assigned ? 'Assigned' : 'Unassigned',
+        assigned ? (a.assignment?.floorId || floorIdFromLocation(a.location)) : '',
+        assigned ? (a.assignment?.roomName || legacyRoom) : '',
+        assigned ? (a.assignment?.departmentId || a.owner) : '',
+        a.assignment?.assignedAt || '', a.assignment?.assignedBy || '', a.assignment?.method || '', a.state, a.ip,
+      ].map(value => csvCell(String(value))).join(','))
+    })
     const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')

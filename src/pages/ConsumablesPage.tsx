@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { ConsumableRepository } from '../lib/repositories'
 import { consumableReceiptSchema, type ConsumableReceiptData } from '../lib/schemas'
 import type { ConsumableCategory, ConsumableReceipt } from '../lib/types'
+import { EquipmentEmptyState } from '../components/ui/equipment-empty-state'
 import '../consumables.css'
 
 const categories: ConsumableCategory[] = ['RAM', 'SSD', 'HDD', 'Network Cable', 'Ink / Toner', 'Battery', 'Other']
@@ -99,7 +100,7 @@ export function ConsumablesPage() {
             <div><b>{receipt.supplier || 'Not recorded'}</b><small>{receipt.referenceNumber || 'No reference number'}</small></div>
             <span>{receipt.receivedBy || 'Not recorded'}</span>
           </article>)}
-        </div> : <div className="consumable-state"><span>▧</span><h3>{normalizedSearch || categoryFilter !== 'all' ? 'No matching receipt records' : 'No consumables recorded yet'}</h3><p>{normalizedSearch || categoryFilter !== 'all' ? 'Change the search or selected category.' : 'Select “Record received stock” when RAM, SSDs, or other supplies arrive.'}</p></div>}
+        </div> : <EquipmentEmptyState className="consumable-state" kind="Keyboard" title={normalizedSearch || categoryFilter !== 'all' ? 'No matching receipt records' : 'No consumables recorded yet'} description={normalizedSearch || categoryFilter !== 'all' ? 'Change the search or selected category.' : 'Select “Record received stock” when RAM, SSDs, or other supplies arrive.'} />}
     </section>
 
     {receiptOpen && <ConsumableReceiptDialog onClose={() => setReceiptOpen(false)} onSave={async receipt => { await saveMutation.mutateAsync(receipt) }} />}

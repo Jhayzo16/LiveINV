@@ -1,0 +1,3241 @@
+{
+  "1": {
+    "sourceHash": "5e6aa8731b4648520f0fcf47d573d1928ba5e8a9c0393fcd85bc9d9b954bc824",
+    "rooms": [
+      {
+        "shapeId": "Rectangle 346",
+        "name": "DARK ROOM",
+        "id": "f1-space-1",
+        "floor": 1,
+        "legacyIds": [
+          "f1-dark_room"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 118",
+        "name": "RECEPTION / INFORMATION",
+        "id": "f1-space-2",
+        "floor": 1,
+        "legacyIds": [
+          "f1-reception___information"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 51",
+        "name": "YAKAP OFFICE",
+        "id": "f1-space-3",
+        "floor": 1,
+        "legacyIds": [
+          "f1-yakap_office"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 52",
+        "name": "MINOR OPERATING ROOM",
+        "id": "f1-space-4",
+        "floor": 1,
+        "legacyIds": [
+          "f1-minor_operating_room"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 53",
+        "name": "Unnamed space 5",
+        "id": "f1-space-5",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-1"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 54",
+        "name": "Unnamed space 6",
+        "id": "f1-space-6",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-2"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 55",
+        "name": "Unnamed space 7",
+        "id": "f1-space-7",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-3"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 56",
+        "name": "Unnamed space 8",
+        "id": "f1-space-8",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-4"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 57",
+        "name": "Unnamed space 9",
+        "id": "f1-space-9",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-5"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 58",
+        "name": "Unnamed space 10",
+        "id": "f1-space-10",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-6"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 59",
+        "name": "Unnamed space 11",
+        "id": "f1-space-11",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-7"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 60",
+        "name": "Unnamed space 12",
+        "id": "f1-space-12",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-8"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 61",
+        "name": "Unnamed space 13",
+        "id": "f1-space-13",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-9"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 62",
+        "name": "Unnamed space 14",
+        "id": "f1-space-14",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-10"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 63",
+        "name": "Unnamed space 15",
+        "id": "f1-space-15",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-11"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 64",
+        "name": "Unnamed space 16",
+        "id": "f1-space-16",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-12"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 65",
+        "name": "OECB",
+        "id": "f1-space-17",
+        "floor": 1,
+        "legacyIds": [
+          "f1-oecb"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 66",
+        "name": "Unnamed space 18",
+        "id": "f1-space-18",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-13"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 67",
+        "name": "Unnamed space 19",
+        "id": "f1-space-19",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-14"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 68",
+        "name": "NURSE'S STATION",
+        "id": "f1-space-20",
+        "floor": 1,
+        "legacyIds": [
+          "f1-nurses_station"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 69",
+        "name": "RECORDS RM.",
+        "id": "f1-space-21",
+        "floor": 1,
+        "legacyIds": [
+          "f1-records_rm"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 70",
+        "name": "Unnamed space 22",
+        "id": "f1-space-22",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-15"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 71",
+        "name": "T & B",
+        "id": "f1-space-23",
+        "floor": 1,
+        "legacyIds": [
+          "f1-t_and_b"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 72",
+        "name": "FEMALE DOCTORS RM.",
+        "id": "f1-space-24",
+        "floor": 1,
+        "legacyIds": [
+          "f1-female_doctors_rm"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 73",
+        "name": "MALE DOCTORS RM.",
+        "id": "f1-space-25",
+        "floor": 1,
+        "legacyIds": [
+          "f1-male_doctors_rm"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 74",
+        "name": "Unnamed space 26",
+        "id": "f1-space-26",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-16"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 75",
+        "name": "Unnamed space 27",
+        "id": "f1-space-27",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-17"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 76",
+        "name": "E.R. ADMITTING & SATELLITE BILLING",
+        "id": "f1-space-28",
+        "floor": 1,
+        "legacyIds": [
+          "f1-er_admitting_and_satellite_billing"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 77",
+        "name": "Unnamed space 29",
+        "id": "f1-space-29",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-18"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 78",
+        "name": "CRISIS INTERVENTION ROOM",
+        "id": "f1-space-30",
+        "floor": 1,
+        "legacyIds": [
+          "f1-crisis_intervention_room"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 79",
+        "name": "Unnamed space 31",
+        "id": "f1-space-31",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-19"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 80",
+        "name": "DOCTOR'S DESK",
+        "id": "f1-space-32",
+        "floor": 1,
+        "legacyIds": [
+          "f1-doctors_desk"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 81",
+        "name": "Unnamed space 33",
+        "id": "f1-space-33",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-20"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 82",
+        "name": "Unnamed space 34",
+        "id": "f1-space-34",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-21"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 83",
+        "name": "Unnamed space 35",
+        "id": "f1-space-35",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-22"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 84",
+        "name": "E.R. RECEPTION",
+        "id": "f1-space-36",
+        "floor": 1,
+        "legacyIds": [
+          "f1-er_reception"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 85",
+        "name": "RADIOLOGIST WORK RM.",
+        "id": "f1-space-37",
+        "floor": 1,
+        "legacyIds": [
+          "f1-radiologist_work_rm"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 86",
+        "name": "X-RAY 1",
+        "id": "f1-space-38",
+        "floor": 1,
+        "legacyIds": [
+          "f1-x-ray_1"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 87",
+        "name": "Unnamed space 39",
+        "id": "f1-space-39",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-23"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 88",
+        "name": "X-RAY 2",
+        "id": "f1-space-40",
+        "floor": 1,
+        "legacyIds": [
+          "f1-x-ray_2"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 89",
+        "name": "ANTE RM.",
+        "id": "f1-space-41",
+        "floor": 1,
+        "legacyIds": [
+          "f1-ante_rm"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 90",
+        "name": "ULTRASOUND 2",
+        "id": "f1-space-42",
+        "floor": 1,
+        "legacyIds": [
+          "f1-ultrasound_2"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 91",
+        "name": "ULTRASOUND 1",
+        "id": "f1-space-43",
+        "floor": 1,
+        "legacyIds": [
+          "f1-ultrasound_1"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 92",
+        "name": "ULTRASOUND READING",
+        "id": "f1-space-44",
+        "floor": 1,
+        "legacyIds": [
+          "f1-ultrasound_reading"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 93",
+        "name": "FILM STORAGE",
+        "id": "f1-space-45",
+        "floor": 1,
+        "legacyIds": [
+          "f1-film_storage"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 94",
+        "name": "MAMMOGRAPHY",
+        "id": "f1-space-46",
+        "floor": 1,
+        "legacyIds": [
+          "f1-mammography"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 95",
+        "name": "READING ROOM",
+        "id": "f1-space-47",
+        "floor": 1,
+        "legacyIds": [
+          "f1-reading_room"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 96",
+        "name": "RAD. TECH OFFICE",
+        "id": "f1-space-48",
+        "floor": 1,
+        "legacyIds": [
+          "f1-rad_tech_office"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 97",
+        "name": "RECEPTION (RADIOLOGY)",
+        "id": "f1-space-49",
+        "floor": 1,
+        "legacyIds": [
+          "f1-reception_1"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 98",
+        "name": "Unnamed space 50",
+        "id": "f1-space-50",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-24"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 99",
+        "name": "CASHIER",
+        "id": "f1-space-51",
+        "floor": 1,
+        "legacyIds": [
+          "f1-cashier"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 100",
+        "name": "BILLING",
+        "id": "f1-space-52",
+        "floor": 1,
+        "legacyIds": [
+          "f1-billing"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 101",
+        "name": "ADMITTING",
+        "id": "f1-space-53",
+        "floor": 1,
+        "legacyIds": [
+          "f1-admitting"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 102",
+        "name": "Unnamed space 54",
+        "id": "f1-space-54",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-25"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 103",
+        "name": "SOCIAL SERVICES",
+        "id": "f1-space-55",
+        "floor": 1,
+        "legacyIds": [
+          "f1-social_services"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 115",
+        "name": "Unnamed space 56",
+        "id": "f1-space-56",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-26"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 116",
+        "name": "ADMIN OFFICE",
+        "id": "f1-space-57",
+        "floor": 1,
+        "legacyIds": [
+          "f1-admin_office"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 117",
+        "name": "HR OFFICE",
+        "id": "f1-space-58",
+        "floor": 1,
+        "legacyIds": [
+          "f1-hr_office"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 343",
+        "name": "S. TO.",
+        "id": "f1-space-59",
+        "floor": 1,
+        "legacyIds": [
+          "f1-s_to"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 344",
+        "name": "DANGR. DRUGS",
+        "id": "f1-space-60",
+        "floor": 1,
+        "legacyIds": [
+          "f1-dangr_drugs"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 322",
+        "name": "BLOOD SUPPLY ROOM",
+        "id": "f1-space-61",
+        "floor": 1,
+        "legacyIds": [
+          "f1-blood_supply_room"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 323",
+        "name": "LABORATORY EQUIPMENT AREA",
+        "id": "f1-space-62",
+        "floor": 1,
+        "legacyIds": [
+          "f1-laboratory_equipment_area"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 324",
+        "name": "CUTTING & PROCESSING",
+        "id": "f1-space-63",
+        "floor": 1,
+        "legacyIds": [
+          "f1-cutting_and_processing"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 325",
+        "name": "CYTOLOGY/ STAINING",
+        "id": "f1-space-64",
+        "floor": 1,
+        "legacyIds": [
+          "f1-cytology_staining"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 326",
+        "name": "CYTOGENETICS",
+        "id": "f1-space-65",
+        "floor": 1,
+        "legacyIds": [
+          "f1-cytogenetics"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 327",
+        "name": "STERILIZATION",
+        "id": "f1-space-66",
+        "floor": 1,
+        "legacyIds": [
+          "f1-sterilization"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 328",
+        "name": "MICROBIOLOGY",
+        "id": "f1-space-67",
+        "floor": 1,
+        "legacyIds": [
+          "f1-microbiology"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 329",
+        "name": "MEDIA PREP.",
+        "id": "f1-space-68",
+        "floor": 1,
+        "legacyIds": [
+          "f1-media_prep"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 330",
+        "name": "AUTOCLAVE",
+        "id": "f1-space-69",
+        "floor": 1,
+        "legacyIds": [
+          "f1-autoclave"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 331",
+        "name": "CLINICAL MICROSCOPY",
+        "id": "f1-space-70",
+        "floor": 1,
+        "legacyIds": [
+          "f1-clinical_microscopy"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 332",
+        "name": "CHIEF MED. TECH.",
+        "id": "f1-space-71",
+        "floor": 1,
+        "legacyIds": [
+          "f1-chief_med_tech"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 333",
+        "name": "BLOOD EXTRACTION",
+        "id": "f1-space-72",
+        "floor": 1,
+        "legacyIds": [
+          "f1-blood_extraction"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 334",
+        "name": "RECEPTION (LABORATORY)",
+        "id": "f1-space-73",
+        "floor": 1,
+        "legacyIds": [
+          "f1-reception_2"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 335",
+        "name": "COUNSELING & MEETING ROOM",
+        "id": "f1-space-74",
+        "floor": 1,
+        "legacyIds": [
+          "f1-counseling_and_meeting_room"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 336",
+        "name": "Unnamed space 75",
+        "id": "f1-space-75",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-27"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 337",
+        "name": "Unnamed space 76",
+        "id": "f1-space-76",
+        "floor": 1,
+        "legacyIds": [
+          "f1-un-28"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 338",
+        "name": "COMPOUNDING AREA",
+        "id": "f1-space-77",
+        "floor": 1,
+        "legacyIds": [
+          "f1-compounding_area"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 339",
+        "name": "PHARMACIST",
+        "id": "f1-space-78",
+        "floor": 1,
+        "legacyIds": [
+          "f1-pharmacist"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 340",
+        "name": "DELIVERY APRON",
+        "id": "f1-space-79",
+        "floor": 1,
+        "legacyIds": [
+          "f1-delivery_apron"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 342",
+        "name": "PHARMACY",
+        "id": "f1-space-80",
+        "floor": 1,
+        "legacyIds": [
+          "f1-pharmacy"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 344_2",
+        "name": "OFFICE",
+        "id": "f1-space-81",
+        "floor": 1,
+        "legacyIds": [
+          "f1-pathologists_office"
+        ]
+      }
+    ]
+  },
+  "2": {
+    "sourceHash": "b539ea890910ab067389612212aa764311d01710f36d0892713cb32b589710d5",
+    "rooms": [
+      {
+        "shapeId": "Rectangle 4",
+        "name": "CS DELIVERY ROOM",
+        "id": "f2-space-1",
+        "floor": 2,
+        "legacyIds": [
+          "f2-cs_delivery_room"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 5",
+        "name": "D.R SUB-STERILIZATION",
+        "id": "f2-space-2",
+        "floor": 2,
+        "legacyIds": [
+          "f2-d.r_sub-sterilization"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 6",
+        "name": "D.R. SUPPLY",
+        "id": "f2-space-3",
+        "floor": 2,
+        "legacyIds": [
+          "f2-d.r._supply"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 7",
+        "name": "DELIVERY ROOM 1",
+        "id": "f2-space-4",
+        "floor": 2,
+        "legacyIds": [
+          "f2-delivery_room_1"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 8",
+        "name": "DELIVERY ROOM 2",
+        "id": "f2-space-5",
+        "floor": 2,
+        "legacyIds": [
+          "f2-delivery_room_2"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 9",
+        "name": "CLEAN UP",
+        "id": "f2-space-6",
+        "floor": 2,
+        "legacyIds": [
+          "f2-clean_up"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 10",
+        "name": "LOUNGE",
+        "id": "f2-space-7",
+        "floor": 2,
+        "legacyIds": [
+          "f2-lounge"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 11",
+        "name": "TREATMENT INFANT WASHING",
+        "id": "f2-space-8",
+        "floor": 2,
+        "legacyIds": [
+          "f2-treatment_infant_washing"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 12",
+        "name": "SUPPLY ROOM",
+        "id": "f2-space-9",
+        "floor": 2,
+        "legacyIds": [
+          "f2-supply_room"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 13",
+        "name": "NICU (PATHOLOGIC)",
+        "id": "f2-space-10",
+        "floor": 2,
+        "legacyIds": [
+          "f2-nicu"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 14",
+        "name": "Unnamed space 11",
+        "id": "f2-space-11",
+        "floor": 2,
+        "legacyIds": [
+          "f2-un-10"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 15",
+        "name": "OUTBORN",
+        "id": "f2-space-12",
+        "floor": 2,
+        "legacyIds": [
+          "f2-outborn"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 16",
+        "name": "NEWBORN CARE AREA",
+        "id": "f2-space-13",
+        "floor": 2,
+        "legacyIds": [
+          "f2-newborn_care_area"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 17",
+        "name": "Unnamed space 14",
+        "id": "f2-space-14",
+        "floor": 2,
+        "legacyIds": [
+          "f2-un-13"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 18",
+        "name": "Unnamed space 15",
+        "id": "f2-space-15",
+        "floor": 2,
+        "legacyIds": [
+          "f2-un-14"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 19",
+        "name": "Unnamed space 16",
+        "id": "f2-space-16",
+        "floor": 2,
+        "legacyIds": [
+          "f2-un-15"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 20",
+        "name": "NURSE'S STATION NICU",
+        "id": "f2-space-17",
+        "floor": 2,
+        "legacyIds": [
+          "f2-nurses_station_nicu"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 21",
+        "name": "Unnamed space 18",
+        "id": "f2-space-18",
+        "floor": 2,
+        "legacyIds": [
+          "f2-un-17"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 22",
+        "name": "Unnamed space 19",
+        "id": "f2-space-19",
+        "floor": 2,
+        "legacyIds": [
+          "f2-un-18"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 23",
+        "name": "Unnamed space 20",
+        "id": "f2-space-20",
+        "floor": 2,
+        "legacyIds": [
+          "f2-un-19"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 24",
+        "name": "OR/DR TRANSFER ROOM",
+        "id": "f2-space-21",
+        "floor": 2,
+        "legacyIds": [
+          "f2-or/dr_transfer_room"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 25",
+        "name": "LABOR ROOM",
+        "id": "f2-space-22",
+        "floor": 2,
+        "legacyIds": [
+          "f2-labor_room"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 26",
+        "name": "DR NURSE'S STATION",
+        "id": "f2-space-23",
+        "floor": 2,
+        "legacyIds": [
+          "f2-dr_nurses_station_2"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 27",
+        "name": "MAJOR OR 5",
+        "id": "f2-space-24",
+        "floor": 2,
+        "legacyIds": [
+          "f2-major_or_5"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 28",
+        "name": "Unnamed space 25",
+        "id": "f2-space-25",
+        "floor": 2,
+        "legacyIds": [
+          "f2-un-24"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 29",
+        "name": "Unnamed space 26",
+        "id": "f2-space-26",
+        "floor": 2,
+        "legacyIds": [
+          "f2-un-25"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 30",
+        "name": "Unnamed space 27",
+        "id": "f2-space-27",
+        "floor": 2,
+        "legacyIds": [
+          "f2-un-26"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 31",
+        "name": "Unnamed space 28",
+        "id": "f2-space-28",
+        "floor": 2,
+        "legacyIds": [
+          "f2-un-27"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 32",
+        "name": "MAJOR OR 4",
+        "id": "f2-space-29",
+        "floor": 2,
+        "legacyIds": [
+          "f2-major_or_4"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 33",
+        "name": "MAJOR OR 3",
+        "id": "f2-space-30",
+        "floor": 2,
+        "legacyIds": [
+          "f2-major_or_3"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 34",
+        "name": "OR SUB-STERILIZATION",
+        "id": "f2-space-31",
+        "floor": 2,
+        "legacyIds": [
+          "f2-or_sub-sterilization"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 35",
+        "name": "MAJOR OR 2",
+        "id": "f2-space-32",
+        "floor": 2,
+        "legacyIds": [
+          "f2-major_or_2"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 36",
+        "name": "MAJOR OR 1",
+        "id": "f2-space-33",
+        "floor": 2,
+        "legacyIds": [
+          "f2-major_or_1"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 37",
+        "name": "Unnamed space 34",
+        "id": "f2-space-34",
+        "floor": 2,
+        "legacyIds": [
+          "f2-un-33"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 38",
+        "name": "Unnamed space 35",
+        "id": "f2-space-35",
+        "floor": 2,
+        "legacyIds": [
+          "f2-un-34"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 39",
+        "name": "Unnamed space 36",
+        "id": "f2-space-36",
+        "floor": 2,
+        "legacyIds": [
+          "f2-un-35"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 40",
+        "name": "MEETING ROOM",
+        "id": "f2-space-37",
+        "floor": 2,
+        "legacyIds": [
+          "f2-meeting_room"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 41",
+        "name": "LABOR PRE ASSESSMENT RM",
+        "id": "f2-space-38",
+        "floor": 2,
+        "legacyIds": [
+          "f2-labor_pre_assessment_rm"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 42",
+        "name": "NURSE'S RECEPTION",
+        "id": "f2-space-39",
+        "floor": 2,
+        "legacyIds": [
+          "f2-nurses_reception"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 43",
+        "name": "RECOVERY ROOM",
+        "id": "f2-space-40",
+        "floor": 2,
+        "legacyIds": [
+          "f2-recovery_room"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 44",
+        "name": "DR NURSE'S STATION",
+        "id": "f2-space-41",
+        "floor": 2,
+        "legacyIds": [
+          "f2-dr_nurses_station_1"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 45",
+        "name": "OR WAITING AREA",
+        "id": "f2-space-42",
+        "floor": 2,
+        "legacyIds": [
+          "f2-or_waiting_area"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 49",
+        "name": "Unnamed space 43",
+        "id": "f2-space-43",
+        "floor": 2,
+        "legacyIds": [
+          "f2-un-42"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 50",
+        "name": "RECEP.",
+        "id": "f2-space-44",
+        "floor": 2,
+        "legacyIds": [
+          "f2-recep."
+        ]
+      },
+      {
+        "shapeId": "Rectangle 51",
+        "name": "CONSULT. RM",
+        "id": "f2-space-45",
+        "floor": 2,
+        "legacyIds": [
+          "f2-consult._rm"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 52",
+        "name": "CUSTODIAN AREA CSSR",
+        "id": "f2-space-46",
+        "floor": 2,
+        "legacyIds": [
+          "f2-custodian_area_cssr"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 53",
+        "name": "PICU 4",
+        "id": "f2-space-47",
+        "floor": 2,
+        "legacyIds": [
+          "f2-picu_4"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 54",
+        "name": "PICU 3",
+        "id": "f2-space-48",
+        "floor": 2,
+        "legacyIds": [
+          "f2-picu_3"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 55",
+        "name": "PICU 2 (W/ PROV. FOR DIALYSIS)",
+        "id": "f2-space-49",
+        "floor": 2,
+        "legacyIds": [
+          "f2-picu_2"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 56",
+        "name": "PICU 1 (W/ PROV. FOR DIALYSIS)",
+        "id": "f2-space-50",
+        "floor": 2,
+        "legacyIds": [
+          "f2-picu_1"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 57",
+        "name": "PICU ISOLATION (SEPTIC)",
+        "id": "f2-space-51",
+        "floor": 2,
+        "legacyIds": [
+          "f2-picu_isolation"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 58",
+        "name": "TREATMENT RM",
+        "id": "f2-space-52",
+        "floor": 2,
+        "legacyIds": [
+          "f2-treatment_rm"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 59",
+        "name": "SORTING & CLEANING",
+        "id": "f2-space-53",
+        "floor": 2,
+        "legacyIds": [
+          "f2-sorting_&_cleaning"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 60",
+        "name": "STERILE SUPPLY STO ROOM",
+        "id": "f2-space-54",
+        "floor": 2,
+        "legacyIds": [
+          "f2-sterile_supply_sto_room"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 61",
+        "name": "MICU NURSE'S STATION",
+        "id": "f2-space-55",
+        "floor": 2,
+        "legacyIds": [
+          "f2-micu_nurses_station"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 62",
+        "name": "PICU NURSE'S STATION",
+        "id": "f2-space-56",
+        "floor": 2,
+        "legacyIds": [
+          "f2-picu_nurses_station"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 63",
+        "name": "AUX UTILITY",
+        "id": "f2-space-57",
+        "floor": 2,
+        "legacyIds": [
+          "f2-aux_utility"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 64",
+        "name": "TRANSACTION RM",
+        "id": "f2-space-58",
+        "floor": 2,
+        "legacyIds": [
+          "f2-transaction_rm"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 65",
+        "name": "EEME RM",
+        "id": "f2-space-59",
+        "floor": 2,
+        "legacyIds": [
+          "f2-eeme_rm"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 66",
+        "name": "AUTOCLAVE",
+        "id": "f2-space-60",
+        "floor": 2,
+        "legacyIds": [
+          "f2-autoclave"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 67",
+        "name": "GENERAL SUPPLY STO ROOM",
+        "id": "f2-space-61",
+        "floor": 2,
+        "legacyIds": [
+          "f2-general_supply_sto_room"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 68",
+        "name": "MICU 5",
+        "id": "f2-space-62",
+        "floor": 2,
+        "legacyIds": [
+          "f2-micu_5"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 69",
+        "name": "MICU 4 ACUTE STROKE UNIT",
+        "id": "f2-space-63",
+        "floor": 2,
+        "legacyIds": [
+          "f2-micu_4_acute_stroke_unit"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 70",
+        "name": "MICU 3 (W/ PROV. FOR DIALYSIS)",
+        "id": "f2-space-64",
+        "floor": 2,
+        "legacyIds": [
+          "f2-micu_3"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 71",
+        "name": "MICU 2 (W/ PROV. FOR DIALYSIS)",
+        "id": "f2-space-65",
+        "floor": 2,
+        "legacyIds": [
+          "f2-micu_2"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 72",
+        "name": "MICU 1 (W/ PROV. FOR DIALYSIS)",
+        "id": "f2-space-66",
+        "floor": 2,
+        "legacyIds": [
+          "f2-micu_1"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 73",
+        "name": "MICU ISOLATION",
+        "id": "f2-space-67",
+        "floor": 2,
+        "legacyIds": [
+          "f2-micu_isolation"
+        ]
+      }
+    ]
+  },
+  "3": {
+    "sourceHash": "878fa9e992cc81b6834301b2a4594f413746297434f09df26544991f57ee12a8",
+    "rooms": [
+      {
+        "shapeId": "Rectangle 190",
+        "name": "NURSE'S STATION (ONCOLOGY)",
+        "id": "f3-space-1",
+        "floor": 3,
+        "legacyIds": [
+          "f3-dietary"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 159",
+        "name": "Unnamed space 2",
+        "id": "f3-space-2",
+        "floor": 3,
+        "legacyIds": [
+          "f3-endoscopy"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 160",
+        "name": "Unnamed space 3",
+        "id": "f3-space-3",
+        "floor": 3,
+        "legacyIds": [
+          "f3-business"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 161",
+        "name": "SELF-SERVICE COUNTER & SHARE",
+        "id": "f3-space-4",
+        "floor": 3,
+        "legacyIds": [
+          "f3-hemodialysis"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 162",
+        "name": "Unnamed space 5",
+        "id": "f3-space-5",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-5"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 163",
+        "name": "DOCTOR AND STAFF DINING AREA",
+        "id": "f3-space-6",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-6"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 164",
+        "name": "Unnamed space 7",
+        "id": "f3-space-7",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-7"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 165",
+        "name": "DIETICIANS OFFICE",
+        "id": "f3-space-8",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-8"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 166",
+        "name": "Unnamed space 9",
+        "id": "f3-space-9",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-9"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 167",
+        "name": "Unnamed space 10",
+        "id": "f3-space-10",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-10"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 168",
+        "name": "Unnamed space 11",
+        "id": "f3-space-11",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-11"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 169",
+        "name": "Unnamed space 12",
+        "id": "f3-space-12",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-12"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 170",
+        "name": "Unnamed space 13",
+        "id": "f3-space-13",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-13"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 179",
+        "name": "NURSE’S STATION 2",
+        "id": "f3-space-14",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-14"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 180",
+        "name": "CONSULT ROOM 2",
+        "id": "f3-space-15",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-15"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 181",
+        "name": "RECEPTION 2",
+        "id": "f3-space-16",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-16"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 182",
+        "name": "Unnamed space 17",
+        "id": "f3-space-17",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-17"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 183",
+        "name": "PROCED RM 1",
+        "id": "f3-space-18",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-18"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 184",
+        "name": "PROCED RM 2",
+        "id": "f3-space-19",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-19"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 185",
+        "name": "PROCEDURE ROOM 1",
+        "id": "f3-space-20",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-20"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 186",
+        "name": "ISOLATION 1",
+        "id": "f3-space-21",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-21"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 187",
+        "name": "ISOLATION 2",
+        "id": "f3-space-22",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-22"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 188",
+        "name": "Unnamed space 23",
+        "id": "f3-space-23",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-23"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 189",
+        "name": "CONSULT ROOM 1",
+        "id": "f3-space-24",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-24"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 190_2",
+        "name": "RECEPTION",
+        "id": "f3-space-25",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-25"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 191",
+        "name": "BUSINESS OFFICE",
+        "id": "f3-space-26",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-26"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 192",
+        "name": "Unnamed space 27",
+        "id": "f3-space-27",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-27"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 293",
+        "name": "WAITING ROOM",
+        "id": "f3-space-28",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-28"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 294",
+        "name": "CONSULT ROOM. · CONSULT ROOM 1",
+        "id": "f3-space-29",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-29"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 295",
+        "name": "RECEPTION 1",
+        "id": "f3-space-30",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-30"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 296",
+        "name": "Unnamed space 31",
+        "id": "f3-space-31",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-31"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 298",
+        "name": "Unnamed space 32",
+        "id": "f3-space-32",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-32"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 299",
+        "name": "Unnamed space 33",
+        "id": "f3-space-33",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-33"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 300",
+        "name": "Unnamed space 34",
+        "id": "f3-space-34",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-34"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 301",
+        "name": "Unnamed space 35",
+        "id": "f3-space-35",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-35"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 302",
+        "name": "Unnamed space 36",
+        "id": "f3-space-36",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-36"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 303",
+        "name": "AUX UTILITY",
+        "id": "f3-space-37",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-37"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 304",
+        "name": "Unnamed space 38",
+        "id": "f3-space-38",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-38"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 115",
+        "name": "PROP. & SUPPLY OFFICE",
+        "id": "f3-space-39",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-39"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 305",
+        "name": "RECEPTION (ENDO.)",
+        "id": "f3-space-40",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-40"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 306",
+        "name": "CONSULT. ROOM",
+        "id": "f3-space-41",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-41"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 307",
+        "name": "RECOVERY ROOM",
+        "id": "f3-space-42",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-42"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 308",
+        "name": "PROCEDURE ROOM",
+        "id": "f3-space-43",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-43"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 309",
+        "name": "APP. ROOM",
+        "id": "f3-space-44",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-44"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 310",
+        "name": "PFT ROOM",
+        "id": "f3-space-45",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-45"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 311",
+        "name": "ABG ROOM",
+        "id": "f3-space-46",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-46"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 312",
+        "name": "ABG ROOM REPAIR",
+        "id": "f3-space-47",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-47"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 313",
+        "name": "STORAGE ROOM",
+        "id": "f3-space-48",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-48"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 314",
+        "name": "READING & WORK ROOM",
+        "id": "f3-space-49",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-49"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 315",
+        "name": "LOUNGE ROOM",
+        "id": "f3-space-50",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-50"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 316",
+        "name": "RECEPTION (CARDIO.)",
+        "id": "f3-space-51",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-51"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 317",
+        "name": "TREADMILL",
+        "id": "f3-space-52",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-52"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 318",
+        "name": "2D ECHO/VDS",
+        "id": "f3-space-53",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-53"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 319",
+        "name": "EEG/EMG",
+        "id": "f3-space-54",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-54"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 320",
+        "name": "ECG",
+        "id": "f3-space-55",
+        "floor": 3,
+        "legacyIds": [
+          "f3-room-55"
+        ]
+      },
+      {
+        "shapeId": "shape-56",
+        "name": "NURSE'S STATION 1",
+        "id": "f3-space-56",
+        "floor": 3,
+        "legacyIds": [
+          "f3-nursesstation1"
+        ]
+      }
+    ]
+  },
+  "4": {
+    "sourceHash": "e85ce5e126fcfed7515a9072aacefdc2e6115b701300277fcf82dae152967aaf",
+    "rooms": [
+      {
+        "shapeId": "Rectangle 118",
+        "name": "HEAD OF O.B.",
+        "id": "f4-space-1",
+        "floor": 4,
+        "legacyIds": [
+          "f4-ent"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 119",
+        "name": "HEAD OF PEDIA",
+        "id": "f4-space-2",
+        "floor": 4,
+        "legacyIds": [
+          "f4-doctors"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 120",
+        "name": "Unnamed space 3",
+        "id": "f4-space-3",
+        "floor": 4,
+        "legacyIds": [
+          "f4-dental"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 121",
+        "name": "Unnamed space 4",
+        "id": "f4-space-4",
+        "floor": 4,
+        "legacyIds": [
+          "f4-infertility"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 122",
+        "name": "DOCTORS CLINIC",
+        "id": "f4-space-5",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-5"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 123",
+        "name": "Unnamed space 6",
+        "id": "f4-space-6",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-6"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 124",
+        "name": "DOCTORS CLINIC",
+        "id": "f4-space-7",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-7"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 125",
+        "name": "Unnamed space 8",
+        "id": "f4-space-8",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-8"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 126",
+        "name": "DOCTORS CLINIC",
+        "id": "f4-space-9",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-9"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 127",
+        "name": "Unnamed space 10",
+        "id": "f4-space-10",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-10"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 128",
+        "name": "DOCTORS CLINIC",
+        "id": "f4-space-11",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-11"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 129",
+        "name": "Unnamed space 12",
+        "id": "f4-space-12",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-12"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 130",
+        "name": "ENT CLINIC",
+        "id": "f4-space-13",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-13"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 131",
+        "name": "OPTHAL CLINIC",
+        "id": "f4-space-14",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-14"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 132",
+        "name": "DENTAL CLINIC",
+        "id": "f4-space-15",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-15"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 133",
+        "name": "INFERTILITY CENTER",
+        "id": "f4-space-16",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-16"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 134",
+        "name": "DOCTORS CLINIC",
+        "id": "f4-space-17",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-17"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 135",
+        "name": "Unnamed space 18",
+        "id": "f4-space-18",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-18"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 136",
+        "name": "DOCTORS CLINIC",
+        "id": "f4-space-19",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-19"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 137",
+        "name": "Unnamed space 20",
+        "id": "f4-space-20",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-20"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 138",
+        "name": "DOCTORS CLINIC",
+        "id": "f4-space-21",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-21"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 139",
+        "name": "Unnamed space 22",
+        "id": "f4-space-22",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-22"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 140",
+        "name": "DOCTORS CLINIC",
+        "id": "f4-space-23",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-23"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 141",
+        "name": "Unnamed space 24",
+        "id": "f4-space-24",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-24"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 142",
+        "name": "DOCTORS CLINIC",
+        "id": "f4-space-25",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-25"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 143",
+        "name": "Unnamed space 26",
+        "id": "f4-space-26",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-26"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 144",
+        "name": "HEAD OF I.M.",
+        "id": "f4-space-27",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-27"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 145",
+        "name": "HEAD OF SURG.",
+        "id": "f4-space-28",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-28"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 146",
+        "name": "Unnamed space 29",
+        "id": "f4-space-29",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-29"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 147",
+        "name": "Unnamed space 30",
+        "id": "f4-space-30",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-30"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 148",
+        "name": "Unnamed space 31",
+        "id": "f4-space-31",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-31"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 149",
+        "name": "Unnamed space 32",
+        "id": "f4-space-32",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-32"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 150",
+        "name": "Unnamed space 33",
+        "id": "f4-space-33",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-33"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 151",
+        "name": "Unnamed space 34",
+        "id": "f4-space-34",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-34"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 152",
+        "name": "Unnamed space 35",
+        "id": "f4-space-35",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-35"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 153",
+        "name": "Unnamed space 36",
+        "id": "f4-space-36",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-36"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 154",
+        "name": "Unnamed space 37",
+        "id": "f4-space-37",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-37"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 155",
+        "name": "Unnamed space 38",
+        "id": "f4-space-38",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-38"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 156",
+        "name": "Unnamed space 39",
+        "id": "f4-space-39",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-39"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 157",
+        "name": "RECEPTION · SERV. BAL.",
+        "id": "f4-space-40",
+        "floor": 4,
+        "legacyIds": [
+          "f4-room-40"
+        ]
+      }
+    ]
+  },
+  "5": {
+    "sourceHash": "46a0332bc5698a2b9d6371da0793d8dedbcffcf1ab5998d55ab5da2f21a6fa54",
+    "rooms": [
+      {
+        "shapeId": "Rectangle 246",
+        "name": "STORAGE",
+        "id": "f5-space-1",
+        "floor": 5,
+        "legacyIds": [
+          "f5-multipurpose"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 249",
+        "name": "RECORDS OFFICE",
+        "id": "f5-space-2",
+        "floor": 5,
+        "legacyIds": [
+          "f5-records"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 243",
+        "name": "EXECUTIVE SECRETARY",
+        "id": "f5-space-3",
+        "floor": 5,
+        "legacyIds": [
+          "f5-accounting"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 242",
+        "name": "CHAIRMAN’S OFFICE",
+        "id": "f5-space-4",
+        "floor": 5,
+        "legacyIds": [
+          "f5-boardroom"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 244",
+        "name": "Unnamed space 5",
+        "id": "f5-space-5",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-5"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 245",
+        "name": "UTILITY",
+        "id": "f5-space-6",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-6"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 233",
+        "name": "Unnamed space 7",
+        "id": "f5-space-7",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-7"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 234",
+        "name": "Unnamed space 8",
+        "id": "f5-space-8",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-8"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 235",
+        "name": "Unnamed space 9",
+        "id": "f5-space-9",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-9"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 236",
+        "name": "FUNCTION HALL",
+        "id": "f5-space-10",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-10"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 237",
+        "name": "CHIEF MARKETING OFFICE",
+        "id": "f5-space-11",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-11"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 238",
+        "name": "HOSPITAL ADMINISTRATOR’S OFFICE",
+        "id": "f5-space-12",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-12"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 239",
+        "name": "ACCOUTING OFFICE",
+        "id": "f5-space-13",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-13"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 240",
+        "name": "Unnamed space 14",
+        "id": "f5-space-14",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-14"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 241",
+        "name": "BOARD ROOM",
+        "id": "f5-space-15",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-15"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 242_2",
+        "name": "PRESIDENT’S OFFICE",
+        "id": "f5-space-16",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-16"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 244_2",
+        "name": "Unnamed space 17",
+        "id": "f5-space-17",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-17"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 245_2",
+        "name": "ICC",
+        "id": "f5-space-18",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-18"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 246_2",
+        "name": "QA/QC OFFICE",
+        "id": "f5-space-19",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-19"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 247",
+        "name": "PURCHASING OFFICE",
+        "id": "f5-space-20",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-20"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 248",
+        "name": "INTERNAL AUDITOR’S OFFICE",
+        "id": "f5-space-21",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-21"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 250",
+        "name": "MEDICAL RECORDS",
+        "id": "f5-space-22",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-22"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 251",
+        "name": "IT DEPARTMENT",
+        "id": "f5-space-23",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-23"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 252",
+        "name": "Unnamed space 24",
+        "id": "f5-space-24",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-24"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 253",
+        "name": "Unnamed space 25",
+        "id": "f5-space-25",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-25"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 254",
+        "name": "5A NURSE’S STATION",
+        "id": "f5-space-26",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-26"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 255",
+        "name": "SUITE ROOM",
+        "id": "f5-space-27",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-27"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 256",
+        "name": "PRIVATE ROOM",
+        "id": "f5-space-28",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-28"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 257",
+        "name": "PRIVATE ROOM",
+        "id": "f5-space-29",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-29"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 258",
+        "name": "PRIVATE ROOM",
+        "id": "f5-space-30",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-30"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 259",
+        "name": "PRIVATE ROOM",
+        "id": "f5-space-31",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-31"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 260",
+        "name": "PRIVATE ROOM",
+        "id": "f5-space-32",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-32"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 261",
+        "name": "PRIVATE ROOM",
+        "id": "f5-space-33",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-33"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 262",
+        "name": "PRIVATE ROOM",
+        "id": "f5-space-34",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-34"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 263",
+        "name": "PRIVATE ROOM",
+        "id": "f5-space-35",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-35"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 264",
+        "name": "PRIVATE ROOM",
+        "id": "f5-space-36",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-36"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 265",
+        "name": "PRIVATE ROOM",
+        "id": "f5-space-37",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-37"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 266",
+        "name": "ISOLATION ROOM",
+        "id": "f5-space-38",
+        "floor": 5,
+        "legacyIds": [
+          "f5-room-38"
+        ]
+      }
+    ]
+  },
+  "6": {
+    "sourceHash": "746fb89a8cdb3ea9f356303363a17e865ce1b2e6844a3a84d25fa7b4a4986b0c",
+    "rooms": [
+      {
+        "shapeId": "Rectangle 196",
+        "name": "ISOLATION ROOM",
+        "id": "f6-space-1",
+        "floor": 6,
+        "legacyIds": [
+          "f6-private-north"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 197",
+        "name": "PRIVATE ROOM",
+        "id": "f6-space-2",
+        "floor": 6,
+        "legacyIds": [
+          "f6-surgical-ward"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 198",
+        "name": "PRIVATE ROOM",
+        "id": "f6-space-3",
+        "floor": 6,
+        "legacyIds": [
+          "f6-pedia"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 199",
+        "name": "PRIVATE ROOM",
+        "id": "f6-space-4",
+        "floor": 6,
+        "legacyIds": [
+          "f6-private-south"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 200",
+        "name": "PRIVATE ROOM",
+        "id": "f6-space-5",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-5"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 201",
+        "name": "PRIVATE ROOM",
+        "id": "f6-space-6",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-6"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 202",
+        "name": "PRIVATE ROOM",
+        "id": "f6-space-7",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-7"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 203",
+        "name": "PRIVATE ROOM",
+        "id": "f6-space-8",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-8"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 204",
+        "name": "PRIVATE ROOM",
+        "id": "f6-space-9",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-9"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 205",
+        "name": "PRIVATE ROOM",
+        "id": "f6-space-10",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-10"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 206",
+        "name": "PRIVATE ROOM",
+        "id": "f6-space-11",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-11"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 207",
+        "name": "SUITE ROOM",
+        "id": "f6-space-12",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-12"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 208",
+        "name": "TREATMENT RM.",
+        "id": "f6-space-13",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-13"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 209",
+        "name": "CHIEF OF NURSES & STAFF",
+        "id": "f6-space-14",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-14"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 210",
+        "name": "NURSE’S STATION 1",
+        "id": "f6-space-15",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-15"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 211",
+        "name": "SEMI PRIVATE",
+        "id": "f6-space-16",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-16"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 212",
+        "name": "SUITE ROOM",
+        "id": "f6-space-17",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-17"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 213",
+        "name": "PRIVATE ROOM",
+        "id": "f6-space-18",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-18"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 214",
+        "name": "PRIVATE ROOM",
+        "id": "f6-space-19",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-19"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 215",
+        "name": "PRIVATE ROOM",
+        "id": "f6-space-20",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-20"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 216",
+        "name": "PRIVATE ROOM",
+        "id": "f6-space-21",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-21"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 217",
+        "name": "PRIVATE ROOM",
+        "id": "f6-space-22",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-22"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 218",
+        "name": "PRIVATE ROOM",
+        "id": "f6-space-23",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-23"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 219",
+        "name": "PRIVATE ROOM",
+        "id": "f6-space-24",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-24"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 220",
+        "name": "PRIVATE ROOM",
+        "id": "f6-space-25",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-25"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 221",
+        "name": "PRIVATE ROOM",
+        "id": "f6-space-26",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-26"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 222",
+        "name": "PRIVATE ROOM",
+        "id": "f6-space-27",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-27"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 223",
+        "name": "NURSE’S STATION 2",
+        "id": "f6-space-28",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-28"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 224",
+        "name": "MEFPA UTILITY",
+        "id": "f6-space-29",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-29"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 225",
+        "name": "AUX UTILITY",
+        "id": "f6-space-30",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-30"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 226",
+        "name": "Unnamed space 31",
+        "id": "f6-space-31",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-31"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 227",
+        "name": "MALE SURG. WARD",
+        "id": "f6-space-32",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-32"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 228",
+        "name": "FEMALE SURG. WARD",
+        "id": "f6-space-33",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-33"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 229",
+        "name": "Unnamed space 34",
+        "id": "f6-space-34",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-34"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 230",
+        "name": "MALE SURG. WARD",
+        "id": "f6-space-35",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-35"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 231",
+        "name": "FEMALE SURG. WARD",
+        "id": "f6-space-36",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-36"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 232",
+        "name": "PEDIA WARD",
+        "id": "f6-space-37",
+        "floor": 6,
+        "legacyIds": [
+          "f6-room-37"
+        ]
+      }
+    ]
+  },
+  "7": {
+    "sourceHash": "a6df8a9f7fdb7f03b27aa085a59b8c9c3dd5d43a937a00703c2da6781c16bf97",
+    "rooms": [
+      {
+        "shapeId": "Rectangle 196",
+        "name": "ISOLATION ROOM",
+        "id": "f7-space-1",
+        "floor": 7,
+        "legacyIds": [
+          "f7-private-north"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 197",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-2",
+        "floor": 7,
+        "legacyIds": [
+          "f7-semi-private"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 198",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-3",
+        "floor": 7,
+        "legacyIds": [
+          "f7-prayer"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 199",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-4",
+        "floor": 7,
+        "legacyIds": [
+          "f7-private-south"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 200",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-5",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-5"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 201",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-6",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-6"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 202",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-7",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-7"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 203",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-8",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-8"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 204",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-9",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-9"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 205",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-10",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-10"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 206",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-11",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-11"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 207",
+        "name": "SUITE ROOM",
+        "id": "f7-space-12",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-12"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 208",
+        "name": "TREATMENT RM.",
+        "id": "f7-space-13",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-13"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 209",
+        "name": "CHIEF OF NURSES & STAFF",
+        "id": "f7-space-14",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-14"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 210",
+        "name": "NURSE’S STATION 1",
+        "id": "f7-space-15",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-15"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 211",
+        "name": "SEMI PRIVATE",
+        "id": "f7-space-16",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-16"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 212",
+        "name": "SUITE ROOM",
+        "id": "f7-space-17",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-17"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 213",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-18",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-18"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 214",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-19",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-19"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 215",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-20",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-20"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 216",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-21",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-21"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 217",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-22",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-22"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 218",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-23",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-23"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 219",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-24",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-24"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 220",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-25",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-25"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 221",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-26",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-26"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 222",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-27",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-27"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 223",
+        "name": "NURSE’S STATION 2",
+        "id": "f7-space-28",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-28"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 224",
+        "name": "MEFPA UTILITY",
+        "id": "f7-space-29",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-29"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 225",
+        "name": "AUX UTILITY",
+        "id": "f7-space-30",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-30"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 226",
+        "name": "Unnamed space 31",
+        "id": "f7-space-31",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-31"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 227",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-32",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-32"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 228",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-33",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-33"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 229",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-34",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-34"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 230",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-35",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-35"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 231",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-36",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-36"
+        ]
+      },
+      {
+        "shapeId": "Rectangle 232",
+        "name": "PRIVATE ROOM",
+        "id": "f7-space-37",
+        "floor": 7,
+        "legacyIds": [
+          "f7-room-37"
+        ]
+      }
+    ]
+  }
+}

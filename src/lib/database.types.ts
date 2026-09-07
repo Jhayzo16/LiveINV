@@ -19,6 +19,13 @@ type AssetRow = {
   ram_modules: number | null
   ssd_capacity_gb: number | null
   ssd_count: number | null
+  assignment_floor_id: string | null
+  assignment_department_id: string | null
+  assignment_room_id: string | null
+  assignment_room_name: string | null
+  assigned_at: string | null
+  assigned_by: string | null
+  assignment_method: 'manual' | 'qr' | null
   created_at: string
   updated_at: string
 }
@@ -40,6 +47,13 @@ type AssetInsert = {
   ram_modules?: number | null
   ssd_capacity_gb?: number | null
   ssd_count?: number | null
+  assignment_floor_id?: string | null
+  assignment_department_id?: string | null
+  assignment_room_id?: string | null
+  assignment_room_name?: string | null
+  assigned_at?: string | null
+  assigned_by?: string | null
+  assignment_method?: 'manual' | 'qr' | null
   created_at?: string
   updated_at?: string
 }

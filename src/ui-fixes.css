@@ -205,7 +205,6 @@ body {
 .promise-toast {
   min-width: 0;
   border: 1px solid #dce5df;
-  border-left: 4px solid #1b6c24;
   border-radius: 13px;
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) auto;
@@ -220,8 +219,6 @@ body {
   animation: promise-toast-in .24s cubic-bezier(.22, 1, .36, 1);
 }
 
-.promise-toast.success { border-left-color: #23a862; }
-.promise-toast.error { border-left-color: #b32b38; }
 .promise-toast-icon {
   width: 32px;
   height: 32px;

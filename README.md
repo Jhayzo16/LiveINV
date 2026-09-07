@@ -11,6 +11,7 @@ LiveINV is a visual hospital inventory tracking system designed for Tagum Global
 - Device registration with permanent QR fallback IDs
 - QR scanning and manual asset identification
 - Separate workflow for assigning devices to floors, departments, and rooms
+- Realtime assignment updates across the live map, dashboard, registry, QR lookup, network view, and reports
 - Consumable receiving records for RAM, SSDs, cables, ink, batteries, and other non-assignable stock
 - Inventory reports and a built-in system manual
 
@@ -23,6 +24,7 @@ LiveINV is a visual hospital inventory tracking system designed for Tagum Global
 - Radix UI
 - ZXing QR scanner
 - QRCode
+- Supabase database and Realtime
 
 ## Run locally
 
@@ -41,11 +43,29 @@ LiveINV is a visual hospital inventory tracking system designed for Tagum Global
 
 4. Open the local address displayed in the terminal, normally `http://localhost:5173/`.
 
+## Backend setup
+
+1. Create a Supabase project and add its URL and anon key to `.env` as `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+2. Run every SQL file in `supabase/migrations` in filename order using the Supabase SQL editor or migration tooling.
+3. Start the app. Device registration, editing, assignment, consumable receipts, and live assignment refreshes will use the configured project.
+
+The assignment migration keeps the legacy `location` and `owner` values synchronized while adding structured floor, room, department, time, user, and method fields. This lets existing reports remain compatible while Live Mapping uses stable assignment data.
+
+## Keeping assets and floor maps consistent
+
+Live Mapping and Assignments share `src/lib/room-catalog.json`. Each room points to a physical SVG shape and has a unique ID, including rooms with identical names. Unique legacy room names and previous map IDs remain compatible; ambiguous locations appear in the floor's “needs an exact room” list for correction.
+
+After editing a floor-plan SVG, run `node scripts/generate-room-catalog.mjs` and review the catalog changes. The unit tests check that the catalog matches all seven SVGs. The generator and browser check use Playwright Chromium; set `PLAYWRIGHT_CHANNEL=msedge` or `chrome` to use an installed browser instead.
+
+Run `npm run test:unit` and `npm run build` for validation. With the development server running, `node scripts/check-live-mapping.mjs` checks room resolution, saving, reload, map highlighting, and duplicate room names against an intercepted database, without writing to live inventory.
+
+Shared inventory failures are shown explicitly. Sample records and earlier browser-only drafts do not replace database records, and an assignment cannot report success if its stable room ID was not saved. Earlier local drafts remain in browser storage for recovery and trigger a visible notice.
+
 ## Production build
 
 ```bash
 npm run build
 ```
 
-The current project is a front-end prototype. Demo inventory records are stored in the browser's local storage.
+If the backend is temporarily unavailable, the app can display its bundled demonstration inventory. Database migrations should be applied before production use.
 

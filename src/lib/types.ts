@@ -16,6 +16,7 @@ export interface Assignment {
   floorId: string
   departmentId: string
   roomId: string
+  roomName: string
   assignedAt: string
   assignedBy: string
   method: AssignmentMethod

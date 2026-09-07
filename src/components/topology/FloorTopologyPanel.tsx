@@ -27,9 +27,10 @@ type FloorTopologyPanelProps = {
 
 export function FloorTopologyPanel({ floor, placement, selected, hovered, opacity, onSelect, onHover, onExplore, onRotate }: FloorTopologyPanelProps) {
   const dragState = useRef({ active: false, startX: 0, lastX: 0, moved: false })
-  const maintenance = floor.maintenanceAssets ?? Math.max(1, Math.round(floor.assets * 0.08))
-  const broken = floor.brokenAssets ?? Math.max(1, Math.round(floor.assets * 0.03))
-  const active = floor.activeAssets ?? Math.max(0, floor.assets - maintenance - broken)
+  const maintenance = floor.maintenanceAssets ?? 0
+  const broken = floor.brokenAssets ?? 0
+  const inactive = floor.inactiveAssets ?? 0
+  const active = floor.activeAssets ?? 0
   const style = {
     '--panel-x': `${placement.x}px`,
     '--panel-y': `${placement.y}px`,
@@ -106,6 +107,7 @@ export function FloorTopologyPanel({ floor, placement, selected, hovered, opacit
         <span className="floor-panel-status"><i className="active" />{active} Active</span>
         <span className="floor-panel-status"><i className="maintenance" />{maintenance} Maintenance</span>
         <span className="floor-panel-status"><i className="broken" />{broken} Broken</span>
+        <span className="floor-panel-status"><i className="inactive" />{inactive} Inactive</span>
       </div>
       <ExploreFloorButton floorId={floor.id} onExplore={onExplore} />
     </HoverCardContent>

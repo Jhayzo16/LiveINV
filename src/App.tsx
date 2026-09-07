@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { createPortal } from 'react-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AssetRepository } from './lib/repositories'
-import { type InventoryAsset } from './lib/types'
+import { type AssetState, type DeviceCategory, type InventoryAsset } from './lib/types'
+import { resolveAssetRoom, assignAsset, floorIdFromLocation, isAssetAssigned } from './lib/assignments'
+import { hospitalFloors, hospitalRooms } from './lib/rooms'
 import liveInvLogo from './assets/liveinv-logo.png'
 import dashboardIcon from './assets/sidebar/dashboard.png'
 import liveMappingIcon from './assets/sidebar/live-mapping.png'
@@ -9,230 +12,22 @@ import assetsIcon from './assets/sidebar/assets.png'
 import assignmentsIcon from './assets/sidebar/assignments.png'
 import qrScannerIcon from './assets/sidebar/qr-scanner.png'
 import reportsIcon from './assets/sidebar/reports.png'
+import { EquipmentEmptyState, EquipmentIcon } from './components/ui/equipment-empty-state'
 import { HospitalBuilding3D } from './components/ui/hospital-building-3d'
 import { Toaster } from './components/ui/toast'
 import { SystemModulePage, type AssignmentTarget, type SystemModule } from './pages/SystemPages'
 
-type Status = 'Active' | 'Maintenance' | 'Broken'
-type Asset = { id: string; name: string; kind: 'Computer' | 'Printer' | 'Monitor'; status: Status; detail: string; ip?: string }
-type Room = { id: string; floor: number; name: string; code: string; department: string; assets: Asset[]; x: number; y: number; w: number; h: number }
+type Status = AssetState
+type AssetKind = DeviceCategory | 'Other'
+type Asset = { id: string; name: string; kind: AssetKind; status: Status; detail: string; owner: string; ip?: string }
+type Room = { shapeId: string; legacyIds: string[]; id: string; floor: number; name: string; code: string; department: string; assets: Asset[]; x: number; y: number; w: number; h: number }
 type Floor = { id: number; label: string; assets: number }
 
-const floors = [
-  { id: 1, label: 'Ground Floor', assets: 78 }, { id: 2, label: 'Second Floor', assets: 112 },
-  { id: 3, label: 'Third Floor', assets: 148 }, { id: 4, label: 'Fourth Floor', assets: 96 },
-  { id: 5, label: 'Fifth Floor', assets: 131 }, { id: 6, label: 'Sixth Floor', assets: 64 }, { id: 7, label: 'Seventh Floor', assets: 44 },
-]
-
-const makeAssets = (floor: number, code: string, count = 3): Asset[] => {
-  return []
-}
-
-const room = (floor: number, id: string, name: string, code: string, department: string, x: number, y: number, w: number, h: number, assetCount = 3): Room => ({
-  id: `f${floor}-${id}`, floor, name, code, department, x, y, w, h, assets: makeAssets(floor, code, assetCount),
-})
-
-const featuredRoomsByFloor: Record<number, Room[]> = {
-          1: [
-    room(1, 'dark_room', 'DARK ROOM', 'DARK ROOM', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'reception___information', 'RECEPTION / INFORMATION', 'RECEPTION / INFORMATION', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'yakap_office', 'YAKAP OFFICE', 'YAKAP OFFICE', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'minor_operating_room', 'MINOR OPERATING ROOM', 'MINOR OPERATING ROOM', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-1', 'Unassigned Room 1', 'UN-1', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-2', 'Unassigned Room 2', 'UN-2', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-3', 'Unassigned Room 3', 'UN-3', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-4', 'Unassigned Room 4', 'UN-4', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-5', 'Unassigned Room 5', 'UN-5', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-6', 'Unassigned Room 6', 'UN-6', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-7', 'Unassigned Room 7', 'UN-7', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-8', 'Unassigned Room 8', 'UN-8', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-9', 'Unassigned Room 9', 'UN-9', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-10', 'Unassigned Room 10', 'UN-10', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-11', 'Unassigned Room 11', 'UN-11', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-12', 'Unassigned Room 12', 'UN-12', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'oecb', 'OECB', 'OECB', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-13', 'Unassigned Room 13', 'UN-13', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-14', 'Unassigned Room 14', 'UN-14', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'nurses_station', 'NURSE\'S STATION', 'NURSE\'S STATION', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'records_rm', 'RECORDS RM.', 'RECORDS RM.', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-15', 'Unassigned Room 15', 'UN-15', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 't_and_b', 'T & B', 'T & B', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'female_doctors_rm', 'FEMALE DOCTORS RM.', 'FEMALE DOCTORS RM.', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'male_doctors_rm', 'MALE DOCTORS RM.', 'MALE DOCTORS RM.', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-16', 'Unassigned Room 16', 'UN-16', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-17', 'Unassigned Room 17', 'UN-17', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'er_admitting_and_satellite_billing', 'E.R. ADMITTING & SATELLITE BILLING', 'E.R. ADMITTING & SATELLITE BILLING', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-18', 'Unassigned Room 18', 'UN-18', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'crisis_intervention_room', 'CRISIS INTERVENTION ROOM', 'CRISIS INTERVENTION ROOM', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-19', 'Unassigned Room 19', 'UN-19', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'doctors_desk', 'DOCTOR\'S DESK', 'DOCTOR\'S DESK', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-20', 'Unassigned Room 20', 'UN-20', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-21', 'Unassigned Room 21', 'UN-21', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-22', 'Unassigned Room 22', 'UN-22', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'er_reception', 'E.R. RECEPTION', 'E.R. RECEPTION', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'radiologist_work_rm', 'RADIOLOGIST WORK RM.', 'RADIOLOGIST WORK RM.', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'x-ray_1', 'X-RAY 1', 'X-RAY 1', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-23', 'Unassigned Room 23', 'UN-23', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'x-ray_2', 'X-RAY 2', 'X-RAY 2', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'ante_rm', 'ANTE RM.', 'ANTE RM.', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'ultrasound_2', 'ULTRASOUND 2', 'ULTRASOUND 2', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'ultrasound_1', 'ULTRASOUND 1', 'ULTRASOUND 1', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'ultrasound_reading', 'ULTRASOUND READING', 'ULTRASOUND READING', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'film_storage', 'FILM STORAGE', 'FILM STORAGE', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'mammography', 'MAMMOGRAPHY', 'MAMMOGRAPHY', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'reading_room', 'READING ROOM', 'READING ROOM', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'rad_tech_office', 'RAD. TECH OFFICE', 'RAD. TECH OFFICE', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'reception_1', 'RECEPTION (RADIOLOGY)', 'RECEPTION (RADIOLOGY)', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-24', 'Unassigned Room 24', 'UN-24', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'cashier', 'CASHIER', 'CASHIER', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'billing', 'BILLING', 'BILLING', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'admitting', 'ADMITTING', 'ADMITTING', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-25', 'Unassigned Room 25', 'UN-25', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'social_services', 'SOCIAL SERVICES', 'SOCIAL SERVICES', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-26', 'Unassigned Room 26', 'UN-26', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'admin_office', 'ADMIN OFFICE', 'ADMIN OFFICE', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'hr_office', 'HR OFFICE', 'HR OFFICE', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 's_to', 'S. TO.', 'S. TO.', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'dangr_drugs', 'DANGR. DRUGS', 'DANGR. DRUGS', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'blood_supply_room', 'BLOOD SUPPLY ROOM', 'BLOOD SUPPLY ROOM', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'laboratory_equipment_area', 'LABORATORY EQUIPMENT AREA', 'LABORATORY EQUIPMENT AREA', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'cutting_and_processing', 'CUTTING & PROCESSING', 'CUTTING & PROCESSING', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'cytology_staining', 'CYTOLOGY/STAINING', 'CYTOLOGY/STAINING', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'cytogenetics', 'CYTOGENETICS', 'CYTOGENETICS', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'sterilization', 'STERILIZATION', 'STERILIZATION', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'microbiology', 'MICROBIOLOGY', 'MICROBIOLOGY', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'media_prep', 'MEDIA PREP.', 'MEDIA PREP.', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'autoclave', 'AUTOCLAVE', 'AUTOCLAVE', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'clinical_microscopy', 'CLINICAL MICROSCOPY', 'CLINICAL MICROSCOPY', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'chief_med_tech', 'CHIEF MED. TECH.', 'CHIEF MED. TECH.', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'blood_extraction', 'BLOOD EXTRACTION', 'BLOOD EXTRACTION', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'reception_2', 'RECEPTION (LABORATORY)', 'RECEPTION (LABORATORY)', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'counseling_and_meeting_room', 'COUNSELING & MEETING ROOM', 'COUNSELING & MEETING ROOM', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-27', 'Unassigned Room 27', 'UN-27', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'un-28', 'Unassigned Room 28', 'UN-28', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'compounding_area', 'COMPOUNDING AREA', 'COMPOUNDING AREA', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'pharmacist', 'PHARMACIST', 'PHARMACIST', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'delivery_apron', 'DELIVERY APRON', 'DELIVERY APRON', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'pharmacy', 'PHARMACY', 'PHARMACY', '1st Floor Dept', 25, 25, 0, 0, 0),
-    room(1, 'pathologists_office', 'PATHOLOGISTS\' OFFICE', 'PATHOLOGISTS\' OFFICE', '1st Floor Dept', 25, 25, 0, 0, 0),
-  ],
-  2: [
-    room(2, 'cs_delivery_room', 'CS DELIVERY ROOM', 'CS DELIVERY ROOM', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'd.r_sub-sterilization', 'D.R SUB-STERILIZATION', 'D.R SUB-STERILIZATION', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'd.r._supply', 'D.R. SUPPLY', 'D.R. SUPPLY', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'delivery_room_1', 'DELIVERY ROOM 1', 'DELIVERY ROOM 1', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'delivery_room_2', 'DELIVERY ROOM 2', 'DELIVERY ROOM 2', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'clean_up', 'CLEAN UP', 'CLEAN UP', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'lounge', 'LOUNGE', 'LOUNGE', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'treatment_infant_washing', 'TREATMENT INFANT WASHING', 'TREATMENT INFANT WASHING', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'supply_room', 'SUPPLY ROOM', 'SUPPLY ROOM', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'nicu', 'NICU', 'NICU', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'un-10', 'Unassigned Room 1', 'UN-10', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'outborn', 'OUTBORN', 'OUTBORN', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'newborn_care_area', 'NEWBORN CARE AREA', 'NEWBORN CARE AREA', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'un-13', 'Unassigned Room 2', 'UN-13', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'un-14', 'Unassigned Room 3', 'UN-14', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'un-15', 'Unassigned Room 4', 'UN-15', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'nurses_station_nicu', 'NURSE\'S STATION NICU', 'NURSE\'S STATION NICU', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'un-17', 'Unassigned Room 5', 'UN-17', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'un-18', 'Unassigned Room 6', 'UN-18', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'un-19', 'Unassigned Room 7', 'UN-19', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'or/dr_transfer_room', 'OR/DR TRANSFER ROOM', 'OR/DR TRANSFER ROOM', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'labor_room', 'LABOR ROOM', 'LABOR ROOM', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'dr_nurses_station_2', 'DR NURSE\'S STATION 2', 'DR NURSE\'S STATION 2', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'major_or_5', 'MAJOR OR 5', 'MAJOR OR 5', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'un-24', 'Unassigned Room 8', 'UN-24', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'un-25', 'Unassigned Room 9', 'UN-25', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'un-26', 'Unassigned Room 10', 'UN-26', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'un-27', 'Unassigned Room 11', 'UN-27', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'major_or_4', 'MAJOR OR 4', 'MAJOR OR 4', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'major_or_3', 'MAJOR OR 3', 'MAJOR OR 3', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'or_sub-sterilization', 'OR SUB-STERILIZATION', 'OR SUB-STERILIZATION', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'major_or_2', 'MAJOR OR 2', 'MAJOR OR 2', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'major_or_1', 'MAJOR OR 1', 'MAJOR OR 1', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'un-33', 'Unassigned Room 12', 'UN-33', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'un-34', 'Unassigned Room 13', 'UN-34', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'un-35', 'Unassigned Room 14', 'UN-35', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'meeting_room', 'MEETING ROOM', 'MEETING ROOM', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'labor_pre_assessment_rm', 'LABOR PRE ASSESSMENT RM', 'LABOR PRE ASSESSMENT RM', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'nurses_reception', 'NURSE\'S RECEPTION', 'NURSE\'S RECEPTION', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'recovery_room', 'RECOVERY ROOM', 'RECOVERY ROOM', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'dr_nurses_station_1', 'DR NURSE\'S STATION 1', 'DR NURSE\'S STATION 1', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'or_waiting_area', 'OR WAITING AREA', 'OR WAITING AREA', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'un-42', 'Unassigned Room 15', 'UN-42', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'recep.', 'RECEP.', 'RECEP.', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'consult._rm', 'CONSULT. RM', 'CONSULT. RM', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'custodian_area_cssr', 'CUSTODIAN AREA CSSR', 'CUSTODIAN AREA CSSR', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'picu_4', 'PICU 4', 'PICU 4', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'picu_3', 'PICU 3', 'PICU 3', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'picu_2', 'PICU 2 (W/ PROV. FOR DIALYSIS)', 'PICU 2', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'picu_1', 'PICU 1 (W/ PROV. FOR DIALYSIS)', 'PICU 1', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'picu_isolation', 'PICU ISOLATION (SEPTIC)', 'PICU ISOLATION', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'treatment_rm', 'TREATMENT RM', 'TREATMENT RM', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'sorting_&_cleaning', 'SORTING & CLEANING', 'SORTING & CLEANING', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'sterile_supply_sto_room', 'STERILE SUPPLY STO ROOM', 'STERILE SUPPLY STO ROOM', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'micu_nurses_station', 'MICU NURSE\'S STATION', 'MICU NURSE\'S STATION', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'picu_nurses_station', 'PICU NURSE\'S STATION', 'PICU NURSE\'S STATION', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'aux_utility', 'AUX UTILITY', 'AUX UTILITY', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'transaction_rm', 'TRANSACTION RM', 'TRANSACTION RM', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'eeme_rm', 'EEME RM', 'EEME RM', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'autoclave', 'AUTOCLAVE', 'AUTOCLAVE', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'general_supply_sto_room', 'GENERAL SUPPLY STO ROOM', 'GENERAL SUPPLY STO ROOM', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'micu_5', 'MICU 5', 'MICU 5', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'micu_4_acute_stroke_unit', 'MICU 4 ACUTE STROKE UNIT', 'MICU 4 ACUTE STROKE UNIT', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'micu_3', 'MICU 3 (W/ PROV. FOR DIALYSIS)', 'MICU 3', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'micu_2', 'MICU 2 (W/ PROV. FOR DIALYSIS)', 'MICU 2', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'micu_1', 'MICU 1 (W/ PROV. FOR DIALYSIS)', 'MICU 1', '2nd Floor Dept', 25, 25, 10, 2, 1),
-    room(2, 'micu_isolation', 'MICU ISOLATION', 'MICU ISOLATION', '2nd Floor Dept', 25, 25, 10, 2, 1),
-  ],
-  3: [
-    room(3, 'dietary', 'Dietary and Canteen', 'DCT', 'Food and Nutrition', 27, 7, 45, 25, 3),
-    room(3, 'endoscopy', 'Endoscopy Center', 'END', 'Diagnostics Department', 25, 36, 31, 24, 4),
-    room(3, 'business', 'Business Office', 'BUS', 'Administration', 70, 10, 23, 28, 3),
-    room(3, 'hemodialysis', 'Hemodialysis Center', 'HDC', 'Renal Services', 48, 65, 45, 25, 4),
-  ],
-  4: [
-    room(4, 'ent', 'ENT and Ophthalmology', 'ENT', 'Outpatient Clinics', 69, 17, 24, 17, 3),
-    room(4, 'doctors', 'Doctors Clinics', 'DOC', 'Outpatient Clinics', 22, 18, 50, 20, 4),
-    room(4, 'dental', 'Dental Clinic', 'DEN', 'Dental Services', 46, 38, 30, 19, 3),
-    room(4, 'infertility', 'Infertility Center', 'IFC', 'Specialty Services', 65, 47, 24, 18, 3),
-  ],
-  5: [
-    room(5, 'multipurpose', 'Multi-Purpose Hall', 'MPH', 'Administration', 20, 34, 33, 25, 2),
-    room(5, 'records', 'Medical Records', 'MRR', 'Medical Records Department', 52, 36, 29, 22, 4),
-    room(5, 'accounting', 'Accounting Office', 'ACC', 'Finance Department', 53, 14, 23, 16, 3),
-    room(5, 'boardroom', 'Boardroom', 'BRD', 'Executive Offices', 74, 13, 18, 17, 3),
-  ],
-  6: [
-    room(6, 'private-north', 'North Private Rooms', 'NPR', 'Inpatient Services', 25, 10, 64, 18, 4),
-    room(6, 'surgical-ward', 'Surgical Wards', 'SWD', 'Surgical Services', 25, 31, 51, 25, 4),
-    room(6, 'pedia', 'Pediatric Ward', 'PED', 'Women and Children', 58, 49, 27, 17, 3),
-    room(6, 'private-south', 'South Private Rooms', 'SPR', 'Inpatient Services', 27, 63, 62, 20, 4),
-  ],
-  7: [
-    room(7, 'private-north', 'North Private Rooms', 'NPR', 'Inpatient Services', 25, 10, 64, 18, 4),
-    room(7, 'semi-private', 'Semi-Private Rooms', 'SEM', 'Inpatient Services', 34, 31, 51, 25, 4),
-    room(7, 'prayer', 'Prayer Rooms', 'PRY', 'Patient Support', 75, 35, 16, 16, 2),
-    room(7, 'private-south', 'South Private Rooms', 'SPR', 'Inpatient Services', 27, 64, 62, 20, 4),
-  ],
-}
-
-const floorRoomCounts: Record<number, number> = { 1: 81, 2: 67, 3: 55, 4: 40, 5: 38, 6: 37, 7: 37 }
-
-const roomsByFloor: Record<number, Room[]> = Object.fromEntries(floors.map(floorItem => {
-  const featured = featuredRoomsByFloor[floorItem.id] ?? []
-  const rooms = Array.from({ length: floorRoomCounts[floorItem.id] }, (_, index) => featured[index] ?? room(
-    floorItem.id,
-    `room-${index + 1}`,
-    `Room ${String(index + 1).padStart(2, '0')}`,
-    `F${floorItem.id}-R${String(index + 1).padStart(2, '0')}`,
-    floorItem.label,
-    0, 0, 0, 0, 0,
-  ))
-  return [floorItem.id, rooms]
-}))
-
-const allRooms = Object.values(roomsByFloor).flat()
+const floors = hospitalFloors.map(floor => ({ ...floor, assets: 0 }))
+const roomsByFloor: Record<number, Room[]> = Object.fromEntries(floors.map(floor => [floor.id,
+  hospitalRooms.filter(room => room.floor === floor.id).map(room => ({ ...room, assets: [], x: 0, y: 0, w: 0, h: 0 })),
+]))
+const floorRoomCounts = Object.fromEntries(floors.map(floor => [floor.id, roomsByFloor[floor.id].length]))
 
 const floorMapAspectRatios: Record<number, string> = {
   1: '3615 / 3247',
@@ -249,41 +44,52 @@ const Icon = ({ name, src }: { name?: string; src?: string }) => (
     {src ? <span className="sidebar-icon-mask" style={{ WebkitMaskImage: `url(${src})`, maskImage: `url(${src})` }} /> : name}
   </span>
 )
+const equipmentKinds: AssetKind[] = ['System Unit', 'Printer', 'Monitor', 'Keyboard', 'UPS', 'Scanner', 'Router', 'Other']
+const equipmentLabels: Record<AssetKind, string> = { 'System Unit': 'System Units', Printer: 'Printers', Monitor: 'Monitors', Keyboard: 'Keyboards', UPS: 'UPS', Scanner: 'Scanners', Router: 'Routers', Other: 'Other devices' }
+const assetKind = (category: string): AssetKind => equipmentKinds.includes(category as AssetKind) ? category as AssetKind : 'Other'
+const equipmentKindClass = (kind: AssetKind) => kind.toLowerCase().replaceAll(' ', '-')
+const assetTagCollator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' })
 const statusClass = (status: Status) => status.toLowerCase()
-const computerCount = (roomItem: Room) => roomItem.assets.filter(assetItem => assetItem.kind === 'Computer').length
+const computerCount = (roomItem: Room) => roomItem.assets.filter(assetItem => assetItem.kind === 'System Unit').length
 
 export function App() {
+  const queryClient = useQueryClient()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [module, setModule] = useState<SystemModule | 'topology'>('topology')
   const [assignmentTarget, setAssignmentTarget] = useState<AssignmentTarget | null>(null)
   const [floor, setFloor] = useState<number | null>(null)
   const [roomId, setRoomId] = useState<string | null>(null)
   const [assetId, setAssetId] = useState<string | null>(null)
-  const { data: inventoryAssets = [], refetch: refetchInventoryAssets } = useQuery({
+  const { data: inventoryAssets = [], error: inventoryError, isLoading: inventoryLoading, refetch: refetchInventoryAssets } = useQuery({
     queryKey: ['assets'],
     queryFn: () => AssetRepository.getAll(),
   })
+  const unsyncedAssetTags = AssetRepository.getUnsyncedAssetTags()
 
   const availableAssets = useMemo(
-    () => inventoryAssets.filter(item => item.location === 'Unassigned' || item.owner === 'Unassigned'),
+    () => inventoryAssets.filter(item => !isAssetAssigned(item)),
     [inventoryAssets],
   )
+
+  useEffect(() => AssetRepository.subscribe(() => {
+    void queryClient.invalidateQueries({ queryKey: ['assets'] })
+  }), [queryClient])
 
   const dynamicRoomsByFloor = useMemo(() => {
     const map: Record<number, Room[]> = {}
     for (const [floorId, rList] of Object.entries(roomsByFloor)) {
       map[Number(floorId)] = rList.map(r => {
-        const roomLocationStr = `F${r.floor} · ${r.name}`
-        const assignedAssets = inventoryAssets.filter(a => a.location === roomLocationStr)
+        const assignedAssets = inventoryAssets.filter(a => resolveAssetRoom(a, rList)?.id === r.id)
         const assets: Asset[] = assignedAssets.map(a => {
-          const kind: Asset['kind'] = a.category === 'Printer' ? 'Printer' : a.category === 'Monitor' ? 'Monitor' : 'Computer'
+          const kind = assetKind(a.category)
           return {
-            id: a.qrId || a.tag,
+            id: a.tag,
             name: a.name,
+            owner: a.assignment?.departmentId || a.owner,
             status: a.state as Status,
             kind,
-            detail: `${a.brand ?? ''} ${a.model ?? ''}`.trim() || 'Generic Device',
-            ip: a.ip || undefined
+            detail: `${a.brand ?? ''} ${a.model ?? ''}`.trim() || a.name,
+            ip: a.ip === '—' ? undefined : a.ip
           }
         })
         return { ...r, assets }
@@ -304,35 +110,52 @@ export function App() {
   const maintenance = inventoryAssets.filter(a => a.state === 'Maintenance').length
   const broken = inventoryAssets.filter(a => a.state === 'Broken').length
   const recentAssets = inventoryAssets.slice(0, 3)
+  const liveFloors = useMemo(() => floors.map(floorItem => {
+    const floorAssets = inventoryAssets.filter(item => (item.assignment?.floorId || floorIdFromLocation(item.location)) === String(floorItem.id))
+    return {
+      ...floorItem,
+      assets: floorAssets.length,
+      activeAssets: floorAssets.filter(item => item.state === 'Active').length,
+      maintenanceAssets: floorAssets.filter(item => item.state === 'Maintenance').length,
+      brokenAssets: floorAssets.filter(item => item.state === 'Broken').length,
+      inactiveAssets: floorAssets.filter(item => item.state === 'Inactive').length,
+    }
+  }), [inventoryAssets])
 
   const resetToFloors = () => { setFloor(null); setRoomId(null); setAssetId(null) }
   const openModule = (next: SystemModule | 'topology') => { if (next !== 'assignments') setAssignmentTarget(null); setModule(next); resetToFloors(); window.scrollTo({ top: 0, behavior: 'auto' }) }
   const openRoomAssignment = (targetFloor: number, targetRoom: Room) => {
-    setAssignmentTarget({ floor: String(targetFloor), room: targetRoom.name, department: targetRoom.department })
+    setAssignmentTarget({ floor: String(targetFloor), roomId: targetRoom.id, room: targetRoom.name, department: targetRoom.department })
     setModule('assignments')
     resetToFloors()
     window.scrollTo({ top: 0, behavior: 'auto' })
   }
   const assignAvailableAssetToRoom = async (availableAsset: InventoryAsset, targetRoom: Room) => {
-    await AssetRepository.update(availableAsset.tag, {
-      ...availableAsset,
-      location: `F${targetRoom.floor} · ${targetRoom.name}`,
-      owner: targetRoom.department,
-    })
+    await AssetRepository.update(availableAsset.tag, assignAsset(availableAsset, {
+      floorId: String(targetRoom.floor),
+      roomId: targetRoom.id,
+      roomName: targetRoom.name,
+      departmentId: isAssetAssigned(availableAsset) ? (availableAsset.assignment?.departmentId || availableAsset.owner) : targetRoom.department,
+      assignedBy: 'Admin',
+      method: 'manual',
+    }))
     await refetchInventoryAssets()
   }
 
   return <div className={`app-shell module-${module} ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
     <LiveInvSidebar module={module} expanded={sidebarOpen} onToggle={() => setSidebarOpen(open => !open)} onNavigate={openModule} totalAssets={total} />
     <main>
+      {inventoryError && <div className="unresolved-locations" role="alert">Shared inventory could not be refreshed. {inventoryAssets.length ? 'The last loaded records are shown.' : 'Asset counts are unavailable.'} <button type="button" onClick={() => void refetchInventoryAssets()}>Retry inventory</button></div>}
+      {inventoryLoading && <p role="status">Loading shared inventory…</p>}
+      {unsyncedAssetTags.length > 0 && <div className="unresolved-locations" role="alert">Earlier browser-only edits were not saved to the shared inventory: {unsyncedAssetTags.join(', ')}. Shared records are shown here; review and save these records again to apply your edits.</div>}
       <header className="topbar"><div className="crumbs">{module === 'topology' ? <><button onClick={resetToFloors}>Live Mapping</button>{selectedFloor && <><span>/</span><button onClick={() => { setRoomId(null); setAssetId(null) }}>Floor {floor}</button></>}{room && <><span>/</span><button onClick={() => setAssetId(null)}>{room.name}</button></>}{asset && <><span>/</span><b>{asset.id}</b></>}</> : <><span>Hospital Inventory</span><span>/</span><b>{module === 'qr' ? 'QR Scanner' : module === 'network' ? 'Network Registry' : module === 'manual' ? 'System Manual' : module.charAt(0).toUpperCase() + module.slice(1)}</b></>}</div><div className="top-actions"><button className="ghost-btn">⌕ Search</button><button className="bell">◌</button><span className="avatar">AD</span></div></header>
       {module !== 'topology' && <SystemModulePage module={module} assignmentTarget={assignmentTarget} />}
-      {module === 'topology' && !floor && <FloorTopology floors={floors} onSelect={setFloor} />}
-      {module === 'topology' && floor && !room && <FloorView floor={selectedFloor!} onBack={resetToFloors} rooms={dynamicRoomsByFloor[floor] ?? []} availableAssets={availableAssets} onAssignAvailableAsset={assignAvailableAssetToRoom} />}
+      {module === 'topology' && !floor && <FloorTopology floors={liveFloors} onSelect={setFloor} />}
+      {module === 'topology' && floor && !room && <FloorView floor={selectedFloor!} onBack={resetToFloors} rooms={dynamicRoomsByFloor[floor] ?? []} inventoryAssets={inventoryAssets} availableAssets={availableAssets} onAssignAvailableAsset={assignAvailableAssetToRoom} />}
       {module === 'topology' && floor && room && !asset && <RoomView room={room} floor={floor} onBack={() => setRoomId(null)} onAsset={setAssetId} onAssignEquipment={() => openRoomAssignment(floor, room)} />}
       {module === 'topology' && floor && room && asset && <AssetView room={room} floor={floor} asset={asset} onBack={() => setAssetId(null)} />}
     </main>
-    <aside className="insights-panel"><h3>Live status</h3><p className="muted">Hospital inventory at a glance</p><div className="stat"><span>Total assets</span><b>{total}</b><small>Across 7 floors</small></div><div className="status-list"><StatusRow color="green" label="Active" value={String(active)} /><StatusRow color="amber" label="Maintenance" value={String(maintenance)} /><StatusRow color="red" label="Broken" value={String(broken)} /></div><div className="divider"/><h4>Quick actions</h4><button className="quick primary" onClick={() => openModule('assets')}>＋ Add new asset</button><button className="quick" onClick={() => openModule('qr')}>▣ Scan QR code</button><button className="quick" onClick={() => openModule('assignments')}>⇄ Assign an item</button><div className="recent"><h4>Recently added</h4>{recentAssets.map(item => <button key={item.tag} onClick={() => openModule('assets')}><span className={`dot ${item.state.toLowerCase()}`} />{item.tag}<small>{item.category}</small></button>)}</div></aside>
+    <aside className="insights-panel"><h3>Live status</h3><p className="muted">Hospital inventory at a glance</p><div className="stat"><span>Total assets</span><b>{total}</b><small>Across 7 floors</small></div><div className="status-list"><StatusRow color="green" label="Active" value={String(active)} /><StatusRow color="amber" label="Maintenance" value={String(maintenance)} /><StatusRow color="red" label="Broken" value={String(broken)} /><StatusRow color="gray" label="Inactive" value={String(inventoryAssets.filter(asset => asset.state === 'Inactive').length)} /></div><div className="divider"/><h4>Quick actions</h4><button className="quick primary" onClick={() => openModule('assets')}>＋ Add new asset</button><button className="quick" onClick={() => openModule('qr')}>▣ Scan QR code</button><button className="quick" onClick={() => openModule('assignments')}>⇄ Assign an item</button><div className="recent"><h4>Recently added</h4>{recentAssets.map(item => <button key={item.tag} onClick={() => openModule('assets')}><span className={`dot ${item.state.toLowerCase()}`} />{item.tag}<small>{item.category}</small></button>)}</div></aside>
     <Toaster />
   </div>
 }
@@ -385,7 +208,7 @@ function FloorTopology({ floors, onSelect }: { floors: Floor[]; onSelect:(id:num
   return <section className="workspace topology-workspace hospital-topology-workspace" aria-label={`${floors.length} hospital floors available`}><div className="section-heading"><span className="eyebrow">VISUAL INVENTORY</span><h1>Hospital topology</h1><p>Rotate the 3D hospital, inspect each floor, and explore its rooms and assigned inventory.</p></div><HospitalBuilding3D floors={modelFloors} onExplore={onSelect} /></section>
 }
 
-function FloorView({ floor, onBack, rooms, availableAssets, onAssignAvailableAsset }: { floor:Floor;onBack:()=>void;rooms:Room[];availableAssets:InventoryAsset[];onAssignAvailableAsset:(asset:InventoryAsset,room:Room)=>Promise<void> }) {
+function FloorView({ floor, onBack, rooms, inventoryAssets, availableAssets, onAssignAvailableAsset }: { floor:Floor;onBack:()=>void;rooms:Room[];inventoryAssets:InventoryAsset[];availableAssets:InventoryAsset[];onAssignAvailableAsset:(asset:InventoryAsset,room:Room)=>Promise<void> }) {
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
@@ -393,7 +216,6 @@ function FloorView({ floor, onBack, rooms, availableAssets, onAssignAvailableAss
   const dragMoved = useRef(false)
   const pressedMapRoomId = useRef<string | null>(null)
   const [directoryOpen, setDirectoryOpen] = useState(false)
-  const [figmaRoomNames, setFigmaRoomNames] = useState<Record<string, string>>({})
   const [hoveredRoom, setHoveredRoom] = useState<string | null>(null)
   const [hoverCardPosition, setHoverCardPosition] = useState<{ x: number; y: number } | null>(null)
   const [openedRoomId, setOpenedRoomId] = useState<string | null>(null)
@@ -401,12 +223,21 @@ function FloorView({ floor, onBack, rooms, availableAssets, onAssignAvailableAss
   const hoverCloseTimer = useRef<number | null>(null)
   const pendingHoverRoom = useRef<string | null>(null)
   const visibleHoverRoom = useRef<string | null>(null)
-  const namedRooms = useMemo(() => rooms.map(item => figmaRoomNames[item.id] ? { ...item, name: figmaRoomNames[item.id] } : item), [figmaRoomNames, rooms])
+  const namedRooms = rooms
+  const unresolvedAssets = inventoryAssets.filter(asset =>
+    (asset.assignment?.floorId || floorIdFromLocation(asset.location)) === String(floor.id)
+    && !resolveAssetRoom(asset, rooms))
   const openedRoom = namedRooms.find(item => item.id === openedRoomId)
   const hoveredRoomDetails = namedRooms.find(item => item.id === hoveredRoom)
+  const hoveredRoomSubtitle = hoveredRoomDetails
+    ? [hoveredRoomDetails.name, hoveredRoomDetails.code, hoveredRoomDetails.department]
+      .map(value => value.trim().replace(/\s+/g, ' '))
+      .filter((value, index, values) => value && values.findIndex(other => other.toLowerCase() === value.toLowerCase()) === index)
+      .slice(1)
+      .join(' · ')
+    : ''
   const selectedRoom = namedRooms.find(item => item.id === hoveredRoom) ?? openedRoom
 
-  useEffect(() => setFigmaRoomNames({}), [floor.id])
 
   useEffect(() => () => {
     if (hoverOpenTimer.current) window.clearTimeout(hoverOpenTimer.current)
@@ -460,6 +291,11 @@ function FloorView({ floor, onBack, rooms, availableAssets, onAssignAvailableAss
   }
 
   return <section className="workspace floor-workspace">
+    {unresolvedAssets.length > 0 && <section className="unresolved-locations" aria-label="Assets needing a room">
+      <h3>{unresolvedAssets.length} asset{unresolvedAssets.length === 1 ? '' : 's'} on Floor {floor.id} need an exact room</h3>
+      <p>These assets count toward this floor. Their recorded location does not identify a unique room on the map. Choose the correct room to place each device.</p>
+      {unresolvedAssets.map(asset => <ResolveRoomAssignment key={asset.tag} asset={asset} rooms={rooms} onAssign={onAssignAvailableAsset} />)}
+    </section>}
     <div className={`floor-map-layout ${directoryOpen ? '' : 'directory-collapsed'}`}>
       <div className="map-card floor-map-card">
         <div className="map-toolbar">
@@ -515,54 +351,98 @@ function FloorView({ floor, onBack, rooms, availableAssets, onAssignAvailableAss
           }}
         >
           <div className="map-canvas figma-floor-map" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, aspectRatio: floorMapAspectRatios[floor.id] }} role="img" aria-label={`Interactive room layout for Floor ${floor.id}`}>
-            <InteractiveFloorSvg floor={floor} rooms={rooms} activeRoomId={hoveredRoom ?? openedRoomId} onSelect={openRoomDetails} onHover={handleMapHover} onRoomNames={setFigmaRoomNames} />
+            <InteractiveFloorSvg floor={floor} rooms={namedRooms} activeRoomId={hoveredRoom ?? openedRoomId} onSelect={openRoomDetails} onHover={handleMapHover} />
           </div>
         </div>
-        <div className="map-status"><span className="map-status-key"><i className="mapped"/>Mapped room</span><span className="map-status-key"><i className="computer"/>Computer present</span><span>Click a room to enter</span>{selectedRoom && <strong>{selectedRoom.name} · {selectedRoom.assets.length} assets</strong>}</div>
+        <div className="map-status"><span className="map-status-key"><i className="mapped"/>Mapped room</span><span className="map-status-key"><i className="device"/>Device assigned</span><span>Click a room to enter</span>{selectedRoom && <strong>{selectedRoom.name} · {selectedRoom.assets.length} assets</strong>}</div>
       </div>
       <aside id={`floor-${floor.id}-room-directory`} className="floor-room-directory" hidden={!directoryOpen}>
         <div className="directory-heading"><span className="eyebrow">ROOM DIRECTORY</span><h3>Floor {floor.id} spaces</h3><p>Select a room to inspect its inventory.</p></div>
         <div className="directory-list">{namedRooms.map((item, index) => {
           const pcs = computerCount(item)
-          return <button key={item.id} className={`${pcs ? 'has-computer' : ''} ${item.id === openedRoomId ? 'is-open' : ''}`} onMouseEnter={() => setHoveredRoom(item.id)} onMouseLeave={() => setHoveredRoom(null)} onFocus={() => setHoveredRoom(item.id)} onBlur={() => setHoveredRoom(null)} onClick={() => openRoomDetails(item.id)}><span>{String(index + 1).padStart(2, '0')}</span><span><b>{item.name}</b><small>{item.department}</small></span>{pcs > 0 && <span className="directory-pc" aria-label={`${pcs} computer${pcs === 1 ? '' : 's'}`}><i />{pcs}</span>}<em>{item.assets.length}</em></button>
+          return <button key={item.id} className={`${item.assets.length ? 'has-device' : ''} ${item.id === openedRoomId ? 'is-open' : ''}`} onMouseEnter={() => setHoveredRoom(item.id)} onMouseLeave={() => setHoveredRoom(null)} onFocus={() => setHoveredRoom(item.id)} onBlur={() => setHoveredRoom(null)} onClick={() => openRoomDetails(item.id)}><span>{String(index + 1).padStart(2, '0')}</span><span><b>{item.name}</b><small>{item.department}</small></span>{pcs > 0 && <span className="directory-pc" aria-label={`${pcs} computer${pcs === 1 ? '' : 's'}`}><i />{pcs}</span>}<em>{item.assets.length}</em></button>
         })}</div>
       </aside>
     </div>
     {hoveredRoomDetails && hoverCardPosition && <div className="room-hover-card" style={{ left: hoverCardPosition.x, top: hoverCardPosition.y }} role="status" aria-live="polite">
-      <div className="room-hover-card-heading"><span>ROOM QUICK VIEW</span><b>{hoveredRoomDetails.assets.length} assigned</b></div>
+      <div className="room-hover-card-heading"><span>ROOM QUICK VIEW</span>{hoveredRoomDetails.assets.length > 0 && <b>{hoveredRoomDetails.assets.length} assigned</b>}</div>
       <h3>{hoveredRoomDetails.name}</h3>
-      <p>{hoveredRoomDetails.code} · {hoveredRoomDetails.department}</p>
-      <div className="room-hover-card-summary"><span><b>{hoveredRoomDetails.assets.length}</b> Devices</span><span><b>{computerCount(hoveredRoomDetails)}</b> Computers</span></div>
-      <div className="room-hover-device-list">
-        {hoveredRoomDetails.assets.length ? hoveredRoomDetails.assets.slice(0, 4).map(device => <div key={device.id}><i className={`dot ${statusClass(device.status)}`} /><span><b>{device.id}</b><small>{device.kind} · {device.detail}</small></span><em>{device.status}</em></div>) : <div className="room-hover-empty">No devices assigned to this room.</div>}
-      </div>
+      {hoveredRoomSubtitle && <p>{hoveredRoomSubtitle}</p>}
+      {hoveredRoomDetails.assets.length > 0 ? <>
+        <div className="room-hover-card-summary"><span><b>{hoveredRoomDetails.assets.length}</b> {hoveredRoomDetails.assets.length === 1 ? 'Device' : 'Devices'}</span></div>
+        <div className="room-hover-device-list">
+          {hoveredRoomDetails.assets.slice(0, 4).map(device => <div key={device.id}><i className={`dot ${statusClass(device.status)}`} /><span><b>{device.id}</b><small>{device.kind} · {device.detail}</small></span><em>{device.status}</em></div>)}
+        </div>
+      </> : <EquipmentEmptyState className="room-hover-empty" title="No devices assigned" description="This room is ready for equipment." />}
     </div>}
     {openedRoom && <RoomEquipmentDialog key={openedRoom.id} room={openedRoom} floor={floor.id} availableAssets={availableAssets} onClose={() => setOpenedRoomId(null)} onAssignAvailableAsset={asset => onAssignAvailableAsset(asset, openedRoom)} />}
   </section>
 }
 
-function InteractiveFloorSvg({ floor, rooms, activeRoomId, onSelect, onHover, onRoomNames }: { floor: Floor; rooms: Room[]; activeRoomId: string | null; onSelect: (id: string) => void; onHover: (id: string | null, point?: { x: number; y: number }) => void; onRoomNames: (names: Record<string, string>) => void }) {
+function ResolveRoomAssignment({ asset, rooms, onAssign }: { asset: InventoryAsset; rooms: Room[]; onAssign: (asset: InventoryAsset, room: Room) => Promise<void> }) {
+  const [roomId, setRoomId] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  return <form className="resolve-room-assignment" onSubmit={async event => {
+    event.preventDefault()
+    const room = rooms.find(room => room.id === roomId)
+    if (!room || saving) return
+    setSaving(true)
+    setError('')
+    try { await onAssign(asset, room) }
+    catch (error) { setError(error instanceof Error ? error.message : 'Could not save the room assignment.') }
+    finally { setSaving(false) }
+  }}>
+    <div><b>{asset.tag}</b><small>{asset.location}</small></div>
+    <select aria-label={`Exact room for ${asset.tag}`} value={roomId} onChange={event => setRoomId(event.target.value)} disabled={saving}>
+      <option value="">Choose the correct room</option>
+      {rooms.map((room, index) => <option key={room.id} value={room.id}>{room.name} (space {index + 1})</option>)}
+    </select>
+    <button type="submit" disabled={!roomId || saving}>{saving ? 'Saving…' : 'Save room'}</button>
+    {error && <p role="alert">{error}</p>}
+  </form>
+}
+
+function InteractiveFloorSvg({ floor, rooms, activeRoomId, onSelect, onHover }: { floor: Floor; rooms: Room[]; activeRoomId: string | null; onSelect: (id: string) => void; onHover: (id: string | null, point?: { x: number; y: number }) => void }) {
   const [svgMarkup, setSvgMarkup] = useState('')
+  const renderedMarkup = useMemo(() => ({ __html: svgMarkup }), [svgMarkup])
+  const [source, setSource] = useState('')
+  const [loadError, setLoadError] = useState('')
   const layerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let active = true
-    fetch(`/floor-plans/floor-${floor.id}.svg?v=${Date.now()}`)
-      .then(response => response.text())
+    setSource('')
+    setSvgMarkup('')
+    setLoadError('')
+    fetch(`/floor-plans/floor-${floor.id}.svg`)
+      .then(response => {
+        if (!response.ok) throw new Error('The floor plan could not be loaded. Reload to try again.')
+        return response.text()
+      })
       .then(source => {
         if (!active) return
+        setSource(source)
+      }).catch(() => { if (active) setLoadError('The floor plan could not be loaded. Reload to try again.') })
+    return () => { active = false }
+  }, [floor.id])
+
+  useEffect(() => {
+        if (!source) return
         const document = new DOMParser().parseFromString(source, 'image/svg+xml')
+        if (document.querySelector('parsererror') || document.documentElement.tagName !== 'svg') {
+          setLoadError('The floor plan is invalid. The room directory is still available.')
+          return
+        }
         prepareFloorPlanSvg(document)
         const roomShapes = Array.from(document.querySelectorAll('rect[fill="#D9D9D9"]'))
         roomShapes.forEach((shape, index) => {
-          const mappedRoom = rooms[index]
+          const mappedRoom = rooms.find(room => room.shapeId === (shape.id || `shape-${index + 1}`))
           if (!mappedRoom) return
           decorateRoomShape(document, shape as SVGRectElement, mappedRoom, index)
         })
         setSvgMarkup(document.documentElement.outerHTML)
-      })
-    return () => { active = false }
-  }, [floor.id, rooms])
+  }, [source, rooms])
 
   useEffect(() => {
     layerRef.current?.querySelectorAll<SVGGElement>('.svg-room-node, .svg-room-hit-target').forEach(node => {
@@ -570,47 +450,15 @@ function InteractiveFloorSvg({ floor, rooms, activeRoomId, onSelect, onHover, on
     })
   }, [activeRoomId, svgMarkup])
 
-  useEffect(() => {
-    const svg = layerRef.current?.querySelector('svg')
-    if (!svg || !svgMarkup) return
-    const structuralId = /^(?:Rectangle|Group|clip|paint|filter|mask|liveinv)/i
-    const floorTitle = /^(?:GROUND|1ST|2ND|3RD|4TH|5TH|6TH|7TH)\s+FLOOR$/i
-    const labels = Array.from(svg.querySelectorAll<SVGGraphicsElement>('[id]')).filter(element => {
-      const label = cleanFigmaLabel(element.id)
-      return label && !structuralId.test(label) && !floorTitle.test(label) && !element.closest('.svg-room-node')
-    })
-    const discoveredNames: Record<string, string> = {}
-
-    svg.querySelectorAll<SVGGElement>('.svg-room-node').forEach(roomNode => {
-      const roomId = roomNode.dataset.roomId
-      const shape = roomNode.querySelector<SVGRectElement>('.svg-room-box')
-      if (!roomId || !shape) return
-      const roomBounds = shape.getBoundingClientRect()
-      const matchingLabels = labels.filter(label => {
-        const bounds = label.getBoundingClientRect()
-        const centerX = bounds.left + bounds.width / 2
-        const centerY = bounds.top + bounds.height / 2
-        return bounds.width > 0 && bounds.height > 0 && centerX >= roomBounds.left - 2 && centerX <= roomBounds.right + 2 && centerY >= roomBounds.top - 2 && centerY <= roomBounds.bottom + 2
-      }).sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)
-      const names = [...new Set(matchingLabels.map(label => cleanFigmaLabel(label.id)).filter(Boolean))]
-      if (!names.length) return
-      const roomName = names.join(' · ')
-      discoveredNames[roomId] = roomName
-      const title = roomNode.querySelector('title')
-      if (title) title.textContent = roomName
-      svg.querySelector<SVGRectElement>(`.svg-room-hit-target[data-room-id="${roomId}"]`)?.setAttribute('aria-label', `Open ${roomName}`)
-    })
-
-    onRoomNames(discoveredNames)
-  }, [onRoomNames, svgMarkup])
-
   const roomIdFromTarget = (target: EventTarget | null) => target instanceof Element ? target.closest('.svg-room-node, .svg-room-hit-target')?.getAttribute('data-room-id') ?? null : null
   const selectTarget = (target: EventTarget | null) => { const id = roomIdFromTarget(target); if (id) onSelect(id) }
+
+  if (loadError) return <p role="alert">{loadError}</p>
 
   return <div
     ref={layerRef}
     className="floor-svg-layer"
-    dangerouslySetInnerHTML={{ __html: svgMarkup }}
+    dangerouslySetInnerHTML={renderedMarkup}
     onMouseMove={event => {
       const roomId = roomIdFromTarget(event.target)
       if (roomId) onHover(roomId, { x: event.clientX, y: event.clientY })
@@ -631,6 +479,10 @@ function cleanFigmaLabel(value: string) {
   return value.replace(/_\d+$/, '').replace(/\s+/g, ' ').trim()
 }
 
+function roomLabelFromElement(element: SVGGraphicsElement) {
+  return cleanFigmaLabel(element.tagName.toLowerCase() === 'text' ? element.textContent ?? '' : element.id)
+}
+
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
 
 function svgElement<K extends keyof SVGElementTagNameMap>(document: Document, name: K, attributes: Record<string, string>) {
@@ -646,8 +498,8 @@ function prepareFloorPlanSvg(document: Document) {
   root.querySelectorAll<SVGElement>('[fill="#1E1E1E"]').forEach(background => background.setAttribute('fill', '#E8ECEA'))
   const floorTitle = /^(?:GROUND|1ST|2ND|3RD|4TH|5TH|6TH|7TH)\s+FLOOR$/i
   const structuralId = /^(?:Rectangle|Group|Circle|Ellipse|Line|Path|Vector|clip|paint|filter|mask|liveinv)/i
-  root.querySelectorAll<SVGGraphicsElement>('[id]').forEach(element => {
-    const label = cleanFigmaLabel(element.id)
+  root.querySelectorAll<SVGGraphicsElement>('[id], text').forEach(element => {
+    const label = roomLabelFromElement(element)
     if (floorTitle.test(label)) element.remove()
     else if (label && !structuralId.test(label)) element.classList.add('figma-room-label')
   })
@@ -672,9 +524,9 @@ function decorateRoomShape(document: Document, shape: SVGRectElement, mappedRoom
   const width = Number(shape.getAttribute('width') ?? 0)
   const height = Number(shape.getAttribute('height') ?? 0)
   const pcs = computerCount(mappedRoom)
-  const isGreen = pcs > 0 || (mappedRoom.floor === 2 && mappedRoom.assets.length > 0)
+  const hasDevice = mappedRoom.assets.length > 0
   const group = svgElement(document, 'g', {
-    class: `svg-room-node ${mappedRoom.assets.length ? 'has-assets' : ''} ${isGreen ? 'has-computer' : ''}`,
+    class: `svg-room-node ${hasDevice ? 'has-assets has-device' : ''} ${pcs > 0 ? 'has-computer' : ''}`,
     'data-room-id': mappedRoom.id,
   })
   parent.insertBefore(group, shape)
@@ -721,26 +573,21 @@ function decorateRoomShape(document: Document, shape: SVGRectElement, mappedRoom
 type EquipmentFilter = 'All' | Asset['kind']
 
 function RoomEquipmentDialog({ room, floor, availableAssets, onClose, onAssignAvailableAsset }: { room: Room; floor: number; availableAssets: InventoryAsset[]; onClose: () => void; onAssignAvailableAsset: (asset: InventoryAsset) => Promise<void> }) {
+  const sortedRoomAssets = useMemo(() => [...room.assets].sort((a, b) => assetTagCollator.compare(a.id, b.id)), [room.assets])
   const [filter, setFilter] = useState<EquipmentFilter>('All')
-  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(room.assets[0]?.id ?? null)
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(sortedRoomAssets[0]?.id ?? null)
   const [availableAssetTag, setAvailableAssetTag] = useState(availableAssets[0]?.tag ?? '')
   const [isAssigning, setIsAssigning] = useState(false)
   const [assignmentMessage, setAssignmentMessage] = useState('')
   const [assignmentError, setAssignmentError] = useState('')
-  const selectedAsset = room.assets.find(assetItem => assetItem.id === selectedAssetId) ?? room.assets[0]
-  const filters: EquipmentFilter[] = ['All', 'Computer', 'Printer', 'Monitor']
-  const filteredAssets = filter === 'All' ? room.assets : room.assets.filter(assetItem => assetItem.kind === filter)
-  const counts = room.assets.reduce<Record<Asset['kind'], number>>((result, assetItem) => {
+  const selectedAsset = sortedRoomAssets.find(assetItem => assetItem.id === selectedAssetId) ?? sortedRoomAssets[0]
+  const filteredAssets = filter === 'All' ? sortedRoomAssets : sortedRoomAssets.filter(assetItem => assetItem.kind === filter)
+  const counts = room.assets.reduce<Record<AssetKind, number>>((result, assetItem) => {
     result[assetItem.kind] += 1
     return result
-  }, { Computer: 0, Printer: 0, Monitor: 0 })
-  const computers = room.assets.filter(assetItem => assetItem.kind === 'Computer')
-  const computerPositions = [
-    { left: '18%', top: '26%' }, { left: '61%', top: '23%' },
-    { left: '27%', top: '62%' }, { left: '70%', top: '61%' },
-    { left: '45%', top: '43%' }, { left: '83%', top: '39%' },
-  ]
-
+  }, { 'System Unit': 0, Printer: 0, Monitor: 0, Keyboard: 0, UPS: 0, Scanner: 0, Router: 0, Other: 0 })
+  const representedKinds = equipmentKinds.filter(kind => counts[kind] > 0)
+  const filters: EquipmentFilter[] = ['All', ...representedKinds]
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
     window.addEventListener('keydown', handleEscape)
@@ -755,7 +602,7 @@ function RoomEquipmentDialog({ room, floor, availableAssets, onClose, onAssignAv
 
   const chooseFilter = (nextFilter: EquipmentFilter) => {
     setFilter(nextFilter)
-    const first = nextFilter === 'All' ? room.assets[0] : room.assets.find(assetItem => assetItem.kind === nextFilter)
+    const first = nextFilter === 'All' ? sortedRoomAssets[0] : sortedRoomAssets.find(assetItem => assetItem.kind === nextFilter)
     setSelectedAssetId(first?.id ?? null)
   }
 
@@ -775,7 +622,7 @@ function RoomEquipmentDialog({ room, floor, availableAssets, onClose, onAssignAv
     }
   }
 
-  return <div className="equipment-dialog-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
+  return createPortal(<div className="equipment-dialog-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
     <section className="equipment-dialog" role="dialog" aria-modal="true" aria-labelledby="equipment-dialog-title">
       <header className="equipment-dialog-header">
         <div><span>FLOOR {floor} · ROOM {room.code}</span><h2 id="equipment-dialog-title">{room.name}</h2><p>{room.department} · Select equipment to view its details.</p></div>
@@ -783,71 +630,67 @@ function RoomEquipmentDialog({ room, floor, availableAssets, onClose, onAssignAv
       </header>
       <div className="equipment-summary-strip">
         <div><span>Total equipment</span><b>{room.assets.length}</b></div>
-        <div><span className="equipment-kind-icon computer">▣</span><span>Computers</span><b>{counts.Computer}</b></div>
-        <div><span className="equipment-kind-icon printer">▤</span><span>Printers</span><b>{counts.Printer}</b></div>
-        <div><span className="equipment-kind-icon monitor">▱</span><span>Monitors</span><b>{counts.Monitor}</b></div>
+        {representedKinds.map(kind => <div key={kind}><span className={`equipment-kind-icon ${equipmentKindClass(kind)}`}><EquipmentIcon kind={kind} /></span><span>{equipmentLabels[kind]}</span><b>{counts[kind]}</b></div>)}
       </div>
       <section className="room-inline-assignment" aria-label={`Assign an available asset to ${room.name}`}>
         <div className="room-inline-assignment-copy"><span>ASSIGN AVAILABLE ASSET</span><b>Add a device to {room.name}</b><small>The device will immediately appear in this room.</small></div>
         {availableAssets.length ? <>
           <label><span>Available asset or device</span><select aria-label="Available asset or device" value={availableAssetTag} onChange={event => { setAvailableAssetTag(event.target.value); setAssignmentMessage(''); setAssignmentError('') }}>{availableAssets.map(assetItem => <option key={assetItem.tag} value={assetItem.tag}>{assetItem.tag} — {assetItem.name}</option>)}</select></label>
           <button type="button" onClick={assignSelectedAsset} disabled={isAssigning || !availableAssetTag}>{isAssigning ? 'Assigning…' : 'Assign to this room'}</button>
-        </> : <p className="room-inline-assignment-empty">All registered assets are already assigned.</p>}
+        </> : <EquipmentEmptyState className="room-inline-assignment-empty" size="inline" title="No assets available" description="All registered assets are already assigned." />}
         {assignmentMessage && <p className="room-inline-assignment-success" role="status">✓ {assignmentMessage}</p>}
         {assignmentError && <p className="room-inline-assignment-error" role="alert">{assignmentError}</p>}
       </section>
-      {room.assets.length === 0 ? <div className="equipment-empty"><span>▣</span><h3>No equipment assigned</h3><p>Choose an available asset above to add equipment to this room.</p></div> : <div className="room-focus-layout">
+      {room.assets.length === 0 ? <EquipmentEmptyState className="equipment-empty" title="No equipment assigned" description="Choose an available asset above to add equipment to this room. It will appear here immediately." /> : <div className="room-focus-layout">
         <section className="room-focus-visual" aria-label={`2D view of ${room.name}`}>
-          <div className="room-focus-heading"><div><span>2D ROOM VIEW</span><h3>{room.name}</h3></div><strong>{computers.length} PC{computers.length === 1 ? '' : 's'}</strong></div>
+          <div className="room-focus-heading"><div><span>2D ROOM VIEW</span><h3>{room.name}</h3></div><strong>{room.assets.length} device{room.assets.length === 1 ? '' : 's'}</strong></div>
           <div className="room-focus-plan">
             <div className="room-focus-grid" />
-            <div className="room-focus-desk desk-a" /><div className="room-focus-desk desk-b" /><div className="room-focus-desk desk-c" />
             <div className="room-focus-door"><i /></div>
-            {computers.map((computer, index) => {
-              const position = computerPositions[index % computerPositions.length]
-              return <button
+            <div className="room-device-grid">
+              {sortedRoomAssets.map(device => <button
                 type="button"
-                key={computer.id}
-                className={`room-pc-marker ${computer.id === selectedAsset?.id ? 'selected' : ''} ${statusClass(computer.status)}`}
-                style={position}
-                aria-label={`View ${computer.id}, ${computer.detail}`}
-                onClick={() => { setFilter('Computer'); setSelectedAssetId(computer.id) }}
-              ><span className="room-pc-screen"><i /></span><b>{computer.id}</b><small>{computer.detail}</small></button>
-            })}
-            {!computers.length && <div className="room-focus-no-pc"><span>▣</span><b>No computers assigned</b><small>Other equipment is listed in the details panel.</small></div>}
+                key={device.id}
+                className={`room-device-marker ${device.id === selectedAsset?.id ? 'selected' : ''} ${statusClass(device.status)}`}
+                aria-label={`View ${device.id}, ${device.kind}, ${device.detail}`}
+                onClick={() => { setFilter(device.kind); setSelectedAssetId(device.id) }}
+              ><span className={`room-device-symbol ${equipmentKindClass(device.kind)}`}><EquipmentIcon kind={device.kind} /></span><b>{device.id}</b><small>{device.detail}</small></button>)}
+            </div>
+            {!room.assets.length && <EquipmentEmptyState className="room-focus-no-pc" size="compact" title="No devices assigned" description="Assign equipment to display it in this room." />}
           </div>
-          <div className="room-focus-legend"><span><i className="active" />Active</span><span><i className="maintenance" />Maintenance</span><span>Click a PC icon to inspect it</span></div>
+          <div className="room-focus-legend"><span><i className="active" />Active</span><span><i className="maintenance" />Maintenance</span><span>Click a device icon to inspect it</span></div>
         </section>
         <section className="room-focus-details">
           <div className="room-focus-details-heading"><div><span>ASSIGNED EQUIPMENT</span><h3>Devices and models</h3></div><b>{room.assets.length}</b></div>
           <div className="equipment-filter-tabs" aria-label="Filter room equipment">
-            {filters.map(item => <button type="button" key={item} className={filter === item ? 'active' : ''} aria-pressed={filter === item} onClick={() => chooseFilter(item)}>{item === 'All' ? `All ${room.assets.length}` : `${item}s ${counts[item]}`}</button>)}
+            {filters.map(item => <button type="button" key={item} className={filter === item ? 'active' : ''} aria-pressed={filter === item} onClick={() => chooseFilter(item)}>{item === 'All' ? `All ${room.assets.length}` : `${equipmentLabels[item]} ${counts[item]}`}</button>)}
           </div>
           <div className="room-focus-device-list" aria-label="Equipment in this room">
             {filteredAssets.length ? filteredAssets.map(assetItem => <button type="button" key={assetItem.id} className={assetItem.id === selectedAsset?.id ? 'selected' : ''} onClick={() => setSelectedAssetId(assetItem.id)}>
-              <span className={`equipment-list-icon ${assetItem.kind.toLowerCase()}`}>{assetItem.kind === 'Printer' ? '▤' : assetItem.kind === 'Monitor' ? '▱' : '▣'}</span>
+              <span className={`equipment-list-icon ${equipmentKindClass(assetItem.kind)}`}><EquipmentIcon kind={assetItem.kind} /></span>
               <span><b>{assetItem.id}</b><small>{assetItem.detail}</small></span>
               <i className={`dot ${statusClass(assetItem.status)}`} />
-            </button>) : <p className="equipment-filter-empty">No {filter.toLowerCase()}s assigned to this room.</p>}
+            </button>) : <EquipmentEmptyState className="equipment-filter-empty" size="compact" kind={filter === 'All' ? 'System Unit' : filter} title={`No ${filter.toLowerCase()} assigned`} description="Choose another equipment filter or assign a matching device." />}
           </div>
           {selectedAsset && <article className="room-focus-selected">
             <div className="room-focus-selected-heading"><div><small>SELECTED EQUIPMENT</small><h3>{selectedAsset.id}</h3><p>{selectedAsset.detail}</p></div><em className={statusClass(selectedAsset.status)}><i />{selectedAsset.status}</em></div>
-            <div className="room-focus-selected-grid"><Detail label="Type" value={selectedAsset.kind} /><Detail label="Model" value={selectedAsset.detail} /><Detail label="Department" value={room.department} />{selectedAsset.ip && <Detail label="IP address" value={selectedAsset.ip} />}</div>
+            <div className="room-focus-selected-grid"><Detail label="Type" value={selectedAsset.kind} /><Detail label="Model" value={selectedAsset.detail} /><Detail label="Department" value={selectedAsset.owner} />{selectedAsset.ip && <Detail label="IP address" value={selectedAsset.ip} />}</div>
           </article>}
         </section>
       </div>}
     </section>
-  </div>
+  </div>, document.body)
 }
 
 function RoomView({ room, floor, onBack, onAsset, onAssignEquipment }: { room:Room;floor:number;onBack:()=>void;onAsset:(id:string)=>void;onAssignEquipment:()=>void }) {
   const counts = room.assets.reduce<Record<string, number>>((result, asset) => ({ ...result, [asset.kind]: (result[asset.kind] ?? 0) + 1 }), {})
+  const representedKinds = equipmentKinds.filter(kind => counts[kind])
   return <section className="workspace room-workspace">
     <div className="page-heading room-heading"><div><button className="back" onClick={onBack}>← Floor {floor} map</button><span className="eyebrow">ROOM {room.code} / FLOOR {floor}</span><h1>{room.name}</h1><p>{room.assets.length} assets assigned · {room.department}</p></div><button className="primary-action" onClick={onAssignEquipment}>＋ Assign item</button></div>
-    <div className="room-category-strip"><div><span>Total assets</span><b>{room.assets.length}</b></div>{(['Computer', 'Printer', 'Monitor'] as const).map(kind => <div key={kind}><span>{kind}s</span><b>{counts[kind] ?? 0}</b></div>)}<div><span>Room code</span><b>{room.code}</b></div></div>
-    <div className="room-stage"><div className="room-plan"><div className="room-grid"/><div className="plan-title">{room.name}<small>Interactive asset placement · hover or click a marker</small></div><div className="desk desk-one"/><div className="desk desk-two"/><div className="desk desk-three"/>{room.assets.map((item,index) => <button key={item.id} className={`asset-pin pin-${index} ${statusClass(item.status)}`} onClick={() => onAsset(item.id)}><span>{item.kind === 'Printer' ? '▤' : item.kind === 'Monitor' ? '▱' : '▣'}</span><b>{item.id}</b><small>{item.detail}</small></button>)}</div><div className="room-side"><h3>Assets in this room</h3><p className="muted">Select an item to view its details, network data, and assignment history.</p>{room.assets.map(asset => <button className="asset-list-item" key={asset.id} onClick={() => onAsset(asset.id)}><span className={`asset-kind ${statusClass(asset.status)}`}>{asset.kind === 'Printer' ? '▤' : asset.kind === 'Monitor' ? '▱' : '▣'}</span><span><b>{asset.id}</b><small>{asset.detail}</small></span><i>→</i></button>)}<button className="outline-full" onClick={onAssignEquipment}>＋ Assign item to this room</button></div></div>
+    <div className="room-category-strip"><div><span>Total assets</span><b>{room.assets.length}</b></div>{representedKinds.map(kind => <div key={kind}><span>{equipmentLabels[kind]}</span><b>{counts[kind] ?? 0}</b></div>)}<div><span>Room code</span><b>{room.code}</b></div></div>
+    <div className="room-stage"><div className="room-plan"><div className="room-grid"/><div className="plan-title">{room.name}<small>Interactive asset placement · hover or click a marker</small></div><div className="desk desk-one"/><div className="desk desk-two"/><div className="desk desk-three"/>{room.assets.length ? room.assets.map((item,index) => <button key={item.id} className={`asset-pin pin-${index} ${statusClass(item.status)}`} onClick={() => onAsset(item.id)}><span><EquipmentIcon kind={item.kind} /></span><b>{item.id}</b><small>{item.detail}</small></button>) : <EquipmentEmptyState className="room-plan-empty" size="compact" title="No equipment in this room" description="Assign a device to place it on the room plan." />}</div><div className="room-side"><h3>Assets in this room</h3><p className="muted">Select an item to view its details, network data, and assignment history.</p>{room.assets.length ? room.assets.map(asset => <button className="asset-list-item" key={asset.id} onClick={() => onAsset(asset.id)}><span className={`asset-kind ${statusClass(asset.status)}`}><EquipmentIcon kind={asset.kind} /></span><span><b>{asset.id}</b><small>{asset.detail}</small></span><i>→</i></button>) : <EquipmentEmptyState className="room-side-empty" size="compact" title="No assigned devices" description="Use the button below to add equipment." />}<button className="outline-full" onClick={onAssignEquipment}>＋ Assign item to this room</button></div></div>
   </section>
 }
 
-function AssetView({ room, floor, asset, onBack }: {room:Room;floor:number;asset:Asset;onBack:()=>void}) { return <section className="workspace"><div className="page-heading asset-heading"><div><button className="back" onClick={onBack}>← {room.name}</button><span className="eyebrow">ASSET DETAILS</span><h1>{asset.id} <em className={statusClass(asset.status)}>{asset.status}</em></h1><p>{asset.detail} · {asset.kind}</p></div><button className="primary-action">Edit asset</button></div><div className="asset-detail-grid"><div className="asset-hero"><div className={`asset-illustration ${asset.kind.toLowerCase()}`}>{asset.kind === 'Printer' ? '▤' : asset.kind === 'Monitor' ? '▱' : '▣'}</div><h2>{asset.id}</h2><p>{asset.detail}</p><div className="qr-card"><div className="fake-qr">▦</div><span><b>QR asset label</b><small>Scan to view or reassign</small></span><button>⌄</button></div></div><div className="detail-card"><div className="tabs"><b>Details</b><span>Specifications</span><span>History</span></div><div className="details"><Detail label="Category" value={asset.kind} /><Detail label="Status" value={asset.status} dot={asset.status}/><Detail label="Assigned to" value={`Floor ${floor} / ${room.name}`} /><Detail label="Asset tag" value={asset.id} /><Detail label="Brand" value="Dell" /><Detail label="Model" value={asset.detail.replace('Dell ', '')} />{asset.ip && <><Detail label="IPv4 address" value={asset.ip} /><Detail label="Hostname" value="HOSP-MEDREC-034" /><Detail label="Address method" value="DHCP reservation" /></>}</div></div></div></section> }
+function AssetView({ room, floor, asset, onBack }: {room:Room;floor:number;asset:Asset;onBack:()=>void}) { return <section className="workspace"><div className="page-heading asset-heading"><div><button className="back" onClick={onBack}>← {room.name}</button><span className="eyebrow">ASSET DETAILS</span><h1>{asset.id} <em className={statusClass(asset.status)}>{asset.status}</em></h1><p>{asset.detail} · {asset.kind}</p></div><button className="primary-action">Edit asset</button></div><div className="asset-detail-grid"><div className="asset-hero"><div className={`asset-illustration ${equipmentKindClass(asset.kind)}`}><EquipmentIcon kind={asset.kind} /></div><h2>{asset.id}</h2><p>{asset.detail}</p><div className="qr-card"><div className="fake-qr">▦</div><span><b>QR asset label</b><small>Scan to view or reassign</small></span><button>⌄</button></div></div><div className="detail-card"><div className="tabs"><b>Details</b><span>Specifications</span><span>History</span></div><div className="details"><Detail label="Category" value={asset.kind} /><Detail label="Status" value={asset.status} dot={asset.status}/><Detail label="Assigned to" value={`Floor ${floor} / ${room.name}`} /><Detail label="Asset tag" value={asset.id} /><Detail label="Brand" value="Dell" /><Detail label="Model" value={asset.detail.replace('Dell ', '')} />{asset.ip && <><Detail label="IPv4 address" value={asset.ip} /><Detail label="Hostname" value="HOSP-MEDREC-034" /><Detail label="Address method" value="DHCP reservation" /></>}</div></div></div></section> }
 function Detail({label,value,dot}:{label:string;value:string;dot?:Status}) { return <div className="detail"><span>{label}</span><b>{dot && <i className={`dot ${statusClass(dot)}`}/>} {value}</b></div> }

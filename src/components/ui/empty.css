@@ -1,0 +1,117 @@
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  text-align: center;
+}
+
+.empty-state-header {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.empty-state-media {
+  display: grid;
+  place-items: center;
+}
+
+.empty-state-media-icon {
+  width: 58px;
+  height: 58px;
+  border: 1px solid #dce8df;
+  border-radius: 16px;
+  background: #edf6ef;
+  box-shadow: 0 8px 22px #1b6c2412;
+}
+
+.empty-state-media-icon img {
+  width: 27px;
+  height: 27px;
+  display: block;
+  object-fit: contain;
+}
+
+.empty-state-title {
+  margin: 6px 0 0;
+  color: #1c2921;
+  font-family: var(--font-title, Montserrat, Arial, sans-serif);
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.empty-state-description {
+  max-width: 340px;
+  margin: 0;
+  color: #7d8881;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.empty-state-compact {
+  min-height: 150px;
+  padding: 22px 18px;
+}
+
+.empty-state-compact .empty-state-media-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+}
+
+.empty-state-compact .empty-state-media-icon img { width: 23px; height: 23px; }
+.empty-state-compact .empty-state-title { font-size: 14px; }
+.empty-state-compact .empty-state-description { font-size: 8.5px; }
+
+.empty-state-inline {
+  min-height: 0;
+  justify-content: flex-start;
+  padding: 0;
+  text-align: left;
+}
+
+.empty-state-inline .empty-state-header {
+  max-width: none;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 2px;
+}
+
+.empty-state-inline .empty-state-media {
+  grid-row: 1 / 3;
+}
+
+.empty-state-inline .empty-state-media-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.empty-state-inline .empty-state-media-icon img { width: 17px; height: 17px; }
+.empty-state-inline .empty-state-title { margin: 0; font-size: 10px; }
+.empty-state-inline .empty-state-description { font-size: 8px; line-height: 1.35; }
+
+.dashboard-empty,
+.maintenance-empty,
+.network-empty { width: 100%; }
+
+.dashboard-empty { min-height: 150px; }
+.maintenance-empty { min-height: 170px; }
+.network-empty { min-height: 220px; }
+.recent-devices-empty { margin-top: 8px; }
+
+.room-plan-empty {
+  position: absolute;
+  inset: 70px 24px 24px;
+  z-index: 3;
+}
+
+.room-side-empty { min-height: 180px; padding-inline: 4px; }

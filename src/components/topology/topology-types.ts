@@ -6,6 +6,7 @@ export type HospitalFloorModel = {
   activeAssets?: number
   maintenanceAssets?: number
   brokenAssets?: number
+  inactiveAssets?: number
 }
 
 export type FloorScreenAnchor = {
@@ -18,4 +19,3 @@ export type FloorScreenAnchor = {
 }
 
 export type FloorAnchorSnapshot = Record<number, FloorScreenAnchor>
-

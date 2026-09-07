@@ -506,3 +506,47 @@
 .sidebar-collapsed .sidebar-profile-menu {
   bottom: 0;
 }
+
+/* Keep the desktop application chrome visible while only the page content scrolls. */
+@media (min-width: 769px) {
+  .app-shell {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    align-items: stretch;
+    overflow: hidden;
+  }
+
+  .app-shell > main {
+    min-width: 0;
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+
+  .liveinv-sidebar,
+  .insights-panel {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+
+  .liveinv-sidebar {
+    min-height: 0;
+  }
+
+  .topbar {
+    position: sticky;
+    z-index: 30;
+    top: 0;
+  }
+
+  .insights-panel {
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+}
