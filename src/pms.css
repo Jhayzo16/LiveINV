@@ -1,0 +1,73 @@
+.pms-module { --pms-border: #dce7df; color: #213b29; }
+.pms-heading, .pms-session-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+.pms-heading h1 { margin: 6px 0; font-family: var(--font-title); font-size: 32px; }
+.pms-heading p { margin: 0 0 8px; color: #1b6c24; font-size: 15px; font-weight: 700; }
+.pms-heading small { color: #718078; font-size: 12px; }
+.pms-module button:disabled { opacity: .5; cursor: not-allowed; }
+.pms-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 24px; }
+.pms-metrics article { position: relative; display: grid; gap: 6px; padding: 20px; border: 1px solid var(--pms-border); border-radius: 14px; background: #fff; }
+.pms-metrics article:first-child { background: #eef8f0; }
+.pms-metrics article > svg { position: absolute; right: 18px; top: 18px; color: #1b6c24; }
+.pms-metrics span, .pms-metrics small { font-size: 12px; color: #64786b; }
+.pms-metrics b { font-size: 28px; }
+.pms-layout { display: grid; grid-template-columns: minmax(210px, .7fr) minmax(0, 2fr); gap: 20px; align-items: start; }
+.pms-sessions, .pms-session-detail, .pms-new-session { min-width: 0; background: #fff; border: 1px solid var(--pms-border); border-radius: 16px; padding: 20px; }
+.pms-module h2 { margin: 0 0 12px; font-size: 19px; font-family: var(--font-title); }
+.pms-module h3 { margin: 0 0 8px; font-size: 14px; }
+.pms-module label { display: grid; gap: 7px; font-size: 11px; font-weight: 700; color: #52665a; }
+.pms-module label small { font-weight: 400; }
+.pms-module input, .pms-module select { width: 100%; min-width: 0; height: 42px; border: 1px solid #cbd9d0; border-radius: 8px; padding: 10px; background: #fff; color: #263c2d; font: inherit; font-size: 12px; }
+.pms-module input:focus, .pms-module select:focus { outline: 2px solid #89bc98; outline-offset: 1px; }
+.pms-session-list { display: grid; gap: 9px; max-height: 620px; overflow-y: auto; margin-top: 14px; padding: 2px; }
+.pms-session-list button { display: grid; justify-items: start; gap: 7px; border: 1px solid var(--pms-border); border-radius: 10px; padding: 13px; background: #fff; color: inherit; text-align: left; cursor: pointer; }
+.pms-session-list button.selected { border-color: #4b9d61; background: #f0f8f2; box-shadow: inset 3px 0 #1b6c24; }
+.pms-session-list button b { font-size: 14px; }
+.pms-session-list button > span:not(.pms-badge), .pms-session-list small { font-size: 11px; }
+.pms-badge { display: inline-flex; align-items: center; width: max-content; max-width: 100%; border-radius: 15px; padding: 5px 9px; background: #fff2d8; color: #855700; font-size: 10px; font-weight: 750; }
+.pms-badge.completed { background: #eaf6ee; color: #1b6c24; }
+.pms-new-session { margin-bottom: 22px; border-top: 3px solid #1b6c24; }
+.pms-new-session p, .pms-session-heading p { color: #687c70; font-size: 12px; line-height: 1.6; }
+.pms-module fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.pms-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; }
+.pms-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.pms-actions .export-btn { margin-left: 0; }
+.pms-session-heading { padding-bottom: 20px; border-bottom: 1px solid var(--pms-border); }
+.pms-session-heading h2 { margin-top: 10px; }
+.pms-session-heading small { display: block; color: #6d8073; line-height: 1.6; overflow-wrap: anywhere; }
+.pms-count { display: grid; gap: 4px; min-width: 105px; text-align: right; }
+.pms-count b { font-size: 34px; color: #1b6c24; }
+.pms-count span { color: #6a7c70; font-size: 11px; }
+.pms-scan { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 18px; background: #f3f8f4; border: 1px solid #d4e5d9; border-radius: 13px; }
+.pms-scan p { margin: 0; font-size: 12px; line-height: 1.65; color: #657b6c; }
+.pms-scan form { grid-column: 1 / -1; display: flex; gap: 10px; align-items: end; }
+.pms-scan label { flex: 1; min-width: 0; }
+.pms-scan .export-btn { margin-left: 0; min-height: 42px; }
+.pms-camera { grid-column: 1 / -1; width: 100%; max-height: 280px; border-radius: 12px; background: #193121; object-fit: cover; }
+.pms-error, .pms-success, .pms-closed-note { border-radius: 9px; padding: 12px 15px; font-size: 12px; line-height: 1.6; }
+.pms-error { background: #fff0f1; color: #942c36; }
+.pms-success, .pms-closed-note { background: #eef8f0; color: #246b37; }
+.pms-record-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin: 25px 0 15px; }
+.pms-record-toolbar h3 { margin: 0; }
+.pms-record-toolbar label { max-width: 260px; }
+.pms-table-wrap { overflow-x: auto; }
+.pms-table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; }
+.pms-table th { padding: 12px 8px; background: #f6f8f6; color: #718277; font-weight: 600; }
+.pms-table td { padding: 14px 8px; vertical-align: top; border-bottom: 1px solid #e8eee9; }
+.pms-table b, .pms-table td > span:not(.pms-badge), .pms-table small { display: block; }
+.pms-table small { margin-top: 6px; color: #718277; line-height: 1.4; }
+.pms-table td > span:not(.pms-badge) { margin-top: 5px; }
+.pms-state { padding: 28px 16px; text-align: center; color: #6b7d71; font-size: 12px; }
+.pms-state > svg { margin-bottom: 12px; width: 34px; height: 34px; }
+.pms-session-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 20px; }
+.pms-session-footer p { max-width: 320px; font-size: 11px; line-height: 1.6; color: #6c7d72; }
+.pms-module button:focus-visible { outline: 2px solid #1b6c24; outline-offset: 3px; }
+@media (max-width: 1100px) { .pms-layout { grid-template-columns: 1fr; } .pms-session-list { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); max-height: 230px; } }
+@media (max-width: 760px) {
+  .pms-heading, .pms-record-toolbar, .pms-session-footer { flex-direction: column; align-items: stretch; }
+  .pms-metrics { gap: 8px; } .pms-metrics article { padding: 12px; } .pms-metrics b { font-size: 23px; } .pms-metrics article > svg { display: none; }
+  .pms-form-grid, .pms-scan { grid-template-columns: 1fr; }
+  .pms-scan form { flex-direction: column; align-items: stretch; }
+  .pms-scan .export-btn { width: 100%; } .pms-record-toolbar label { max-width: none; }
+  .pms-session-detail, .pms-sessions, .pms-new-session { padding: 15px; }
+  .pms-table { min-width: 540px; }
+}

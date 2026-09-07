@@ -27,8 +27,9 @@ import needsAttentionMetricIcon from '../assets/metrics/needs-attention.png'
 import roomsVerifiedMetricIcon from '../assets/metrics/rooms-verified.png'
 import '../device-workflow.css'
 import { ConsumablesPage } from './ConsumablesPage'
+import { PmsPage } from './PmsPage'
 
-export type SystemModule = 'dashboard' | 'assets' | 'consumables' | 'assignments' | 'qr' | 'network' | 'maintenance' | 'reports' | 'users' | 'manual'
+export type SystemModule = 'dashboard' | 'assets' | 'consumables' | 'pms' | 'assignments' | 'qr' | 'network' | 'maintenance' | 'reports' | 'users' | 'manual'
 export type AssignmentTarget = { floor: string; roomId: string; room: string; department: string }
 
 const createQrId = () => `LIV-${crypto.randomUUID().replaceAll('-', '').slice(0, 8).toUpperCase()}`
@@ -54,7 +55,7 @@ const activity = [
 ]
 
 const moduleNames: Record<SystemModule, string> = {
-  dashboard: 'Dashboard', assets: 'Asset registry', consumables: 'Consumables', assignments: 'Assignments', qr: 'QR scanner',
+  pms: 'Preventive Maintenance Service', dashboard: 'Dashboard', assets: 'Asset registry', consumables: 'Consumables', assignments: 'Assignments', qr: 'QR scanner',
   network: 'Network registry', maintenance: 'Maintenance', reports: 'Reports', users: 'Users & roles', manual: 'System manual',
 }
 
@@ -90,6 +91,7 @@ export function SystemModulePage({ module, assignmentTarget }: { module: SystemM
     dashboard: <DashboardPage inventoryAssets={inventoryAssets} />,
     assets: <AssetsPage inventoryAssets={inventoryAssets} onRegister={registerAsset} onUpdate={updateAsset} />,
     consumables: <ConsumablesPage />,
+    pms: <PmsPage inventoryAssets={inventoryAssets} />,
     assignments: <AssignmentsPage inventoryAssets={inventoryAssets} onAssign={asset => updateAsset(asset.tag, asset)} initialTarget={assignmentTarget} />,
     qr: <QrPage inventoryAssets={inventoryAssets} onUpdate={updateAsset} />,
     network: <NetworkPage inventoryAssets={inventoryAssets} />,

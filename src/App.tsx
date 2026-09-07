@@ -17,6 +17,7 @@ import reportsIcon from './assets/sidebar/reports.png'
 import { EquipmentEmptyState, EquipmentIcon } from './components/ui/equipment-empty-state'
 import { HospitalBuilding3D } from './components/ui/hospital-building-3d'
 import { Toaster } from './components/ui/toast'
+import { PmsIcon } from './pages/PmsPage'
 import { FullDeviceRecordDialog, SystemModulePage, type AssignmentTarget, type SystemModule } from './pages/SystemPages'
 
 type Status = AssetState
@@ -163,7 +164,7 @@ export function App({ adminEmail, onSignOut }: { adminEmail?: string; onSignOut:
       {inventoryError && <div className="unresolved-locations" role="alert">Shared inventory could not be refreshed. {inventoryAssets.length ? 'The last loaded records are shown.' : 'Asset counts are unavailable.'} <button type="button" onClick={() => void refetchInventoryAssets()}>Retry inventory</button></div>}
       {inventoryLoading && <p role="status">Loading shared inventory…</p>}
       {unsyncedAssetTags.length > 0 && <div className="unresolved-locations" role="alert">Earlier browser-only edits were not saved to the shared inventory: {unsyncedAssetTags.join(', ')}. Shared records are shown here; review and save these records again to apply your edits.</div>}
-      <header className="topbar"><div className="crumbs">{module === 'topology' ? <><button onClick={resetToFloors}>Live Mapping</button>{selectedFloor && <><span>/</span><button onClick={() => { setRoomId(null); setAssetId(null) }}>Floor {floor}</button></>}{room && <><span>/</span><button onClick={() => setAssetId(null)}>{room.name}</button></>}{asset && <><span>/</span><b>{asset.id}</b></>}</> : <><span>Hospital Inventory</span><span>/</span><b>{module === 'qr' ? 'QR Scanner' : module === 'network' ? 'Network Registry' : module === 'manual' ? 'System Manual' : module.charAt(0).toUpperCase() + module.slice(1)}</b></>}</div><div className="top-actions"><button className="ghost-btn">⌕ Search</button><button className="bell">◌</button><span className="avatar">AD</span></div></header>
+      <header className="topbar"><div className="crumbs">{module === 'topology' ? <><button onClick={resetToFloors}>Live Mapping</button>{selectedFloor && <><span>/</span><button onClick={() => { setRoomId(null); setAssetId(null) }}>Floor {floor}</button></>}{room && <><span>/</span><button onClick={() => setAssetId(null)}>{room.name}</button></>}{asset && <><span>/</span><b>{asset.id}</b></>}</> : <><span>Hospital Inventory</span><span>/</span><b>{module === 'pms' ? 'PMS' : module === 'qr' ? 'QR Scanner' : module === 'network' ? 'Network Registry' : module === 'manual' ? 'System Manual' : module.charAt(0).toUpperCase() + module.slice(1)}</b></>}</div><div className="top-actions"><button className="ghost-btn">⌕ Search</button><button className="bell">◌</button><span className="avatar">AD</span></div></header>
       {module !== 'topology' && <SystemModulePage module={module} assignmentTarget={assignmentTarget} />}
       {module === 'topology' && !floor && <FloorTopology floors={liveFloors} onSelect={setFloor} />}
       {module === 'topology' && floor && !room && <FloorView floor={selectedFloor!} onBack={resetToFloors} rooms={dynamicRoomsByFloor[floor] ?? []} inventoryAssets={inventoryAssets} availableAssets={availableAssets} onAssignAvailableAsset={assignAvailableAssetToRoom} onUnassignAsset={unassignRoomAsset} />}
@@ -184,7 +185,7 @@ function LiveInvSidebar({ module, expanded, onToggle, onNavigate, totalAssets = 
   adminEmail?: string
   onSignOut: () => Promise<void>
 }) {
-  const activeNavIndex = ['dashboard', 'topology', 'assets', 'consumables', 'assignments', 'qr', 'reports', 'manual'].indexOf(module)
+  const activeNavIndex = ['dashboard', 'topology', 'assets', 'consumables', 'assignments', 'pms', 'qr', 'reports', 'manual'].indexOf(module)
 
   const navigate = (next: SystemModule | 'topology') => {
     onNavigate(next)
@@ -206,6 +207,7 @@ function LiveInvSidebar({ module, expanded, onToggle, onNavigate, totalAssets = 
         <button className={`nav-item ${module === 'assets' ? 'active' : ''}`} onClick={() => navigate('assets')}><Icon src={assetsIcon} /><span className="sidebar-item-label">Assets</span>{totalAssets > 0 && <span className="nav-count">{totalAssets}</span>}</button>
         <button className={`nav-item ${module === 'consumables' ? 'active' : ''}`} onClick={() => navigate('consumables')}><Icon name="▧" /><span className="sidebar-item-label">Consumables</span></button>
         <button className={`nav-item ${module === 'assignments' ? 'active' : ''}`} onClick={() => navigate('assignments')}><Icon src={assignmentsIcon} /><span className="sidebar-item-label">Assignments</span></button>
+        <button className={`nav-item ${module === 'pms' ? 'active' : ''}`} title="Preventive Maintenance Service" onClick={() => navigate('pms')}><span className="icon"><PmsIcon /></span><span className="sidebar-item-label">PMS</span></button>
         <button className={`nav-item ${module === 'qr' ? 'active' : ''}`} onClick={() => navigate('qr')}><Icon src={qrScannerIcon} /><span className="sidebar-item-label">QR Scanner</span></button>
         <button className={`nav-item ${module === 'reports' ? 'active' : ''}`} onClick={() => navigate('reports')}><Icon src={reportsIcon} /><span className="sidebar-item-label">Reports</span></button>
         <button className={`nav-item ${module === 'manual' ? 'active' : ''}`} onClick={() => navigate('manual')}><Icon name="?" /><span className="sidebar-item-label">Manual</span></button>

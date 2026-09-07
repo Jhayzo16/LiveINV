@@ -1,4 +1,5 @@
 import type { AssetState, ConsumableCategory, DeviceCategory } from './types'
+import type { PmsSession, PmsRecord, PmsService } from './pms'
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
@@ -93,6 +94,18 @@ type ConsumableReceiptInsert = {
 export interface Database {
   public: {
     Tables: {
+      pms_sessions: {
+        Row: PmsSession
+        Insert: never
+        Update: never
+        Relationships: []
+      }
+      pms_records: {
+        Row: PmsRecord
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       admin_users: {
         Row: { user_id: string; created_at: string }
         Insert: { user_id: string; created_at?: string }
@@ -127,6 +140,10 @@ export interface Database {
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      create_pms_session: { Args: { p_id: string; p_date: string; p_service: PmsService; p_technician: string; p_notes: string }; Returns: PmsSession }
+      record_pms_asset: { Args: { p_session_id: string; p_code: string; p_method: 'qr' | 'manual' }; Returns: { record: PmsRecord; already_recorded: boolean } }
+      complete_pms_session: { Args: { p_session_id: string }; Returns: PmsSession }
+    }
   }
 }
