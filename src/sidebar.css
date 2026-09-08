@@ -239,8 +239,8 @@
 }
 
 .liveinv-sidebar .nav-item:hover {
-  background: #f4f6f5;
-  color: #2d3832;
+  background: var(--control-hover-background, #f4f6f5);
+  color: var(--control-hover-color, #2d3832);
 }
 
 .liveinv-sidebar .nav-item.active {

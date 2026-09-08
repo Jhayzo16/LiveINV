@@ -1,15 +1,25 @@
-/* A visible baseline for every enabled control, including portal dialogs. */
+/* Share the sidebar's soft gray hover treatment with every control. */
+:root {
+  --control-hover-background: #f4f6f5;
+  --control-hover-color: #2d3832;
+}
 button:not(:disabled):not([aria-disabled="true"]),
 [role="button"]:not([aria-disabled="true"]) { cursor: pointer; }
+:where(button, [role="button"]) { transition: background .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease; }
 @media (hover: hover) {
-  button:not(:disabled):not([aria-disabled="true"]):hover {
-    filter: brightness(.94);
-    outline: 2px solid #56876280;
-    outline-offset: 2px;
+  :is(button, [role="button"]):not(:disabled):not([aria-disabled="true"]):hover {
+    background: var(--control-hover-background) !important;
+    color: var(--control-hover-color) !important;
+    border-color: #dfe4e1 !important;
+    box-shadow: none !important;
+    filter: none !important;
+  }
+  :is(button, [role="button"]):not(:disabled):not([aria-disabled="true"]):hover:not(:focus-visible) {
+    outline: none !important;
   }
 }
 button:focus-visible, [role="button"]:focus-visible, a:focus-visible {
-  outline: 3px solid #247a3b !important;
+  outline: 3px solid #454c50 !important;
   outline-offset: 3px;
 }
 button:not(:disabled):not([aria-disabled="true"]):active { filter: brightness(.86); }
