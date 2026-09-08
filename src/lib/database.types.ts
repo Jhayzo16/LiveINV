@@ -1,4 +1,4 @@
-import type { AssetState, ConsumableCategory, DeviceCategory } from './types'
+import type { AssetState, ConsumableCategory, ConsumableMovement, DeviceCategory } from './types'
 import type { PmsSession, PmsRecord, PmsService } from './pms'
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
@@ -16,6 +16,11 @@ type AssetRow = {
   brand: string | null
   model: string | null
   processor: string | null
+  ram_receipt_id: string | null
+  ssd_receipt_id: string | null
+  stock_version: number
+  return_ram_to_stock: boolean
+  return_ssd_to_stock: boolean
   ram_capacity_gb: number | null
   ram_modules: number | null
   ssd_capacity_gb: number | null
@@ -44,6 +49,11 @@ type AssetInsert = {
   brand?: string | null
   model?: string | null
   processor?: string | null
+  ram_receipt_id?: string | null
+  ssd_receipt_id?: string | null
+  stock_version?: number
+  return_ram_to_stock?: boolean
+  return_ssd_to_stock?: boolean
   ram_capacity_gb?: number | null
   ram_modules?: number | null
   ssd_capacity_gb?: number | null
@@ -66,6 +76,8 @@ type ConsumableReceiptRow = {
   brand: string | null
   specification: string
   quantity: number
+  used_quantity?: number
+  capacity_gb?: number | null
   unit: string
   supplier: string | null
   reference_number: string | null
@@ -82,6 +94,7 @@ type ConsumableReceiptInsert = {
   brand?: string | null
   specification: string
   quantity: number
+  capacity_gb?: number | null
   unit: string
   supplier?: string | null
   reference_number?: string | null
@@ -94,6 +107,7 @@ type ConsumableReceiptInsert = {
 export interface Database {
   public: {
     Tables: {
+      consumable_movements: { Row: ConsumableMovement; Insert: never; Update: never; Relationships: [] }
       pms_sessions: {
         Row: PmsSession
         Insert: never

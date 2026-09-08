@@ -1,4 +1,4 @@
-import { type ConsumableReceipt, type InventoryAsset } from './types'
+import { type ConsumableMovement, type ConsumableReceipt, type InventoryAsset } from './types'
 import type { Database } from './database.types'
 import { supabase } from './supabase'
 import { formatAssetLocation } from './assignments'
@@ -39,6 +39,7 @@ type ConsumableReceiptRow = Database['public']['Tables']['consumable_receipts'][
 type ConsumableReceiptInsert = Database['public']['Tables']['consumable_receipts']['Insert']
 
 const mapFromDB = (row: AssetRow): InventoryAsset => ({
+  ...(row.stock_version != null ? { ramReceiptId: row.ram_receipt_id, ssdReceiptId: row.ssd_receipt_id, stockVersion: row.stock_version } : {}),
   tag: row.tag,
   qrId: row.qr_id,
   name: row.name,
@@ -68,6 +69,11 @@ const mapFromDB = (row: AssetRow): InventoryAsset => ({
 })
 
 const mapToDB = (asset: InventoryAsset): AssetInsert => ({
+  ...(asset.ramReceiptId !== undefined ? { ram_receipt_id: asset.ramReceiptId } : {}),
+  ...(asset.ssdReceiptId !== undefined ? { ssd_receipt_id: asset.ssdReceiptId } : {}),
+  ...(asset.stockVersion !== undefined ? { stock_version: asset.stockVersion } : {}),
+  ...(asset.returnRamToStock !== undefined ? { return_ram_to_stock: asset.returnRamToStock } : {}),
+  ...(asset.returnSsdToStock !== undefined ? { return_ssd_to_stock: asset.returnSsdToStock } : {}),
   tag: asset.tag,
   qr_id: asset.qrId,
   name: asset.name,
@@ -175,6 +181,8 @@ const mapConsumableFromDB = (row: ConsumableReceiptRow): ConsumableReceipt => ({
   itemName: row.item_name,
   specification: row.specification,
   quantity: row.quantity,
+  ...(row.used_quantity !== undefined ? { usedQuantity: row.used_quantity } : {}),
+  ...(row.capacity_gb ? { capacityGb: row.capacity_gb } : {}),
   unit: row.unit,
   dateReceived: row.date_received,
   createdAt: row.created_at,
@@ -186,6 +194,7 @@ const mapConsumableFromDB = (row: ConsumableReceiptRow): ConsumableReceipt => ({
 })
 
 const mapConsumableToDB = (receipt: Omit<ConsumableReceipt, 'id' | 'createdAt'>): ConsumableReceiptInsert => ({
+  ...(receipt.capacityGb ? { capacity_gb: receipt.capacityGb } : {}),
   category: receipt.category,
   item_name: receipt.itemName,
   brand: receipt.brand ?? null,
@@ -201,14 +210,25 @@ const mapConsumableToDB = (receipt: Omit<ConsumableReceipt, 'id' | 'createdAt'>)
 
 export class ConsumableRepository {
   static async getAll(): Promise<ConsumableReceipt[]> {
-    const { data, error } = await supabase
-      .from('consumable_receipts')
-      .select('*')
-      .order('date_received', { ascending: false })
-      .order('created_at', { ascending: false })
+    const rows: ConsumableReceipt[] = []
+    for (let start = 0; ; start += 500) {
+      const { data, error } = await supabase.from('consumable_receipts').select('*')
+        .order('date_received', { ascending: false }).order('created_at', { ascending: false }).order('id').range(start, start + 499)
+      if (error) throw new Error(error.message)
+      rows.push(...(data || []).map(mapConsumableFromDB))
+      if (!data || data.length < 500) return rows
+    }
+  }
 
-    if (error) throw new Error(error.message)
-    return (data || []).map(mapConsumableFromDB)
+  static async movements(): Promise<ConsumableMovement[]> {
+    const rows: ConsumableMovement[] = []
+    for (let start = 0; ; start += 500) {
+      const { data, error } = await supabase.from('consumable_movements').select('*')
+        .order('created_at', { ascending: false }).order('id').range(start, start + 499)
+      if (error) throw new Error('Stock usage could not be loaded. Apply the system unit consumables database migration, then retry.')
+      rows.push(...(data || []))
+      if (!data || data.length < 500) return rows
+    }
   }
 
   static async save(receipt: Omit<ConsumableReceipt, 'id' | 'createdAt'>): Promise<ConsumableReceipt> {

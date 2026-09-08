@@ -12,10 +12,14 @@ export const deviceRegistrationSchema = z.object({
   status: z.string().min(1, 'Status is required'),
   ip: z.string().optional().refine(val => !val || val === '—' || ipRegex.test(val), { message: 'Invalid IP address' }),
   processor: z.string().optional(),
-  ramCapacityGb: z.string().optional().refine(val => !val || !isNaN(Number(val)), { message: 'Must be a number' }),
-  ramModules: z.string().optional().refine(val => !val || !isNaN(Number(val)), { message: 'Must be a number' }),
-  ssdCapacityGb: z.string().optional().refine(val => !val || !isNaN(Number(val)), { message: 'Must be a number' }),
-  ssdCount: z.string().optional().refine(val => !val || !isNaN(Number(val)), { message: 'Must be a number' })
+  ramReceiptId: z.string().optional(),
+  ssdReceiptId: z.string().optional(),
+  returnRamToStock: z.enum(['', 'return', 'discard']).optional(),
+  returnSsdToStock: z.enum(['', 'return', 'discard']).optional(),
+  ramCapacityGb: z.string().optional().refine(val => !val || (Number.isInteger(Number(val)) && Number(val) >= 0), { message: 'Enter a non-negative whole number' }),
+  ramModules: z.string().optional().refine(val => !val || (Number.isInteger(Number(val)) && Number(val) >= 0), { message: 'Enter a non-negative whole number' }),
+  ssdCapacityGb: z.string().optional().refine(val => !val || (Number.isInteger(Number(val)) && Number(val) >= 0), { message: 'Enter a non-negative whole number' }),
+  ssdCount: z.string().optional().refine(val => !val || (Number.isInteger(Number(val)) && Number(val) >= 0), { message: 'Enter a non-negative whole number' })
 }).superRefine((data, ctx) => {
   if (data.category === 'System Unit') {
     if (!data.processor) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Processor is required for System Units', path: ['processor'] })
@@ -42,6 +46,7 @@ export const consumableReceiptSchema = z.object({
   itemName: z.string().trim().min(2, 'Item name is required').max(120, 'Keep the item name under 120 characters'),
   brand: z.string().trim().max(80, 'Keep the brand under 80 characters').optional(),
   specification: z.string().trim().min(2, 'Specification or description is required').max(240, 'Keep the specification under 240 characters'),
+  capacityGb: z.string().optional().refine(value => !value || (Number.isInteger(Number(value)) && Number(value) > 0), 'Enter capacity as a positive whole number in GB'),
   quantity: z.string().trim().min(1, 'Quantity is required').refine(value => Number.isInteger(Number(value)) && Number(value) > 0, 'Enter a positive whole number'),
   unit: z.string().trim().min(1, 'Unit is required').max(30, 'Keep the unit under 30 characters'),
   supplier: z.string().trim().max(120, 'Keep the supplier under 120 characters').optional(),

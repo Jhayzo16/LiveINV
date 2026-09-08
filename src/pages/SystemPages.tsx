@@ -26,6 +26,7 @@ import activeReadyMetricIcon from '../assets/metrics/active-ready.png'
 import needsAttentionMetricIcon from '../assets/metrics/needs-attention.png'
 import roomsVerifiedMetricIcon from '../assets/metrics/rooms-verified.png'
 import '../device-workflow.css'
+import { SystemUnitStockFields, stockChanges } from '../components/SystemUnitStockFields'
 import { ConsumablesPage } from './ConsumablesPage'
 import { PmsPage } from './PmsPage'
 
@@ -69,12 +70,12 @@ export function SystemModulePage({ module, assignmentTarget }: { module: SystemM
 
   const registerMutation = useMutation({
     mutationFn: (asset: InventoryAsset) => AssetRepository.save(asset),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['assets'] })
+    onSuccess: () => Promise.all([queryClient.invalidateQueries({ queryKey: ['assets'] }), queryClient.invalidateQueries({ queryKey: ['consumable-receipts'] }), queryClient.invalidateQueries({ queryKey: ['consumable-movements'] })])
   })
 
   const updateMutation = useMutation({
     mutationFn: ({ tag, asset }: { tag: string, asset: InventoryAsset }) => AssetRepository.update(tag, asset),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['assets'] })
+    onSuccess: () => Promise.all([queryClient.invalidateQueries({ queryKey: ['assets'] }), queryClient.invalidateQueries({ queryKey: ['consumable-receipts'] }), queryClient.invalidateQueries({ queryKey: ['consumable-movements'] })])
   })
 
   const registerAsset = async (asset: InventoryAsset) => {
@@ -83,6 +84,7 @@ export function SystemModulePage({ module, assignmentTarget }: { module: SystemM
 
   const updateAsset = async (originalTag: string, asset: InventoryAsset) => {
     await updateMutation.mutateAsync({ tag: originalTag, asset })
+    return queryClient.getQueryData<InventoryAsset[]>(['assets'])?.find(row => row.tag === asset.tag)
   }
 
   if (isLoading) return <section className="workspace module-workspace"><div style={{ padding: '40px', color: '#666' }}>Loading inventory...</div></section>
@@ -92,7 +94,7 @@ export function SystemModulePage({ module, assignmentTarget }: { module: SystemM
     assets: <AssetsPage inventoryAssets={inventoryAssets} onRegister={registerAsset} onUpdate={updateAsset} />,
     consumables: <ConsumablesPage />,
     pms: <PmsPage inventoryAssets={inventoryAssets} />,
-    assignments: <AssignmentsPage inventoryAssets={inventoryAssets} onAssign={asset => updateAsset(asset.tag, asset)} initialTarget={assignmentTarget} />,
+    assignments: <AssignmentsPage inventoryAssets={inventoryAssets} onAssign={async asset => { await updateAsset(asset.tag, asset) }} initialTarget={assignmentTarget} />,
     qr: <QrPage inventoryAssets={inventoryAssets} onUpdate={updateAsset} />,
     network: <NetworkPage inventoryAssets={inventoryAssets} />,
     maintenance: <MaintenancePage inventoryAssets={inventoryAssets} />,
@@ -154,7 +156,7 @@ function DashboardPage({ inventoryAssets }: { inventoryAssets: InventoryAsset[] 
   </>
 }
 
-function AssetsPage({ inventoryAssets, onRegister, onUpdate }: { inventoryAssets: InventoryAsset[]; onRegister: (asset: InventoryAsset) => void; onUpdate: (originalTag: string, asset: InventoryAsset) => void }) {
+function AssetsPage({ inventoryAssets, onRegister, onUpdate }: { inventoryAssets: InventoryAsset[]; onRegister: (asset: InventoryAsset) => Promise<void>; onUpdate: (originalTag: string, asset: InventoryAsset) => Promise<InventoryAsset | void> }) {
   const [registrationOpen, setRegistrationOpen] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState<'all' | DeviceCategory>('all')
   const [statusFilter, setStatusFilter] = useState<'recent' | 'active' | 'maintenance'>('recent')
@@ -194,9 +196,9 @@ function AssetsPage({ inventoryAssets, onRegister, onUpdate }: { inventoryAssets
     URL.revokeObjectURL(url)
   }
 
-  const saveEditedAsset = (originalTag: string, updatedAsset: InventoryAsset) => {
-    onUpdate(originalTag, updatedAsset)
-    setSelectedAsset(updatedAsset)
+  const saveEditedAsset = async (originalTag: string, updatedAsset: InventoryAsset) => {
+    const saved = await onUpdate(originalTag, updatedAsset)
+    setSelectedAsset(saved || updatedAsset)
     setEditingAsset(null)
   }
 
@@ -243,29 +245,33 @@ const assignmentLocationKey = (location: AssignmentLocation) => location.roomId
 const deviceCategories: DeviceCategory[] = ['Printer', 'Monitor', 'Keyboard', 'System Unit', 'UPS', 'Scanner', 'Router']
 const RECENT_PROCESSORS_KEY = 'liveinv-recent-processors'
 
-function DeviceRegistrationDialog({ onClose, onRegister }: { onClose: () => void; onRegister: (asset: InventoryAsset) => void }) {
+function DeviceRegistrationDialog({ onClose, onRegister }: { onClose: () => void; onRegister: (asset: InventoryAsset) => Promise<void> }) {
   const [step, setStep] = useState(1)
   const [saving, setSaving] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState('')
+  const [saveError, setSaveError] = useState('')
   const [registeredAsset, setRegisteredAsset] = useState<InventoryAsset | null>(null)
   const [recentProcessors, setRecentProcessors] = useState<string[]>(() => {
     try { return JSON.parse(window.localStorage.getItem(RECENT_PROCESSORS_KEY) || '[]') as string[] } catch { return [] }
   })
 
-  const { register, handleSubmit, watch, setValue, formState: { errors, isValid } } = useForm<DeviceRegistrationData>({
+  const form = useForm<DeviceRegistrationData>({
     resolver: zodResolver(deviceRegistrationSchema),
     defaultValues: { tag: '', category: 'System Unit', brand: '', model: '', status: 'Active', ip: '', processor: '', ramCapacityGb: '', ramModules: '', ssdCapacityGb: '', ssdCount: '' },
     mode: 'onChange'
   })
   
+  const { register, handleSubmit, watch, setValue, formState: { errors, isValid } } = form
   const watchedCategory = watch('category')
 
   const submit = async (data: DeviceRegistrationData) => {
     if (step === 1 && !saving) {
+      setSaveError('')
       const tag = data.tag.trim().toUpperCase()
       const supportsIp = data.category === 'System Unit' || data.category === 'Printer' || data.category === 'Router'
       const processor = data.processor?.trim()
       const asset: InventoryAsset = {
+        ...stockChanges(data),
         tag,
         qrId: createQrId(),
         name: `${data.brand} ${data.model}`.trim(),
@@ -288,8 +294,8 @@ function DeviceRegistrationDialog({ onClose, onRegister }: { onClose: () => void
       const registration = Promise.all([
         QRCode.toDataURL(`liveinv:qr:${asset.qrId}`, { width: 320, margin: 2, errorCorrectionLevel: 'H', color: { dark: '#1B6C24', light: '#FFFFFF' } }),
         new Promise(resolve => window.setTimeout(resolve, 800)),
-      ]).then(([generatedQr]) => {
-        onRegister(asset)
+      ]).then(async ([generatedQr]) => {
+        await onRegister(asset)
         if (data.category === 'System Unit' && processor) {
           setRecentProcessors(current => {
             const next = [processor, ...current.filter(item => item.toLowerCase() !== processor.toLowerCase())].slice(0, 8)
@@ -305,22 +311,23 @@ function DeviceRegistrationDialog({ onClose, onRegister }: { onClose: () => void
 
       try {
         await toast.promise(registration, { loading: 'Saving device and generating QR…', success: savedAsset => `${savedAsset.tag} saved. QR code generated.`, error: 'Could not save the device or generate its QR code.' })
-      } catch {
+      } catch (error) {
+        setSaveError(error instanceof Error ? error.message : 'Device could not be saved.')
       } finally {
         setSaving(false)
       }
     }
   }
 
-  return <div className="device-dialog-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
+  return <div className="device-dialog-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget && !saving) onClose() }}>
     <section className="device-dialog" role="dialog" aria-modal="true" aria-labelledby="device-registration-title">
-      <header className="device-dialog-header"><div><span>DEVICE REGISTRATION</span><h2 id="device-registration-title">Add a new device</h2><p>Record the equipment details now. Its hospital location can be assigned separately.</p></div><button type="button" aria-label="Close device registration" onClick={onClose}>×</button></header>
+      <header className="device-dialog-header"><div><span>DEVICE REGISTRATION</span><h2 id="device-registration-title">Add a new device</h2><p>Record the equipment details now. Its hospital location can be assigned separately.</p></div><button type="button" aria-label="Close device registration" onClick={onClose} disabled={saving}>×</button></header>
       <div className="device-registration-steps" aria-label={`Registration step ${step} of 2`}>
         {['Device details', 'Generate QR'].map((label, index) => <div key={label} className={`${step === index + 1 ? 'current' : ''} ${step > index + 1 ? 'complete' : ''}`}><b>{step > index + 1 ? '✓' : index + 1}</b><span>{label}</span></div>)}
       </div>
 
       {step === 1 && <form className="device-form" onSubmit={handleSubmit(submit)}>
-        <div className="device-form-grid">
+        <fieldset className="device-form-grid" disabled={saving}>
           <label>Asset tag<input {...register('tag')} placeholder="e.g. PC-MRR-015" />{errors.tag && <span className="field-error">{errors.tag.message}</span>}</label>
           <label>Device category<select {...register('category')}>{deviceCategories.map(category => <option key={category}>{category}</option>)}</select></label>
           <label>Brand name<input {...register('brand')} placeholder="e.g. Dell, HP, APC" />{errors.brand && <span className="field-error">{errors.brand.message}</span>}</label>
@@ -330,13 +337,15 @@ function DeviceRegistrationDialog({ onClose, onRegister }: { onClose: () => void
             <div className="device-spec-heading wide"><span>SYSTEM UNIT SPECIFICATIONS</span><p>Record the installed memory and storage configuration.</p></div>
             <label className="wide">Processor <small>Type the complete processor model</small><input list="recent-processor-suggestions" {...register('processor')} placeholder="e.g. Intel Core i5-12400 or AMD Ryzen 5 5600G" /><datalist id="recent-processor-suggestions">{recentProcessors.map(processor => <option key={processor} value={processor} />)}</datalist>{errors.processor && <span className="field-error">{errors.processor.message}</span>}</label>
             <div className="processor-recent-suggestions wide"><span>RECENT PROCESSOR SUGGESTIONS</span>{recentProcessors.length ? <div>{recentProcessors.map(processor => <button type="button" key={processor} onClick={() => setValue('processor', processor, { shouldValidate: true })}>{processor}</button>)}</div> : <p>Recently entered processor specifications will appear here.</p>}</div>
-            <label>RAM capacity per module <small>Gigabytes</small><input type="number" min="1" {...register('ramCapacityGb')} placeholder="8" />{errors.ramCapacityGb && <span className="field-error">{errors.ramCapacityGb.message}</span>}</label>
-            <label>RAM modules installed <small>Number of RAM sticks</small><input type="number" min="1" {...register('ramModules')} placeholder="2" />{errors.ramModules && <span className="field-error">{errors.ramModules.message}</span>}</label>
-            <label>SSD capacity per drive <small>Gigabytes</small><input type="number" min="1" {...register('ssdCapacityGb')} placeholder="512" />{errors.ssdCapacityGb && <span className="field-error">{errors.ssdCapacityGb.message}</span>}</label>
-            <label>SSDs installed <small>Number of SSD drives</small><input type="number" min="1" {...register('ssdCount')} placeholder="1" />{errors.ssdCount && <span className="field-error">{errors.ssdCount.message}</span>}</label>
+            <label>RAM capacity per module <small>Gigabytes</small><input type="number" min="0" step="1" {...register('ramCapacityGb')} placeholder="8" />{errors.ramCapacityGb && <span className="field-error">{errors.ramCapacityGb.message}</span>}</label>
+            <label>RAM modules installed <small>Number of RAM sticks</small><input type="number" min="0" step="1" {...register('ramModules')} placeholder="2" />{errors.ramModules && <span className="field-error">{errors.ramModules.message}</span>}</label>
+            <label>SSD capacity per drive <small>Gigabytes</small><input type="number" min="0" step="1" {...register('ssdCapacityGb')} placeholder="512" />{errors.ssdCapacityGb && <span className="field-error">{errors.ssdCapacityGb.message}</span>}</label>
+            <label>SSDs installed <small>Number of SSD drives</small><input type="number" min="0" step="1" {...register('ssdCount')} placeholder="1" />{errors.ssdCount && <span className="field-error">{errors.ssdCount.message}</span>}</label>
           </>}
           {(watchedCategory === 'System Unit' || watchedCategory === 'Printer' || watchedCategory === 'Router') && <label className="wide">IP address <small>Optional; can be assigned or updated later</small><input {...register('ip')} placeholder="10.20.x.x" />{errors.ip && <span className="field-error">{errors.ip.message}</span>}</label>}
-        </div>
+          <SystemUnitStockFields form={form} disabled={saving} />
+        </fieldset>
+        {saveError && <p className="consumable-save-error" role="alert">{saveError}</p>}
 
         <div className="registration-assignment-note"><AssignmentBadge assigned={false} /><p>The new device will enter the inventory as unassigned. Use the Assignments page when its floor, department, and room are known.</p></div>
         <footer className="device-form-actions"><button type="button" className="export-btn" onClick={onClose} disabled={saving}>Cancel</button><button type="submit" className="primary-action" disabled={!isValid || saving}>{saving ? 'Saving & generating QR…' : 'Save device & generate QR →'}</button></footer>
@@ -351,14 +360,20 @@ function DeviceRegistrationDialog({ onClose, onRegister }: { onClose: () => void
   </div>
 }
 
-function EditAssetDialog({ asset, onClose, onSave }: { asset: InventoryAsset; onClose: () => void; onSave: (originalTag: string, asset: InventoryAsset) => void }) {
+function EditAssetDialog({ asset, onClose, onSave }: { asset: InventoryAsset; onClose: () => void; onSave: (originalTag: string, asset: InventoryAsset) => Promise<InventoryAsset | void> }) {
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [recentProcessors, setRecentProcessors] = useState<string[]>(() => {
     try { return JSON.parse(window.localStorage.getItem(RECENT_PROCESSORS_KEY) || '[]') as string[] } catch { return [] }
   })
 
-  const { register, handleSubmit, watch, setValue, formState: { errors, isValid } } = useForm<DeviceRegistrationData>({
+  const form = useForm<DeviceRegistrationData>({
     resolver: zodResolver(deviceRegistrationSchema),
     defaultValues: {
+      ramReceiptId: asset.ramReceiptId || '',
+      ssdReceiptId: asset.ssdReceiptId || '',
+      returnRamToStock: '',
+      returnSsdToStock: '',
       tag: asset.tag,
       category: asset.category,
       brand: asset.brand || '',
@@ -366,53 +381,61 @@ function EditAssetDialog({ asset, onClose, onSave }: { asset: InventoryAsset; on
       status: asset.state,
       ip: asset.ip === '—' ? '' : asset.ip,
       processor: asset.processor || '',
-      ramCapacityGb: asset.ramCapacityGb ? String(asset.ramCapacityGb) : '',
-      ramModules: asset.ramModules ? String(asset.ramModules) : '',
-      ssdCapacityGb: asset.ssdCapacityGb ? String(asset.ssdCapacityGb) : '',
-      ssdCount: asset.ssdCount ? String(asset.ssdCount) : '',
+      ramCapacityGb: asset.ramCapacityGb != null ? String(asset.ramCapacityGb) : '',
+      ramModules: asset.ramModules != null ? String(asset.ramModules) : '',
+      ssdCapacityGb: asset.ssdCapacityGb != null ? String(asset.ssdCapacityGb) : '',
+      ssdCount: asset.ssdCount != null ? String(asset.ssdCount) : '',
     },
     mode: 'onChange'
   })
 
+  const { register, handleSubmit, watch, setValue, formState: { errors, isValid } } = form
   const watchedCategory = watch('category')
 
   useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape' && !saving) onClose() }
     window.addEventListener('keydown', closeOnEscape)
     return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [onClose])
+  }, [onClose, saving])
 
-  const submit = (data: DeviceRegistrationData) => {
-    const processor = data.processor?.trim()
-    const supportsIp = data.category === 'System Unit' || data.category === 'Printer' || data.category === 'Router'
-    const updatedAsset: InventoryAsset = {
-      ...asset,
-      name: `${data.brand.trim()} ${data.model.trim()}`,
-      category: data.category as DeviceCategory,
-      brand: data.brand.trim(),
-      model: data.model.trim(),
-      state: data.status as AssetState,
-      ip: supportsIp && data.ip ? data.ip.trim() : '—',
-      processor: data.category === 'System Unit' ? processor : undefined,
-      ramCapacityGb: data.category === 'System Unit' ? Number(data.ramCapacityGb) : undefined,
-      ramModules: data.category === 'System Unit' ? Number(data.ramModules) : undefined,
-      ssdCapacityGb: data.category === 'System Unit' ? Number(data.ssdCapacityGb) : undefined,
-      ssdCount: data.category === 'System Unit' ? Number(data.ssdCount) : undefined,
-    }
-    if (data.category === 'System Unit' && processor) {
-      const next = [processor, ...recentProcessors.filter(item => item.toLowerCase() !== processor.toLowerCase())].slice(0, 8)
-      window.localStorage.setItem(RECENT_PROCESSORS_KEY, JSON.stringify(next))
-      setRecentProcessors(next)
-    }
-    onSave(asset.tag, updatedAsset)
+  const submit = async (data: DeviceRegistrationData) => {
+    if (saving) return
+    setSaving(true); setSaveError('')
+    try {
+      const processor = data.processor?.trim()
+      const supportsIp = data.category === 'System Unit' || data.category === 'Printer' || data.category === 'Router'
+      const updatedAsset: InventoryAsset = {
+        ...asset,
+        ...stockChanges(data, asset),
+        name: `${data.brand.trim()} ${data.model.trim()}`,
+        category: data.category as DeviceCategory,
+        brand: data.brand.trim(),
+        model: data.model.trim(),
+        state: data.status as AssetState,
+        ip: supportsIp && data.ip ? data.ip.trim() : '—',
+        processor: data.category === 'System Unit' ? processor : undefined,
+        ramCapacityGb: data.category === 'System Unit' ? Number(data.ramCapacityGb) : undefined,
+        ramModules: data.category === 'System Unit' ? Number(data.ramModules) : undefined,
+        ssdCapacityGb: data.category === 'System Unit' ? Number(data.ssdCapacityGb) : undefined,
+        ssdCount: data.category === 'System Unit' ? Number(data.ssdCount) : undefined,
+      }
+      if (data.category === 'System Unit' && processor) {
+        const next = [processor, ...recentProcessors.filter(item => item.toLowerCase() !== processor.toLowerCase())].slice(0, 8)
+        window.localStorage.setItem(RECENT_PROCESSORS_KEY, JSON.stringify(next))
+        setRecentProcessors(next)
+      }
+      await onSave(asset.tag, updatedAsset)
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Asset and stock could not be saved. Please retry.')
+    } finally { setSaving(false) }
   }
 
-  return <div className="device-dialog-backdrop asset-edit-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
+  return <div className="device-dialog-backdrop asset-edit-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget && !saving) onClose() }}>
     <section className="device-dialog asset-edit-dialog" role="dialog" aria-modal="true" aria-labelledby="asset-edit-title">
-      <header className="device-dialog-header"><div><span>EDIT DEVICE</span><h2 id="asset-edit-title">Update asset record</h2><p>Edit its description, status, and applicable technical specifications.</p></div><button type="button" aria-label="Close asset editor" onClick={onClose}>×</button></header>
+      <header className="device-dialog-header"><div><span>EDIT DEVICE</span><h2 id="asset-edit-title">Update asset record</h2><p>Edit its description, status, and applicable technical specifications.</p></div><button type="button" aria-label="Close asset editor" onClick={onClose} disabled={saving}>×</button></header>
       <form className="device-form" onSubmit={handleSubmit(submit)}>
         <div className="asset-edit-identity"><div><span>Asset tag</span><b>{asset.tag}</b></div><div><span>QR fallback ID</span><b className="mono">{asset.qrId}</b></div></div>
-        <div className="device-form-grid">
+        <fieldset className="device-form-grid" disabled={saving}>
           <input type="hidden" {...register('tag')} />
           <label>Device category<select {...register('category')}>{deviceCategories.map(category => <option key={category}>{category}</option>)}</select></label>
           <label>Status<select {...register('status')}><option>Active</option><option>Maintenance</option><option>Broken</option><option>Inactive</option></select></label>
@@ -422,15 +445,17 @@ function EditAssetDialog({ asset, onClose, onSave }: { asset: InventoryAsset; on
             <div className="device-spec-heading wide"><span>SYSTEM UNIT SPECIFICATIONS</span><p>Update the installed processor, memory, and storage configuration.</p></div>
             <label className="wide">Processor <small>Type the complete processor model</small><input list="edit-processor-suggestions" {...register('processor')} placeholder="e.g. Intel Core i5-12400 or AMD Ryzen 5 5600G" /><datalist id="edit-processor-suggestions">{recentProcessors.map(processor => <option key={processor} value={processor} />)}</datalist>{errors.processor && <span className="field-error">{errors.processor.message}</span>}</label>
             <div className="processor-recent-suggestions wide"><span>RECENT PROCESSOR SUGGESTIONS</span>{recentProcessors.length ? <div>{recentProcessors.map(processor => <button type="button" key={processor} onClick={() => setValue('processor', processor, { shouldValidate: true })}>{processor}</button>)}</div> : <p>Recently entered processor specifications will appear here.</p>}</div>
-            <label>RAM capacity per module <small>Gigabytes</small><input type="number" min="1" {...register('ramCapacityGb')} />{errors.ramCapacityGb && <span className="field-error">{errors.ramCapacityGb.message}</span>}</label>
-            <label>RAM modules installed <small>Number of RAM sticks</small><input type="number" min="1" {...register('ramModules')} />{errors.ramModules && <span className="field-error">{errors.ramModules.message}</span>}</label>
-            <label>SSD capacity per drive <small>Gigabytes</small><input type="number" min="1" {...register('ssdCapacityGb')} />{errors.ssdCapacityGb && <span className="field-error">{errors.ssdCapacityGb.message}</span>}</label>
-            <label>SSDs installed <small>Number of SSD drives</small><input type="number" min="1" {...register('ssdCount')} />{errors.ssdCount && <span className="field-error">{errors.ssdCount.message}</span>}</label>
+            <label>RAM capacity per module <small>Gigabytes</small><input type="number" min="0" step="1" {...register('ramCapacityGb')} />{errors.ramCapacityGb && <span className="field-error">{errors.ramCapacityGb.message}</span>}</label>
+            <label>RAM modules installed <small>Number of RAM sticks</small><input type="number" min="0" step="1" {...register('ramModules')} />{errors.ramModules && <span className="field-error">{errors.ramModules.message}</span>}</label>
+            <label>SSD capacity per drive <small>Gigabytes</small><input type="number" min="0" step="1" {...register('ssdCapacityGb')} />{errors.ssdCapacityGb && <span className="field-error">{errors.ssdCapacityGb.message}</span>}</label>
+            <label>SSDs installed <small>Number of SSD drives</small><input type="number" min="0" step="1" {...register('ssdCount')} />{errors.ssdCount && <span className="field-error">{errors.ssdCount.message}</span>}</label>
           </>}
           {(watchedCategory === 'System Unit' || watchedCategory === 'Printer' || watchedCategory === 'Router') && <label className="wide">IP address <small>Optional; leave blank if no address is assigned</small><input {...register('ip')} placeholder="10.20.x.x" />{errors.ip && <span className="field-error">{errors.ip.message}</span>}</label>}
-        </div>
+          <SystemUnitStockFields form={form} asset={asset} disabled={saving} />
+        </fieldset>
+        {saveError && <p className="consumable-save-error" role="alert">{saveError}</p>}
         <div className="asset-edit-assignment-note"><AssignmentBadge assigned={isAssetAssigned(asset)} /><p>Location and department are managed separately on the Assignments page, so editing this record will not move the device.</p></div>
-        <footer className="device-form-actions"><button type="button" className="export-btn" onClick={onClose}>Cancel</button><button type="submit" className="primary-action" disabled={!isValid}>Save changes</button></footer>
+        <footer className="device-form-actions"><button type="button" className="export-btn" onClick={onClose} disabled={saving}>Cancel</button><button type="submit" className="primary-action" disabled={!isValid || saving}>{saving ? 'Saving…' : 'Save changes'}</button></footer>
       </form>
     </section>
   </div>
@@ -590,7 +615,7 @@ function AssignmentsPage({ inventoryAssets, onAssign, initialTarget }: { invento
   </>
 }
 
-function QrPage({ inventoryAssets, onUpdate }: { inventoryAssets: InventoryAsset[]; onUpdate: (originalTag: string, asset: InventoryAsset) => void }) {
+function QrPage({ inventoryAssets, onUpdate }: { inventoryAssets: InventoryAsset[]; onUpdate: (originalTag: string, asset: InventoryAsset) => Promise<InventoryAsset | void> }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const scannerControls = useRef<IScannerControls | null>(null)
   const [scanning, setScanning] = useState(false)
@@ -653,7 +678,7 @@ function QrPage({ inventoryAssets, onUpdate }: { inventoryAssets: InventoryAsset
       </article>
 
       <article className="module-card qr-information-panel">
-        {scannedAsset ? <QrAssetDetails asset={scannedAsset} onClear={() => { setScannedAsset(null); setScanMessage('') }} onUpdate={(originalTag, updatedAsset) => { onUpdate(originalTag, updatedAsset); setScannedAsset(updatedAsset) }} /> : <><CardTitle title="Awaiting a QR scan" subtitle="The identified device record will appear here" /><EquipmentEmptyState className="qr-empty-state" size="compact" kind="Scanner" title="No device scanned yet" description="Start the camera, enter an asset tag, or choose one of the recent devices below." /></>}
+        {scannedAsset ? <QrAssetDetails asset={scannedAsset} onClear={() => { setScannedAsset(null); setScanMessage('') }} onUpdate={async (originalTag, updatedAsset) => { const saved = await onUpdate(originalTag, updatedAsset); setScannedAsset(saved || updatedAsset); return saved }} /> : <><CardTitle title="Awaiting a QR scan" subtitle="The identified device record will appear here" /><EquipmentEmptyState className="qr-empty-state" size="compact" kind="Scanner" title="No device scanned yet" description="Start the camera, enter an asset tag, or choose one of the recent devices below." /></>}
         <div className="recent-scan-section"><CardTitle title="Recent devices" subtitle="Select one to preview the scan result" />{inventoryAssets.length ? inventoryAssets.slice(0,5).map(item => <button type="button" className="scan-row" key={item.tag} onClick={() => { setScannedAsset(item); setScanMessage(`Device ${item.tag} identified successfully.`) }}><span>▦</span><div><b>{item.tag}</b><small>{item.location}</small></div><StatusBadge state={item.state}/></button>) : <EquipmentEmptyState className="recent-devices-empty" size="inline" kind="Scanner" title="No recent devices" description="Register a device to make it available for scanning." />}</div>
         <div className="privacy-note"><b>Secure QR rule</b><p>Labels contain only an asset token—never passwords, IP addresses, or clinical information.</p></div>
       </article>
@@ -661,7 +686,7 @@ function QrPage({ inventoryAssets, onUpdate }: { inventoryAssets: InventoryAsset
   </>
 }
 
-function QrAssetDetails({ asset, onClear, onUpdate }: { asset: InventoryAsset; onClear: () => void; onUpdate: (originalTag: string, asset: InventoryAsset) => void }) {
+function QrAssetDetails({ asset, onClear, onUpdate }: { asset: InventoryAsset; onClear: () => void; onUpdate: (originalTag: string, asset: InventoryAsset) => Promise<InventoryAsset | void> }) {
   const [fullRecordOpen, setFullRecordOpen] = useState(false)
   const [editing, setEditing] = useState(false)
   const assigned = isAssetAssigned(asset)
@@ -675,7 +700,7 @@ function QrAssetDetails({ asset, onClear, onUpdate }: { asset: InventoryAsset; o
     <dl><div><dt>QR fallback ID</dt><dd className="mono">{asset.qrId}</dd></div><div><dt>Description</dt><dd>{asset.name}</dd></div><div><dt>Device category</dt><dd>{asset.category}</dd></div><div><dt>Brand</dt><dd>{asset.brand || 'Not recorded'}</dd></div><div><dt>Model</dt><dd>{asset.model || asset.name}</dd></div><div><dt>Assignment</dt><dd>{assigned ? 'Assigned' : 'Unassigned'}</dd></div><div><dt>Floor</dt><dd>{floorLabel}</dd></div><div><dt>Room</dt><dd>{assigned ? roomName : 'Not assigned'}</dd></div><div><dt>Department</dt><dd>{assigned ? asset.owner : 'Not assigned'}</dd></div><div><dt>Status</dt><dd>{asset.state}</dd></div>{asset.category === 'System Unit' && <><div><dt>Processor</dt><dd>{asset.processor || 'Not recorded'}</dd></div><div><dt>RAM configuration</dt><dd>{asset.ramModules || 0} × {asset.ramCapacityGb || 0} GB</dd></div><div><dt>SSD configuration</dt><dd>{asset.ssdCount || 0} × {asset.ssdCapacityGb || 0} GB</dd></div></>}<div><dt>Network address</dt><dd className="mono">{asset.ip}</dd></div></dl>
     <div className="qr-result-actions"><button className="export-btn" onClick={onClear}>Scan another</button><button className="primary-action" onClick={() => setFullRecordOpen(true)}>Open full device record →</button></div>
     {fullRecordOpen && <FullDeviceRecordDialog asset={asset} onClose={() => setFullRecordOpen(false)} onEdit={() => { setFullRecordOpen(false); setEditing(true) }} />}
-    {editing && <EditAssetDialog asset={asset} onClose={() => setEditing(false)} onSave={(originalTag, updatedAsset) => { onUpdate(originalTag, updatedAsset); setEditing(false); setFullRecordOpen(true) }} />}
+    {editing && <EditAssetDialog asset={asset} onClose={() => setEditing(false)} onSave={async (originalTag, updatedAsset) => { const saved = await onUpdate(originalTag, updatedAsset); setEditing(false); setFullRecordOpen(true); return saved }} />}
   </div>
 }
 
@@ -811,7 +836,7 @@ function UsersPage() {
 const manualSteps = [
   { icon: '▦', title: 'Review the dashboard', text: 'Start on the Dashboard to check asset totals, equipment condition, verification coverage, and recent activity.' },
   { icon: '＋', title: 'Register a device', text: 'Open Assets, select Add device, enter its category, brand, model, status, and applicable technical specifications.' },
-  { icon: '▧', title: 'Record received consumables', text: 'Open Consumables to record received RAM, SSDs, cables, ink, batteries, and similar stock. Consumables are receiving records and cannot be assigned to rooms.' },
+  { icon: '▧', title: 'Record received consumables', text: 'Receive RAM and SSD stock in pieces in Consumables, then select a stock source when adding or editing a system unit. Saving deducts the installed quantity. When removing parts, choose to return usable parts or keep them counted as used/discarded. Review stock balances and usage history in Consumables.' },
   { icon: '▣', title: 'Generate and attach its QR label', text: 'After saving a device, download or print its generated QR label. Keep the fallback QR ID available for manual identification.' },
   { icon: '⇄', title: 'Assign its hospital location', text: 'Open Assignments, choose an unassigned device, then select its floor, department, and room.' },
   { icon: '⌘', title: 'Find equipment through Topology', text: 'Open Topology, select a floor, then hover or click a room to see its assigned devices and full equipment details.' },

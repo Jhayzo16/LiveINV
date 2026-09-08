@@ -38,6 +38,11 @@ export interface InventoryAsset {
   ssdCapacityGb?: number
   ssdCount?: number
   processor?: string
+  ramReceiptId?: string | null
+  ssdReceiptId?: string | null
+  stockVersion?: number
+  returnRamToStock?: boolean
+  returnSsdToStock?: boolean
   networkProfile?: NetworkProfile
   assignment?: Assignment
 }
@@ -49,6 +54,8 @@ export interface ConsumableReceipt {
   brand?: string
   specification: string
   quantity: number
+  usedQuantity?: number
+  capacityGb?: number
   unit: string
   supplier?: string
   referenceNumber?: string
@@ -56,4 +63,16 @@ export interface ConsumableReceipt {
   receivedBy?: string
   notes?: string
   createdAt: string
+}
+
+export type ConsumableMovement = {
+  id: string
+  receipt_id: string
+  asset_id: string
+  asset_tag: string
+  category: 'RAM' | 'SSD'
+  action: 'Installed' | 'Returned' | 'Removed / used'
+  quantity: number
+  performed_by: string
+  created_at: string
 }

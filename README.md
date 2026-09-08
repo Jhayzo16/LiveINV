@@ -12,7 +12,7 @@ LiveINV is a visual hospital inventory tracking system designed for Tagum Global
 - QR scanning and manual asset identification
 - Separate workflow for assigning devices to floors, departments, and rooms
 - Realtime assignment updates across the live map, dashboard, registry, QR lookup, network view, and reports
-- Consumable receiving records for RAM, SSDs, cables, ink, batteries, and other non-assignable stock
+- Consumable receiving records with RAM/SSD stock deductions, returns, and usage history linked to system units
 - Inventory reports and a built-in system manual
 
 ## Technology
@@ -47,7 +47,8 @@ LiveINV is a visual hospital inventory tracking system designed for Tagum Global
 
 1. Create a Supabase project and add its URL and anon key to `.env` as `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 2. Apply the inventory migrations, then follow [Admin login setup](docs/admin-login-setup.md) to create the admin account and apply the admin access migration. That migration requires the account to exist first.
-3. Start the app and sign in. Device registration, editing, assignment, consumable receipts, and live assignment refreshes use the configured project.
+3. Apply [RAM and SSD stock setup](supabase/CONSUMABLE-STOCK-SETUP.md) to enable stock selection in system unit forms.
+4. Start the app and sign in. Device registration, editing, assignment, consumable receipts, and live assignment refreshes use the configured project.
 
 The assignment migration keeps the legacy `location` and `owner` values synchronized while adding structured floor, room, department, time, user, and method fields. This lets existing reports remain compatible while Live Mapping uses stable assignment data.
 

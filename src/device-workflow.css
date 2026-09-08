@@ -929,3 +929,13 @@
   .device-dialog-backdrop,
   .device-dialog { animation: none; }
 }
+
+fieldset.device-form-grid { border: 0; padding: 0; margin: 0; min-width: 0; }
+.system-stock-fields { padding: 18px; border: 1px solid #cbded0; border-radius: 12px; background: #f2f8f3; }
+.system-stock-fields h3 { margin: 0 0 8px; font-size: 15px; }
+.system-stock-fields p { margin: 8px 0 14px; font-size: 12px; line-height: 1.6; color: #52665a; }
+.system-stock-fields .stock-part { min-width: 0; }
+.system-stock-fields select { width: 100%; min-width: 0; }
+.system-stock-fields .field-error { color: #942c36; }
+
+@media(max-width: 720px) { .system-stock-fields .device-form-grid { grid-template-columns: 1fr; } }
