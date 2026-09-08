@@ -257,7 +257,7 @@ function DeviceRegistrationDialog({ onClose, onRegister }: { onClose: () => void
 
   const form = useForm<DeviceRegistrationData>({
     resolver: zodResolver(deviceRegistrationSchema),
-    defaultValues: { tag: '', category: 'System Unit', brand: '', model: '', status: 'Active', ip: '', processor: '', ramCapacityGb: '', ramModules: '', ssdCapacityGb: '', ssdCount: '' },
+    defaultValues: { tag: '', category: 'System Unit', brand: '', model: '', status: 'Active', ip: '', processor: '', ramCapacityGb: '0', ramModules: '0', ssdCapacityGb: '0', ssdCount: '0' },
     mode: 'onChange'
   })
   
@@ -337,13 +337,9 @@ function DeviceRegistrationDialog({ onClose, onRegister }: { onClose: () => void
             <div className="device-spec-heading wide"><span>SYSTEM UNIT SPECIFICATIONS</span><p>Record the installed memory and storage configuration.</p></div>
             <label className="wide">Processor <small>Type the complete processor model</small><input list="recent-processor-suggestions" {...register('processor')} placeholder="e.g. Intel Core i5-12400 or AMD Ryzen 5 5600G" /><datalist id="recent-processor-suggestions">{recentProcessors.map(processor => <option key={processor} value={processor} />)}</datalist>{errors.processor && <span className="field-error">{errors.processor.message}</span>}</label>
             <div className="processor-recent-suggestions wide"><span>RECENT PROCESSOR SUGGESTIONS</span>{recentProcessors.length ? <div>{recentProcessors.map(processor => <button type="button" key={processor} onClick={() => setValue('processor', processor, { shouldValidate: true })}>{processor}</button>)}</div> : <p>Recently entered processor specifications will appear here.</p>}</div>
-            <label>RAM capacity per module <small>Gigabytes</small><input type="number" min="0" step="1" {...register('ramCapacityGb')} placeholder="8" />{errors.ramCapacityGb && <span className="field-error">{errors.ramCapacityGb.message}</span>}</label>
-            <label>RAM modules installed <small>Number of RAM sticks</small><input type="number" min="0" step="1" {...register('ramModules')} placeholder="2" />{errors.ramModules && <span className="field-error">{errors.ramModules.message}</span>}</label>
-            <label>SSD capacity per drive <small>Gigabytes</small><input type="number" min="0" step="1" {...register('ssdCapacityGb')} placeholder="512" />{errors.ssdCapacityGb && <span className="field-error">{errors.ssdCapacityGb.message}</span>}</label>
-            <label>SSDs installed <small>Number of SSD drives</small><input type="number" min="0" step="1" {...register('ssdCount')} placeholder="1" />{errors.ssdCount && <span className="field-error">{errors.ssdCount.message}</span>}</label>
           </>}
-          {(watchedCategory === 'System Unit' || watchedCategory === 'Printer' || watchedCategory === 'Router') && <label className="wide">IP address <small>Optional; can be assigned or updated later</small><input {...register('ip')} placeholder="10.20.x.x" />{errors.ip && <span className="field-error">{errors.ip.message}</span>}</label>}
           <SystemUnitStockFields form={form} disabled={saving} />
+          {(watchedCategory === 'System Unit' || watchedCategory === 'Printer' || watchedCategory === 'Router') && <label className="wide">IP address <small>Optional; can be assigned or updated later</small><input {...register('ip')} placeholder="10.20.x.x" />{errors.ip && <span className="field-error">{errors.ip.message}</span>}</label>}
         </fieldset>
         {saveError && <p className="consumable-save-error" role="alert">{saveError}</p>}
 
@@ -445,13 +441,9 @@ function EditAssetDialog({ asset, onClose, onSave }: { asset: InventoryAsset; on
             <div className="device-spec-heading wide"><span>SYSTEM UNIT SPECIFICATIONS</span><p>Update the installed processor, memory, and storage configuration.</p></div>
             <label className="wide">Processor <small>Type the complete processor model</small><input list="edit-processor-suggestions" {...register('processor')} placeholder="e.g. Intel Core i5-12400 or AMD Ryzen 5 5600G" /><datalist id="edit-processor-suggestions">{recentProcessors.map(processor => <option key={processor} value={processor} />)}</datalist>{errors.processor && <span className="field-error">{errors.processor.message}</span>}</label>
             <div className="processor-recent-suggestions wide"><span>RECENT PROCESSOR SUGGESTIONS</span>{recentProcessors.length ? <div>{recentProcessors.map(processor => <button type="button" key={processor} onClick={() => setValue('processor', processor, { shouldValidate: true })}>{processor}</button>)}</div> : <p>Recently entered processor specifications will appear here.</p>}</div>
-            <label>RAM capacity per module <small>Gigabytes</small><input type="number" min="0" step="1" {...register('ramCapacityGb')} />{errors.ramCapacityGb && <span className="field-error">{errors.ramCapacityGb.message}</span>}</label>
-            <label>RAM modules installed <small>Number of RAM sticks</small><input type="number" min="0" step="1" {...register('ramModules')} />{errors.ramModules && <span className="field-error">{errors.ramModules.message}</span>}</label>
-            <label>SSD capacity per drive <small>Gigabytes</small><input type="number" min="0" step="1" {...register('ssdCapacityGb')} />{errors.ssdCapacityGb && <span className="field-error">{errors.ssdCapacityGb.message}</span>}</label>
-            <label>SSDs installed <small>Number of SSD drives</small><input type="number" min="0" step="1" {...register('ssdCount')} />{errors.ssdCount && <span className="field-error">{errors.ssdCount.message}</span>}</label>
           </>}
-          {(watchedCategory === 'System Unit' || watchedCategory === 'Printer' || watchedCategory === 'Router') && <label className="wide">IP address <small>Optional; leave blank if no address is assigned</small><input {...register('ip')} placeholder="10.20.x.x" />{errors.ip && <span className="field-error">{errors.ip.message}</span>}</label>}
           <SystemUnitStockFields form={form} asset={asset} disabled={saving} />
+          {(watchedCategory === 'System Unit' || watchedCategory === 'Printer' || watchedCategory === 'Router') && <label className="wide">IP address <small>Optional; leave blank if no address is assigned</small><input {...register('ip')} placeholder="10.20.x.x" />{errors.ip && <span className="field-error">{errors.ip.message}</span>}</label>}
         </fieldset>
         {saveError && <p className="consumable-save-error" role="alert">{saveError}</p>}
         <div className="asset-edit-assignment-note"><AssignmentBadge assigned={isAssetAssigned(asset)} /><p>Location and department are managed separately on the Assignments page, so editing this record will not move the device.</p></div>

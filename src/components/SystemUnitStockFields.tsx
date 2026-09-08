@@ -22,13 +22,13 @@ export function stockChanges(data: DeviceRegistrationData, asset?: InventoryAsse
 }
 
 export function SystemUnitStockFields({ form, asset, disabled }: { form: UseFormReturn<DeviceRegistrationData>; asset?: InventoryAsset; disabled: boolean }) {
-  const { register, watch, setValue } = form
+  const { register, watch, setValue, formState: { errors } } = form
   const system = watch('category') === 'System Unit'
   const stock = useQuery({ queryKey: ['consumable-receipts'], queryFn: ConsumableRepository.getAll, enabled: system || Boolean(asset?.ramReceiptId || asset?.ssdReceiptId), retry: 1, refetchInterval: 15000 })
   if (!system && !asset?.ramReceiptId && !asset?.ssdReceiptId) return null
   return <section className="system-stock-fields wide" aria-label="RAM and SSD consumable stock">
-    <h3>RAM and SSD from consumables</h3>
-    <p>Select the receipt supplying the installed parts. Saving deducts the installed quantity from that receipt. Use existing parts for equipment already installed outside this stock.</p>
+    <h3>Memory and storage</h3>
+    <p>Choose the RAM and SSD from available consumables, then enter how many are installed. Stock is deducted when you save.</p>
     {stock.isPending && <p role="status">Loading available stock…</p>}
     {stock.isError && <p role="alert">Stock could not be loaded. <button type="button" onClick={() => void stock.refetch()}>Retry stock</button></p>}
     {stock.data?.some(row => row.usedQuantity === undefined) && <p role="alert">Stock linking setup is pending. Apply the system unit consumables database migration to enable stock selection.</p>}
@@ -42,19 +42,34 @@ export function SystemUnitStockFields({ form, asset, disabled }: { form: UseForm
         const quantity = Number(watch(count) || 0)
         const previousSource = asset?.[source]
         const previousCount = asset?.[count] || 0
+        const existingParts = !previousSource && previousCount > 0
+        const capacityValue = Number(watch(capacity) || 0)
         const removed = previousSource ? (!system || selected !== previousSource ? previousCount : Math.max(previousCount - quantity, 0)) : 0
         const options = (stock.data || []).filter(row => row.category === kind.toUpperCase() && row.unit === 'pieces')
         const receipt = options.find(row => row.id === selected)
         const additional = selected === previousSource ? Math.max(quantity - previousCount, 0) : quantity
         return <div className="stock-part" key={kind}>
           {system && <>
-            <label>{kind.toUpperCase()} stock source<select aria-label={`${kind.toUpperCase()} stock source`} value={selected} disabled={disabled || stock.isPending || stock.isError} onChange={event => {
-              const row = options.find(item => item.id === event.target.value)
-              setValue(source, event.target.value, { shouldValidate: true })
-              setValue(disposition, '')
-              if (row?.capacityGb) setValue(capacity, String(row.capacityGb), { shouldValidate: true })
-            }}><option value="">Existing parts / no stock deduction</option>{selected && !receipt && <option value={selected}>Current linked receipt (unavailable)</option>}{options.map(row => <option key={row.id} value={row.id} disabled={row.usedQuantity === undefined || ((row.quantity - row.usedQuantity <= 0) && row.id !== previousSource)}>{row.itemName} · {row.specification} · {row.quantity - (row.usedQuantity || 0)} available · {row.dateReceived}{row.referenceNumber ? ` · ${row.referenceNumber}` : ''}</option>)}</select></label>
-            {receipt && <p><b>{receipt.itemName} · {receipt.specification}</b><br />{receipt.quantity - (receipt.usedQuantity || 0)} available · {additional} additional {kind === 'ram' ? 'module(s)' : 'drive(s)'} will be deducted.{receipt.capacityGb ? ` Capacity: ${receipt.capacityGb} GB each.` : ' Confirm the capacity per part matches its specification.'}</p>}
+            <h4>{kind.toUpperCase()}</h4>
+            <div className="stock-selection-row">
+              <label>{kind.toUpperCase()} from Consumables<select aria-label={`${kind.toUpperCase()} stock source`} value={selected} disabled={disabled || stock.isPending || stock.isError} onChange={event => {
+                const row = options.find(item => item.id === event.target.value)
+                setValue(source, event.target.value, { shouldValidate: true })
+                setValue(disposition, '')
+                if (row) {
+                  setValue(capacity, row.capacityGb ? String(row.capacityGb) : row.id === previousSource ? String(asset?.[capacity] || '') : '', { shouldValidate: true })
+                  if (quantity < 1) setValue(count, '1', { shouldValidate: true })
+                } else {
+                  setValue(capacity, existingParts ? String(asset?.[capacity] || 0) : '0', { shouldValidate: true })
+                  setValue(count, existingParts ? String(previousCount) : '0', { shouldValidate: true })
+                }
+              }}><option value="">{existingParts ? 'Keep existing installed parts' : `No ${kind.toUpperCase()} installed`}</option>{selected && !receipt && <option value={selected}>Current linked receipt (unavailable)</option>}{options.map(row => <option key={row.id} value={row.id} disabled={row.usedQuantity === undefined || ((row.quantity - row.usedQuantity <= 0) && row.id !== previousSource)}>{row.itemName} · {row.specification} · {row.quantity - (row.usedQuantity || 0)} available · {row.dateReceived}{row.referenceNumber ? ` · ${row.referenceNumber}` : ''}</option>)}</select></label>
+              <label>{kind === 'ram' ? 'RAM modules installed' : 'SSDs installed'}<input type="number" min="0" step="1" readOnly={!selected && !existingParts} {...register(count)} disabled={disabled} />{errors[count] && <span className="field-error">{errors[count]?.message}</span>}</label>
+            </div>
+            {receipt && !receipt.capacityGb ? <label className="stock-missing-capacity">{kind.toUpperCase()} capacity (GB per piece)<small>This older receipt has no saved capacity. Enter it once for this system unit.</small><input type="number" min="1" step="1" {...register(capacity)} disabled={disabled} />{errors[capacity] && <span className="field-error">{errors[capacity]?.message}</span>}</label> : <input type="hidden" {...register(capacity)} />}
+            {selected && <p className="stock-capacity-summary">{capacityValue > 0 ? `${quantity} × ${capacityValue} GB = ${quantity * capacityValue} GB total` : 'Capacity not yet recorded'}</p>}
+            {!selected && existingParts && <p>Existing configuration: {quantity} × {capacityValue} GB. No consumable stock deduction.</p>}
+            {receipt && <p><b>{receipt.itemName} · {receipt.specification}</b><br />{receipt.quantity - (receipt.usedQuantity || 0)} available · {additional} additional {kind === 'ram' ? 'module(s)' : 'drive(s)'} will be deducted.</p>}
             {receipt && additional > receipt.quantity - (receipt.usedQuantity || 0) && <p className="field-error" role="alert">Not enough {kind.toUpperCase()} stock. Reduce the installed quantity or select another receipt.</p>}
             {!stock.isPending && !stock.isError && !options.length && <p>No {kind.toUpperCase()} receipts in pieces yet. Receive stock in Consumables first.</p>}
           </>}
