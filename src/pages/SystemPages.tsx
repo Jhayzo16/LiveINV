@@ -31,6 +31,7 @@ import { ConsumablesPage } from './ConsumablesPage'
 import { PmsPage } from './PmsPage'
 
 export type SystemModule = 'dashboard' | 'assets' | 'consumables' | 'pms' | 'assignments' | 'qr' | 'network' | 'maintenance' | 'reports' | 'users' | 'manual'
+type AssetAction = { id: number; tag?: string; edit?: boolean }
 export type AssignmentTarget = { floor: string; roomId: string; room: string; department: string }
 
 const createQrId = () => `LIV-${crypto.randomUUID().replaceAll('-', '').slice(0, 8).toUpperCase()}`
@@ -60,7 +61,7 @@ const moduleNames: Record<SystemModule, string> = {
   network: 'Network registry', maintenance: 'Maintenance', reports: 'Reports', users: 'Users & roles', manual: 'System manual',
 }
 
-export function SystemModulePage({ module, assignmentTarget }: { module: SystemModule; assignmentTarget?: AssignmentTarget | null }) {
+export function SystemModulePage({ module, assignmentTarget, assetAction }: { module: SystemModule; assignmentTarget?: AssignmentTarget | null; assetAction?: AssetAction | null }) {
   const queryClient = useQueryClient()
   
   const { data: inventoryAssets = [], isLoading, error, refetch } = useQuery({
@@ -91,7 +92,7 @@ export function SystemModulePage({ module, assignmentTarget }: { module: SystemM
   if (error && !inventoryAssets.length) return <section className="workspace module-workspace"><p role="alert">Shared inventory could not be loaded.</p><button type="button" onClick={() => void refetch()}>Retry</button></section>
   const page = {
     dashboard: <DashboardPage inventoryAssets={inventoryAssets} />,
-    assets: <AssetsPage inventoryAssets={inventoryAssets} onRegister={registerAsset} onUpdate={updateAsset} />,
+    assets: <AssetsPage assetAction={assetAction} inventoryAssets={inventoryAssets} onRegister={registerAsset} onUpdate={updateAsset} />,
     consumables: <ConsumablesPage />,
     pms: <PmsPage inventoryAssets={inventoryAssets} />,
     assignments: <AssignmentsPage inventoryAssets={inventoryAssets} onAssign={async asset => { await updateAsset(asset.tag, asset) }} initialTarget={assignmentTarget} />,
@@ -156,13 +157,23 @@ function DashboardPage({ inventoryAssets }: { inventoryAssets: InventoryAsset[] 
   </>
 }
 
-function AssetsPage({ inventoryAssets, onRegister, onUpdate }: { inventoryAssets: InventoryAsset[]; onRegister: (asset: InventoryAsset) => Promise<void>; onUpdate: (originalTag: string, asset: InventoryAsset) => Promise<InventoryAsset | void> }) {
+function AssetsPage({ inventoryAssets, onRegister, onUpdate, assetAction }: { assetAction?: AssetAction | null; inventoryAssets: InventoryAsset[]; onRegister: (asset: InventoryAsset) => Promise<void>; onUpdate: (originalTag: string, asset: InventoryAsset) => Promise<InventoryAsset | void> }) {
   const [registrationOpen, setRegistrationOpen] = useState(false)
+  const handledAction = useRef<number | null>(null)
+  const [listView, setListView] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState<'all' | DeviceCategory>('all')
   const [statusFilter, setStatusFilter] = useState<'recent' | 'active' | 'maintenance'>('recent')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedAsset, setSelectedAsset] = useState<InventoryAsset | null>(null)
   const [editingAsset, setEditingAsset] = useState<InventoryAsset | null>(null)
+  useEffect(() => {
+    if (!assetAction || handledAction.current === assetAction.id) return
+    handledAction.current = assetAction.id
+    const record = inventoryAssets.find(asset => asset.tag === assetAction.tag) ?? null
+    setEditingAsset(assetAction.edit ? record : null)
+    setSelectedAsset(assetAction.edit ? null : record)
+    setRegistrationOpen(!assetAction.tag)
+  }, [assetAction, inventoryAssets])
   const normalizedQuery = searchQuery.trim().toLowerCase()
   const visibleAssets = inventoryAssets.filter(item => {
     const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter
@@ -213,19 +224,19 @@ function AssetsPage({ inventoryAssets, onRegister, onUpdate }: { inventoryAssets
     <section className="module-card asset-gallery-toolbar" aria-label="Asset search and filters">
       <label className="search-field">⌕ <input aria-label="Search assets" value={searchQuery} onChange={event => setSearchQuery(event.target.value)} placeholder="Search all devices by asset tag, room, or model" /></label>
       <div className="filter-pills"><button className={statusFilter === 'recent' ? 'selected' : ''} onClick={() => setStatusFilter('recent')}>Recently updated</button><button className={statusFilter === 'active' ? 'selected' : ''} onClick={() => setStatusFilter('active')}>Active</button><button className={statusFilter === 'maintenance' ? 'selected' : ''} onClick={() => setStatusFilter('maintenance')}>Maintenance</button></div>
-      <button className="export-btn asset-grid-mode" type="button" aria-label="Grid view selected">Grid ▦</button>
+      <button className="export-btn asset-grid-mode" type="button" aria-label={listView ? "Switch to grid view" : "Switch to list view"} onClick={() => setListView(value => !value)}>{listView ? "Grid ▦" : "List ☷"}</button>
     </section>
-    <AssetCardGrid inventoryAssets={visibleAssets} onSelect={setSelectedAsset} searchActive={Boolean(normalizedQuery || categoryFilter !== 'all' || statusFilter !== 'recent')} />
+    <AssetCardGrid listView={listView} inventoryAssets={visibleAssets} onSelect={setSelectedAsset} searchActive={Boolean(normalizedQuery || categoryFilter !== 'all' || statusFilter !== 'recent')} />
     {registrationOpen && <DeviceRegistrationDialog onClose={() => setRegistrationOpen(false)} onRegister={onRegister} />}
     {selectedAsset && <FullDeviceRecordDialog asset={selectedAsset} onClose={() => setSelectedAsset(null)} onEdit={() => { setEditingAsset(selectedAsset); setSelectedAsset(null) }} />}
     {editingAsset && <EditAssetDialog asset={editingAsset} onClose={() => setEditingAsset(null)} onSave={saveEditedAsset} />}
   </>
 }
 
-function AssetCardGrid({ inventoryAssets, onSelect, searchActive }: { inventoryAssets: InventoryAsset[]; onSelect: (asset: InventoryAsset) => void; searchActive: boolean }) {
+function AssetCardGrid({ inventoryAssets, onSelect, searchActive, listView = false }: { listView?: boolean; inventoryAssets: InventoryAsset[]; onSelect: (asset: InventoryAsset) => void; searchActive: boolean }) {
   if (!inventoryAssets.length) return <EquipmentEmptyState className="module-card asset-gallery-empty" title={searchActive ? 'No matching assets' : 'No assets registered'} description={searchActive ? 'Try another search term or change the selected filter.' : 'Add a device to begin building the hospital inventory.'} />
 
-  return <div className="asset-device-grid">{inventoryAssets.map(item => <button type="button" className="asset-device-card" key={item.tag} onClick={() => onSelect(item)} aria-label={`Open full record for ${item.tag}`}>
+  return <div className={`asset-device-grid ${listView ? 'asset-list-view' : ''}`}>{inventoryAssets.map(item => <button type="button" className="asset-device-card" key={item.tag} onClick={() => onSelect(item)} aria-label={`Open full record for ${item.tag}`}>
     <div className="asset-device-visual"><DevicePreview asset={item} className="asset-card-preview" /><StatusBadge state={item.state} /></div>
     <div className="asset-device-copy"><span className="asset-device-category">{item.category}</span><h3>{item.tag}</h3><p>{item.name}</p><dl><div><dt>Location</dt><dd>{item.location}</dd></div><div><dt>Department</dt><dd>{item.owner}</dd></div></dl><footer><span className="mono">{item.ip === '—' ? 'No network' : item.ip}</span><b>View record →</b></footer></div>
   </button>)}</div>
@@ -772,6 +783,7 @@ function NetworkPage({ inventoryAssets }: { inventoryAssets: InventoryAsset[] })
 }
 
 function MaintenancePage({ inventoryAssets }: { inventoryAssets: InventoryAsset[] }) {
+  const [selectedAsset, setSelectedAsset] = useState<InventoryAsset | null>(null)
   const maintenanceAssets = inventoryAssets.filter(a => a.state === 'Maintenance')
   const brokenAssets = inventoryAssets.filter(a => a.state === 'Broken')
   const activeAssets = inventoryAssets.filter(a => a.state === 'Active')
@@ -782,7 +794,7 @@ function MaintenancePage({ inventoryAssets }: { inventoryAssets: InventoryAsset[
     ...maintenanceAssets.map(a => [a.tag, a.tag, `${a.name} — scheduled service`, 'Medium', 'In progress']),
   ].slice(0, 8)
 
-  return <><ModuleHeading eyebrow="SERVICE OPERATIONS" title="Maintenance queue" description="Prioritize repairs, preventive inspections, and equipment return-to-service." /><div className="metric-grid compact"><Metric label="Open work orders" value={String(totalIssues)} note={`${brokenAssets.length} critical`} /><Metric label="Critical" value={String(brokenAssets.length)} note="Immediate attention" tone="maroon" /><Metric label="Under maintenance" value={String(maintenanceAssets.length)} note="Scheduled service" tone="amber" /><Metric label="Active devices" value={String(activeAssets.length)} note={`${Math.round((activeAssets.length / Math.max(inventoryAssets.length, 1)) * 100)}% operational`} tone="green" /></div><div className="maintenance-layout"><article className="module-card work-orders"><CardTitle title="Active work orders" subtitle="Sorted by operational priority" /><div className="ticket-head"><span>Asset</span><span>Issue</span><span>Priority</span><span>Stage</span></div>{tickets.length ? tickets.map(ticket => <button className="ticket-row" key={ticket[0]}><span><b>{ticket[0]}</b><small>{ticket[1]}</small></span><span>{ticket[2]}</span><span className={`priority ${ticket[3].toLowerCase()}`}>{ticket[3]}</span><span>{ticket[4]}</span></button>) : <EquipmentEmptyState className="maintenance-empty" size="compact" kind="System Unit" title="No maintenance needed" description="There are no open work orders right now." />}</article><article className="module-card maintenance-schedule"><CardTitle title="Equipment status" subtitle="Devices needing attention" />{[...brokenAssets, ...maintenanceAssets].slice(0, 4).map((item, index) => <div className="schedule-row" key={item.tag}><time><b>{item.state === 'Broken' ? '⚠' : '⚒'}</b></time><span><b>{item.tag} — {item.name}</b><small>{item.location} · {item.state}</small></span></div>)}{totalIssues === 0 && <EquipmentEmptyState className="maintenance-empty" size="compact" kind="UPS" title="All equipment is operational" description="No devices currently need attention." />}</article></div></>
+  return <><ModuleHeading eyebrow="SERVICE OPERATIONS" title="Maintenance queue" description="Prioritize repairs, preventive inspections, and equipment return-to-service." /><div className="metric-grid compact"><Metric label="Open work orders" value={String(totalIssues)} note={`${brokenAssets.length} critical`} /><Metric label="Critical" value={String(brokenAssets.length)} note="Immediate attention" tone="maroon" /><Metric label="Under maintenance" value={String(maintenanceAssets.length)} note="Scheduled service" tone="amber" /><Metric label="Active devices" value={String(activeAssets.length)} note={`${Math.round((activeAssets.length / Math.max(inventoryAssets.length, 1)) * 100)}% operational`} tone="green" /></div><div className="maintenance-layout"><article className="module-card work-orders"><CardTitle title="Active work orders" subtitle="Sorted by operational priority" /><div className="ticket-head"><span>Asset</span><span>Issue</span><span>Priority</span><span>Stage</span></div>{tickets.length ? tickets.map(ticket => <button className="ticket-row" key={ticket[0]} onClick={() => setSelectedAsset(inventoryAssets.find(asset => asset.tag === ticket[0]) ?? null)}><span><b>{ticket[0]}</b><small>{ticket[1]}</small></span><span>{ticket[2]}</span><span className={`priority ${ticket[3].toLowerCase()}`}>{ticket[3]}</span><span>{ticket[4]}</span></button>) : <EquipmentEmptyState className="maintenance-empty" size="compact" kind="System Unit" title="No maintenance needed" description="There are no open work orders right now." />}</article><article className="module-card maintenance-schedule"><CardTitle title="Equipment status" subtitle="Devices needing attention" />{[...brokenAssets, ...maintenanceAssets].slice(0, 4).map((item, index) => <div className="schedule-row" key={item.tag}><time><b>{item.state === 'Broken' ? '⚠' : '⚒'}</b></time><span><b>{item.tag} — {item.name}</b><small>{item.location} · {item.state}</small></span></div>)}{totalIssues === 0 && <EquipmentEmptyState className="maintenance-empty" size="compact" kind="UPS" title="All equipment is operational" description="No devices currently need attention." />}</article></div>{selectedAsset && <FullDeviceRecordDialog asset={selectedAsset} onClose={() => setSelectedAsset(null)} />}</>
 }
 
 function ReportsPage({ inventoryAssets }: { inventoryAssets: InventoryAsset[] }) {
@@ -794,10 +806,16 @@ function ReportsPage({ inventoryAssets }: { inventoryAssets: InventoryAsset[] })
   const unassigned = inventoryAssets.filter(a => !isAssetAssigned(a)).length
   const maxBar = Math.max(...floorCounts, 1)
 
+  const reportAssets: Record<string, InventoryAsset[]> = {
+    'Inventory Master List': inventoryAssets,
+    'Network Devices': inventoryAssets.filter(a => Boolean(a.ip?.trim()) && a.ip !== '—'),
+    'Maintenance Report': inventoryAssets.filter(a => a.state === 'Maintenance' || a.state === 'Broken'),
+    'Unassigned Devices': inventoryAssets.filter(a => !isAssetAssigned(a)),
+  }
   const downloadCsv = (title: string) => {
     const csvCell = (value: string) => `"${value.replaceAll('"', '""')}"`
     const rows = [['Tag', 'Name', 'Category', 'Assignment status', 'Floor', 'Room', 'Department', 'Assigned at', 'Assigned by', 'Method', 'State', 'IP'].join(',')]
-    inventoryAssets.forEach(a => {
+    reportAssets[title].forEach(a => {
       const assigned = isAssetAssigned(a)
       const [, legacyRoom = ''] = a.location.split(' · ')
       rows.push([
@@ -817,12 +835,11 @@ function ReportsPage({ inventoryAssets }: { inventoryAssets: InventoryAsset[] })
     URL.revokeObjectURL(url)
   }
 
-  return <><ModuleHeading eyebrow="ANALYTICS" title="Reports and exports" description="Turn inventory records into operational summaries for IT and hospital management." /><div className="report-catalog"><ReportTile icon="▦" title="Inventory master list" note={`${inventoryAssets.length} assets total`} /><ReportTile icon="⌁" title="Network assignment" note={`${inventoryAssets.filter(a => a.ip !== '—' && a.ip).length} network devices`} /><ReportTile icon="⚒" title="Maintenance status" note={`${inventoryAssets.filter(a => a.state === 'Maintenance' || a.state === 'Broken').length} needing attention`} /><ReportTile icon="⇄" title="Unassigned devices" note={`${unassigned} awaiting placement`} /></div><div className="reports-layout"><article className="module-card"><CardTitle title="Assets by floor" subtitle="Current registered inventory" /><div className="bar-chart">{floorCounts.map((value, index) => <div key={index}><span style={{height:`${Math.round((value / maxBar) * 87)}px`}}/><b>F{index+1}</b><small>{value}</small></div>)}</div></article><article className="module-card exports-card"><CardTitle title="Export inventory data" subtitle="Download current records as CSV" />{[['Inventory Master List', `All ${inventoryAssets.length} assets`], ['Network Devices', `${inventoryAssets.filter(a => a.ip !== '—').length} network-capable`], ['Maintenance Report', `${inventoryAssets.filter(a => a.state !== 'Active').length} flagged devices`]].map(item => <button key={item[0]} onClick={() => downloadCsv(item[0])}><span>⇩</span><div><b>{item[0]}</b><small>{item[1]}</small></div><i>Download</i></button>)}</article></div></>
+  return <><ModuleHeading eyebrow="ANALYTICS" title="Reports and exports" description="Turn inventory records into operational summaries for IT and hospital management." /><div className="report-catalog"><ReportTile icon="▦" title="Inventory master list" onClick={() => downloadCsv('Inventory Master List')} note={`${inventoryAssets.length} assets total`} /><ReportTile icon="⌁" title="Network assignment" onClick={() => downloadCsv('Network Devices')} note={`${reportAssets['Network Devices'].length} network devices`} /><ReportTile icon="⚒" title="Maintenance status" onClick={() => downloadCsv('Maintenance Report')} note={`${inventoryAssets.filter(a => a.state === 'Maintenance' || a.state === 'Broken').length} needing attention`} /><ReportTile icon="⇄" title="Unassigned devices" onClick={() => downloadCsv('Unassigned Devices')} note={`${unassigned} awaiting placement`} /></div><div className="reports-layout"><article className="module-card"><CardTitle title="Assets by floor" subtitle="Current registered inventory" /><div className="bar-chart">{floorCounts.map((value, index) => <div key={index}><span style={{height:`${Math.round((value / maxBar) * 87)}px`}}/><b>F{index+1}</b><small>{value}</small></div>)}</div></article><article className="module-card exports-card"><CardTitle title="Export inventory data" subtitle="Download current records as CSV" />{Object.entries(reportAssets).map(([title, assets]) => [title, `${assets.length} devices`]).map(item => <button key={item[0]} onClick={() => downloadCsv(item[0])}><span>⇩</span><div><b>{item[0]}</b><small>{item[1]}</small></div><i>Download</i></button>)}</article></div></>
 }
 
 function UsersPage() {
-  const users = [['AD','Admin','Administrator','Active']]
-  return <><ModuleHeading eyebrow="ACCESS CONTROL" title="Administrator" description="The system currently uses one administrator account with full inventory access." /><div className="users-layout"><article className="module-card registry-card"><div className="registry-toolbar"><label className="search-field">⌕ <input aria-label="Search users" placeholder="Search user or role" /></label><div className="filter-pills"><button className="selected">All users</button><button>Active</button></div></div><div className="user-list">{users.map(user=><button key={user[1]}><span className="user-avatar">{user[0]}</span><span><b>{user[1]}</b><small>{user[2]}</small></span><StatusBadge state={user[3] as AssetState}/><i>•••</i></button>)}</div></article><article className="module-card role-panel"><CardTitle title="Role permissions" subtitle="Selected: Administrator" /><div className="permission"><span>View inventory and topology</span><b>✓</b></div><div className="permission"><span>Create and edit assets</span><b>✓</b></div><div className="permission"><span>Assign or move assets</span><b>✓</b></div><div className="permission"><span>Scan QR and view records</span><b>✓</b></div><div className="permission"><span>Manage users and roles</span><b>✓</b></div><div className="permission"><span>Generate reports</span><b>✓</b></div></article></div></>
+  return <><ModuleHeading eyebrow="ACCESS CONTROL" title="Administrator" description="Administrator accounts are managed by the system administrator." /><article className="module-card"><CardTitle title="Administrator access" subtitle="Permissions for signed-in administrators" /><p>View inventory and topology, create and edit assets, assign devices, record maintenance, manage consumable stock, scan QR labels, and download reports.</p></article></>
 }
 
 const manualSteps = [
@@ -846,8 +863,8 @@ function ManualPage() {
   </>
 }
 
-function CardTitle({ title, subtitle, action }: { title: string; subtitle: string; action?: string }) { return <div className="card-title"><div><h3>{title}</h3><p>{subtitle}</p></div>{action && <button>{action} →</button>}</div> }
+function CardTitle({ title, subtitle }: { title: string; subtitle: string }) { return <div className="card-title"><div><h3>{title}</h3><p>{subtitle}</p></div></div> }
 function StatusLine({label,value,color}:{label:string;value:string;color:string}) { return <div><span><i className={color}/>{label}</span><b>{value}</b></div> }
 function StatusBadge({state}:{state:AssetState}) { return <span className={`status-badge ${state.toLowerCase()}`}><i/>{state}</span> }
 function AssignmentBadge({ assigned }: { assigned: boolean }) { return <span className={`assignment-badge ${assigned ? 'assigned' : 'unassigned'}`}><i />{assigned ? 'Assigned' : 'Unassigned'}</span> }
-function ReportTile({icon,title,note}:{icon:string;title:string;note:string}) { return <button className="report-tile"><span>{icon}</span><div><b>{title}</b><small>{note}</small></div><i>→</i></button> }
+function ReportTile({icon,title,note,onClick}:{icon:string;title:string;note:string;onClick:()=>void}) { return <button type="button" className="report-tile" onClick={onClick} title={`Download ${title} CSV`}><span>{icon}</span><div><b>{title}</b><small>{note}</small></div><i>→</i></button> }
