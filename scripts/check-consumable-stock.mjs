@@ -60,6 +60,12 @@ try {
   await receive('SSD','Samsung SSD',5,512)
   const receipts = (await db.query('SELECT * FROM public.consumable_receipts')).rows
   const ram = receipts.find(row=>row.category==='RAM'), ssd = receipts.find(row=>row.category==='SSD')
+  // Reproduce older receipts: capacity appears in text, with no numeric field.
+  await db.exec('RESET ROLE')
+  await db.query("UPDATE public.consumable_receipts SET capacity_gb=NULL, specification='16 gb' WHERE id=$1", [ram.id])
+  await db.query("UPDATE public.consumable_receipts SET capacity_gb=NULL, specification='S800 512GB' WHERE id=$1", [ssd.id])
+  await db.exec('SET ROLE authenticated')
+  await page.reload()
   async function balances(ramUsed,ssdUsed) {
     await expect.poll(async () => (await db.query('SELECT used_quantity FROM public.consumable_receipts WHERE id=$1',[ram.id])).rows[0].used_quantity).toBe(ramUsed)
     await expect.poll(async () => (await db.query('SELECT used_quantity FROM public.consumable_receipts WHERE id=$1',[ssd.id])).rows[0].used_quantity).toBe(ssdUsed)
@@ -77,6 +83,7 @@ try {
   await dialog.getByLabel('SSDs installed').fill('1')
   await expect(dialog.getByLabel('RAM modules installed')).toHaveCount(1)
   await expect(dialog.getByLabel('SSDs installed')).toHaveCount(1)
+  await expect(dialog.getByLabel(/capacity/i)).toHaveCount(0)
   await expect(dialog.getByLabel('RAM capacity per module')).toHaveCount(0)
   await expect(dialog.getByLabel('SSD capacity per drive')).toHaveCount(0)
   await expect(dialog.getByText('2 × 16 GB = 32 GB total',{exact:true})).toBeVisible()
@@ -109,7 +116,13 @@ try {
     await expect(dialog).toHaveCount(0)
     await page.getByRole('button',{name:'Close full device record'}).click()
   }
+  // An older asset's manually entered capacity must be replaced by its stock's capacity.
+  await db.query("UPDATE public.assets SET ram_capacity_gb=1, ssd_capacity_gb=1 WHERE tag='STOCK-UI-01'")
+  await page.reload(); await navigate('Assets')
   dialog = await openEditor()
+  await expect(dialog.getByText('2 × 16 GB = 32 GB total',{exact:true})).toBeVisible()
+  await expect(dialog.getByText('1 × 512 GB = 512 GB total',{exact:true})).toBeVisible()
+  await expect(dialog.getByLabel(/capacity/i)).toHaveCount(0)
   await expect(dialog.getByLabel('RAM stock source',{exact:true})).toHaveValue(ram.id)
   await dialog.getByLabel('RAM modules installed').fill('3')
   await saveEditor(); await balances(3,1)

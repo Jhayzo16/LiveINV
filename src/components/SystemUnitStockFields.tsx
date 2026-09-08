@@ -1,3 +1,5 @@
+import { useEffect } from 'react'
+import { consumableCapacityGb } from '../lib/consumable-capacity'
 import { useQuery } from '@tanstack/react-query'
 import type { UseFormReturn } from 'react-hook-form'
 import { ConsumableRepository } from '../lib/repositories'
@@ -25,6 +27,18 @@ export function SystemUnitStockFields({ form, asset, disabled }: { form: UseForm
   const { register, watch, setValue, formState: { errors } } = form
   const system = watch('category') === 'System Unit'
   const stock = useQuery({ queryKey: ['consumable-receipts'], queryFn: ConsumableRepository.getAll, enabled: system || Boolean(asset?.ramReceiptId || asset?.ssdReceiptId), retry: 1, refetchInterval: 15000 })
+  const ramSource = watch('ramReceiptId')
+  const ssdSource = watch('ssdReceiptId')
+  useEffect(() => {
+    if (!system || disabled || !stock.data) return
+    for (const [source, field] of [[ramSource, 'ramCapacityGb'], [ssdSource, 'ssdCapacityGb']] as const) {
+      const receipt = stock.data.find(row => row.id === source)
+      if (!receipt) continue
+      const capacity = consumableCapacityGb(receipt)
+      const value = capacity ? String(capacity) : ''
+      if (form.getValues(field) !== value) setValue(field, value, { shouldValidate: true })
+    }
+  }, [system, disabled, stock.data, ramSource, ssdSource, form, setValue])
   if (!system && !asset?.ramReceiptId && !asset?.ssdReceiptId) return null
   return <section className="system-stock-fields wide" aria-label="RAM and SSD consumable stock">
     <h3>Memory and storage</h3>
@@ -57,16 +71,17 @@ export function SystemUnitStockFields({ form, asset, disabled }: { form: UseForm
                 setValue(source, event.target.value, { shouldValidate: true })
                 setValue(disposition, '')
                 if (row) {
-                  setValue(capacity, row.capacityGb ? String(row.capacityGb) : row.id === previousSource ? String(asset?.[capacity] || '') : '', { shouldValidate: true })
+                  setValue(capacity, String(consumableCapacityGb(row) || ''), { shouldValidate: true })
                   if (quantity < 1) setValue(count, '1', { shouldValidate: true })
                 } else {
                   setValue(capacity, existingParts ? String(asset?.[capacity] || 0) : '0', { shouldValidate: true })
                   setValue(count, existingParts ? String(previousCount) : '0', { shouldValidate: true })
                 }
-              }}><option value="">{existingParts ? 'Keep existing installed parts' : `No ${kind.toUpperCase()} installed`}</option>{selected && !receipt && <option value={selected}>Current linked receipt (unavailable)</option>}{options.map(row => <option key={row.id} value={row.id} disabled={row.usedQuantity === undefined || ((row.quantity - row.usedQuantity <= 0) && row.id !== previousSource)}>{row.itemName} · {row.specification} · {row.quantity - (row.usedQuantity || 0)} available · {row.dateReceived}{row.referenceNumber ? ` · ${row.referenceNumber}` : ''}</option>)}</select></label>
+              }}><option value="">{existingParts ? 'Keep existing installed parts' : `No ${kind.toUpperCase()} installed`}</option>{selected && !receipt && <option value={selected}>Current linked receipt (unavailable)</option>}{options.map(row => <option key={row.id} value={row.id} disabled={!consumableCapacityGb(row) || row.usedQuantity === undefined || ((row.quantity - row.usedQuantity <= 0) && row.id !== previousSource)}>{row.itemName} · {row.specification} · {row.quantity - (row.usedQuantity || 0)} available · {row.dateReceived}{row.referenceNumber ? ` · ${row.referenceNumber}` : ''}{!consumableCapacityGb(row) ? ' · Capacity not recorded' : ''}</option>)}</select></label>
               <label>{kind === 'ram' ? 'RAM modules installed' : 'SSDs installed'}<input type="number" min="0" step="1" readOnly={!selected && !existingParts} {...register(count)} disabled={disabled} />{errors[count] && <span className="field-error">{errors[count]?.message}</span>}</label>
             </div>
-            {receipt && !receipt.capacityGb ? <label className="stock-missing-capacity">{kind.toUpperCase()} capacity (GB per piece)<small>This older receipt has no saved capacity. Enter it once for this system unit.</small><input type="number" min="1" step="1" {...register(capacity)} disabled={disabled} />{errors[capacity] && <span className="field-error">{errors[capacity]?.message}</span>}</label> : <input type="hidden" {...register(capacity)} />}
+            <input type="hidden" {...register(capacity)} />
+            {receipt && !consumableCapacityGb(receipt) && <p className="field-error" role="alert">This consumable has no clear capacity recorded. Choose an item with a capacity in its Consumables record.</p>}
             {selected && <p className="stock-capacity-summary">{capacityValue > 0 ? `${quantity} × ${capacityValue} GB = ${quantity * capacityValue} GB total` : 'Capacity not yet recorded'}</p>}
             {!selected && existingParts && <p>Existing configuration: {quantity} × {capacityValue} GB. No consumable stock deduction.</p>}
             {receipt && <p><b>{receipt.itemName} · {receipt.specification}</b><br />{receipt.quantity - (receipt.usedQuantity || 0)} available · {additional} additional {kind === 'ram' ? 'module(s)' : 'drive(s)'} will be deducted.</p>}
