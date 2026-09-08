@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PmsPage } from '../pages/PmsPage'
@@ -20,6 +20,42 @@ beforeEach(() => {
   scanner.decode.mockResolvedValue({ stop: scanner.stop })
 })
 describe('PMS scanning', () => {
+  it('opens a saved session with its own details and all historical asset records', async () => {
+    const completed = { ...session, id: 'completed-session', technician: 'Previous Team', notes: 'Cleaned the cashier workstations.', completed_at: '2026-09-07T01:00:00Z', completed_by: 'admin' }
+    const historical = { ...record, session_id: completed.id }
+    const secondRecord = { ...historical, id: 'record-two', asset_tag: 'PC-02', qr_id: 'LIV-PC02', method: 'manual' as const }
+    vi.mocked(PmsRepository.sessions).mockResolvedValue([session, completed])
+    vi.mocked(PmsRepository.records).mockImplementation(async id => id === completed.id ? [historical, secondRecord] : [])
+    mount()
+    const history = await screen.findByRole('complementary', { name: 'PMS session history' })
+    fireEvent.click(within(history).getByRole('button', { name: /Previous Team/ }))
+    const detail = screen.getByRole('region', { name: 'Current PMS session' })
+    expect(await within(detail).findByRole('button', { name: 'View record for PC-01' })).toBeInTheDocument()
+    expect(within(detail).getByRole('button', { name: 'View record for PC-02' })).toBeInTheDocument()
+    expect(detail).toHaveTextContent('Cleaned the cashier workstations.')
+    expect(within(detail).getByText('Completed on').nextElementSibling?.querySelector('time')).toHaveAttribute('datetime', completed.completed_at)
+    expect(PmsRepository.records).toHaveBeenCalledWith(completed.id)
+    expect(screen.getByText('Session details').closest('.pms-session-view')).toHaveFocus()
+    expect(within(detail).queryByRole('button', { name: 'Mark maintained' })).not.toBeInTheDocument()
+
+    fireEvent.click(within(detail).getByRole('button', { name: 'View record for PC-01' }))
+    const savedRecord = within(detail).getByRole('region', { name: 'Maintenance record for PC-01' })
+    expect(savedRecord).toHaveTextContent('F1 · Cashier')
+    expect(savedRecord).toHaveTextContent('LIV-PC01')
+    expect(savedRecord).toHaveTextContent('Previous Team')
+    expect(savedRecord).toHaveTextContent('QR scan')
+    fireEvent.click(within(detail).getByRole('button', { name: 'Hide record for PC-01' }))
+    expect(within(detail).queryByRole('region', { name: 'Maintenance record for PC-01' })).not.toBeInTheDocument()
+
+    fireEvent.change(within(detail).getByLabelText('Search maintained assets'), { target: { value: 'LIV-PC02' } })
+    expect(within(detail).queryByRole('button', { name: 'View record for PC-01' })).not.toBeInTheDocument()
+    expect(within(detail).getByRole('button', { name: 'View record for PC-02' })).toBeInTheDocument()
+    fireEvent.click(within(history).getByRole('button', { name: /IT Team/ }))
+    const openDetail = screen.getByRole('region', { name: 'Current PMS session' })
+    expect(await within(openDetail).findByText('No assets maintained yet')).toBeInTheDocument()
+    expect(within(openDetail).getByLabelText('Search maintained assets')).toHaveValue('')
+    expect(within(openDetail).queryByText('Cleaned the cashier workstations.')).not.toBeInTheDocument()
+  })
   it('saves one QR detection to the current dated session and stops the camera', async () => {
     vi.mocked(PmsRepository.mark).mockImplementation(async () => {
       vi.mocked(PmsRepository.records).mockResolvedValue([record])

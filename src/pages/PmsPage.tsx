@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Fragment, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { BrowserQRCodeReader, type IScannerControls } from '@zxing/browser'
 import { PmsRepository, localDate, formatPmsDate, type PmsSession, type PmsRecord, type PmsService } from '../lib/pms'
@@ -17,6 +17,13 @@ export function PmsPage({ inventoryAssets }: { inventoryAssets: InventoryAsset[]
   const [creating, setCreating] = useState(false)
   const [busy, setBusy] = useState(false)
   const [search, setSearch] = useState('')
+  const detailRef = useRef<HTMLDivElement>(null)
+  const [detailRequest, setDetailRequest] = useState(0)
+  useEffect(() => {
+    if (!detailRequest) return
+    detailRef.current?.focus({ preventScroll: true })
+    detailRef.current?.scrollIntoView?.({ block: 'start', behavior: 'instant' })
+  }, [detailRequest])
   const sessions = sessionsQuery.data ?? []
   const selected = sessions.find(session => session.id === selectedId) ?? sessions.find(session => !session.completed_at) ?? sessions[0]
   const visible = sessions.filter(session => [session.technician, session.service_date, session.service_type, session.notes].join(' ').toLowerCase().includes(search.trim().toLowerCase()))
@@ -33,8 +40,8 @@ export function PmsPage({ inventoryAssets }: { inventoryAssets: InventoryAsset[]
     {sessionsQuery.isPending ? <p className="pms-state" role="status">Loading PMS sessions…</p> : sessionsQuery.isError ? <div className="pms-state pms-error" role="alert"><h2>PMS could not be loaded</h2><p>{sessionsQuery.error.message}</p><button type="button" className="export-btn" onClick={() => void sessionsQuery.refetch()}>Retry PMS</button></div> : <>
       {formVisible && <PmsSessionForm onSaved={saved} onBusy={setBusy} onCancel={sessions.length ? () => setCreating(false) : undefined} />}
       {sessions.length > 0 && !formVisible && <div className="pms-layout">
-        <aside className="pms-sessions" aria-label="PMS session history"><h2>Session history</h2><label>Find a session<input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Date, technician, or service" /></label><div className="pms-session-list">{visible.length ? visible.map(session => <button type="button" key={session.id} disabled={busy} className={selected?.id === session.id ? 'selected' : ''} aria-pressed={selected?.id === session.id} onClick={() => setSelectedId(session.id)}><span className={`pms-badge ${session.completed_at ? 'completed' : ''}`}>{session.completed_at ? 'Completed' : 'Open'}</span><b>{formatPmsDate(session.service_date)}</b><span>{session.service_type}</span><small>{session.technician}</small></button>) : <p className="pms-state">No matching sessions.</p>}</div></aside>
-        {selected && <PmsSessionDetail key={selected.id} session={selected} inventoryAssets={inventoryAssets} onBusy={setBusy} onCompleted={saved} />}
+        <aside className="pms-sessions" aria-label="PMS session history"><h2>Session history</h2><p className="pms-history-help">Select a session to view its details and maintained assets.</p><label>Find a session<input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Date, technician, or service" /></label><div className="pms-session-list">{visible.length ? visible.map(session => <button type="button" key={session.id} disabled={busy} className={selected?.id === session.id ? 'selected' : ''} aria-pressed={selected?.id === session.id} aria-controls="pms-session-view" onClick={() => { setSelectedId(session.id); setDetailRequest(value => value + 1) }}><span className={`pms-badge ${session.completed_at ? 'completed' : ''}`}>{session.completed_at ? 'Completed' : 'Open'}</span><b>{formatPmsDate(session.service_date)}</b><span>{session.service_type}</span><small>{session.technician}</small><span className="pms-view-session">View session details →</span></button>) : <p className="pms-state">No matching sessions.</p>}</div></aside>
+        {selected && <div id="pms-session-view" className="pms-session-view" ref={detailRef} tabIndex={-1}><PmsSessionDetail key={selected.id} session={selected} inventoryAssets={inventoryAssets} onBusy={setBusy} onCompleted={saved} /></div>}
       </div>}
     </>}
   </div>
@@ -75,6 +82,7 @@ function PmsSessionDetail({ session, inventoryAssets, onBusy, onCompleted }: { s
   const [scanning, setScanning] = useState(false)
   const [confirmComplete, setConfirmComplete] = useState(false)
   const [search, setSearch] = useState('')
+  const [expandedRecordId, setExpandedRecordId] = useState<string | null>(null)
   const busyRef = useRef(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -126,14 +134,48 @@ function PmsSessionDetail({ session, inventoryAssets, onBusy, onCompleted }: { s
   }
 
   return <section className="pms-session-detail" aria-label="Current PMS session">
-    <header className="pms-session-heading"><div><span className={`pms-badge ${closed ? 'completed' : ''}`}>{closed ? 'Completed' : 'Open session'}</span><h2>{session.service_type}</h2><p><time dateTime={session.service_date}>{formatPmsDate(session.service_date)}</time> · {session.technician}</p>{session.notes && <small>{session.notes}</small>}</div><div className="pms-count"><b>{recordsQuery.isPending || recordsQuery.isError ? '—' : records.length}</b><span>Assets maintained</span></div></header>
+    <header className="pms-session-heading"><div><span className={`pms-badge ${closed ? 'completed' : ''}`}>{closed ? 'Completed' : 'Open session'}</span><h2>{session.service_type}</h2><p><time dateTime={session.service_date}>{formatPmsDate(session.service_date)}</time> · {session.technician}</p></div><div className="pms-count"><b>{recordsQuery.isPending || recordsQuery.isError ? '—' : records.length}</b><span>Assets maintained</span></div></header>
+    <section className="pms-session-summary" aria-labelledby="pms-session-summary-title">
+      <h3 id="pms-session-summary-title">Session details</h3>
+      <dl className="pms-detail-grid">
+        <div><dt>Maintenance date</dt><dd>{formatPmsDate(session.service_date)}</dd></div>
+        <div><dt>IT personnel / technician</dt><dd>{session.technician}</dd></div>
+        <div><dt>Created on</dt><dd><PmsTimestamp value={session.created_at} /></dd></div>
+        <div><dt>Completed on</dt><dd>{session.completed_at ? <PmsTimestamp value={session.completed_at} /> : 'Session still open'}</dd></div>
+        <div className="pms-detail-wide"><dt>Session notes</dt><dd>{session.notes || 'No notes recorded.'}</dd></div>
+      </dl>
+    </section>
     {!closed && <section className="pms-scan" aria-label="Record maintained asset"><div><h3>Scan after maintenance</h3><p>A recognized asset is automatically marked maintained for this session. Scan only after its service or cleaning is finished.</p></div><button type="button" className="primary-action" disabled={saving || confirmComplete} onClick={() => { setError(''); setScanning(value => !value) }}>{scanning ? 'Stop camera' : 'Scan asset QR'}</button>{scanning && <video className="pms-camera" ref={videoRef} autoPlay muted playsInline aria-label="PMS QR camera" />}<form onSubmit={event => { event.preventDefault(); void mark(code, 'manual') }}><label>QR number or asset tag<input ref={inputRef} list="pms-asset-tags" value={code} onChange={event => setCode(event.target.value)} disabled={saving || scanning || confirmComplete} maxLength={256} placeholder="Scan with a handheld reader or type a code" required /></label><datalist id="pms-asset-tags">{inventoryAssets.map(asset => <option key={asset.tag} value={asset.tag}>{asset.name} · {asset.location}</option>)}</datalist><button type="submit" className="export-btn" disabled={saving || scanning || confirmComplete || !code.trim()}>{saving ? 'Saving…' : 'Mark maintained'}</button></form></section>}
     {message && <p className="pms-success" role="status">{message}</p>}
     {error && !confirmComplete && <p className="pms-error" role="alert">{error}</p>}
     {closed && <p className="pms-closed-note">This session is complete. Start a new session for additional maintenance.</p>}
-    <div className="pms-record-toolbar"><h3>Maintained assets</h3><label>Search maintained assets<input type="search" placeholder="Asset, QR number, or room" value={search} onChange={event => setSearch(event.target.value)} /></label></div>
-    {recordsQuery.isPending ? <p className="pms-state" role="status">Loading maintenance records…</p> : recordsQuery.isError ? <div className="pms-state pms-error" role="alert"><p>{recordsQuery.error.message}</p><button type="button" className="export-btn" onClick={() => void recordsQuery.refetch()}>Retry records</button></div> : filtered.length ? <div className="pms-table-wrap"><table className="pms-table"><thead><tr><th>Asset / QR number</th><th>Location at service</th><th>Recorded</th><th>Status</th></tr></thead><tbody>{filtered.map(record => <tr key={record.id}><td><b>{record.asset_tag}</b><span>{record.asset_name}</span><small>{record.qr_id} · {record.category}</small></td><td><b>{record.location}</b><small>{record.department}</small></td><td><time dateTime={record.recorded_at}>{new Date(record.recorded_at).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })}</time><small>{record.method === 'qr' ? 'QR scan' : 'Code entry'}</small></td><td><span className="pms-badge completed">Maintained</span></td></tr>)}</tbody></table></div> : <div className="pms-state"><PmsIcon /><h3>{search ? 'No matching assets' : 'No assets maintained yet'}</h3><p>{search ? 'Try another asset tag, QR number, or room.' : 'Scan an asset after maintenance to add its record here.'}</p></div>}
+    <div className="pms-record-toolbar"><h3>Maintained assets</h3><label>Search maintained assets<input type="search" placeholder="Asset, QR number, or room" value={search} onChange={event => { setSearch(event.target.value); setExpandedRecordId(null) }} /></label></div>
+    {recordsQuery.isPending ? <p className="pms-state" role="status">Loading maintenance records…</p> : recordsQuery.isError ? <div className="pms-state pms-error" role="alert"><p>{recordsQuery.error.message}</p><button type="button" className="export-btn" onClick={() => void recordsQuery.refetch()}>Retry records</button></div> : filtered.length ? <div className="pms-table-wrap"><table className="pms-table"><thead><tr><th>Asset / QR number</th><th>Location at service</th><th>Recorded</th><th>Status</th><th>Record</th></tr></thead><tbody>{filtered.map(record => <Fragment key={record.id}>
+      <tr><td data-label="Asset / QR number"><b>{record.asset_tag}</b><span>{record.asset_name}</span><small>{record.qr_id} · {record.category}</small></td><td data-label="Location at service"><b>{record.location}</b><small>{record.department}</small></td><td data-label="Recorded"><PmsTimestamp value={record.recorded_at} /><small>{record.method === 'qr' ? 'QR scan' : 'Code entry'}</small></td><td data-label="Status"><span className="pms-badge completed">Maintained</span></td><td data-label="Record"><button type="button" className="pms-record-toggle" aria-label={`${expandedRecordId === record.id ? 'Hide' : 'View'} record for ${record.asset_tag}`} aria-expanded={expandedRecordId === record.id} aria-controls={`pms-record-${record.id}`} onClick={() => setExpandedRecordId(current => current === record.id ? null : record.id)}>{expandedRecordId === record.id ? 'Hide record' : 'View record'}</button></td></tr>
+      {expandedRecordId === record.id && <tr className="pms-expanded-record"><td colSpan={5}><section id={`pms-record-${record.id}`} aria-label={`Maintenance record for ${record.asset_tag}`}>
+        <h3>Maintenance record · {record.asset_tag}</h3>
+        <p>Asset information saved at the time of service.</p>
+        <dl className="pms-detail-grid">
+          <div><dt>Asset tag</dt><dd>{record.asset_tag}</dd></div>
+          <div><dt>Asset name</dt><dd>{record.asset_name}</dd></div>
+          <div><dt>QR number</dt><dd>{record.qr_id}</dd></div>
+          <div><dt>Category</dt><dd>{record.category}</dd></div>
+          <div><dt>Location at service</dt><dd>{record.location || 'Not recorded'}</dd></div>
+          <div><dt>Department at service</dt><dd>{record.department || 'Not recorded'}</dd></div>
+          <div><dt>Service</dt><dd>{session.service_type}</dd></div>
+          <div><dt>Maintenance date</dt><dd>{formatPmsDate(session.service_date)}</dd></div>
+          <div><dt>IT personnel / technician</dt><dd>{session.technician}</dd></div>
+          <div><dt>Recorded on</dt><dd><PmsTimestamp value={record.recorded_at} /></dd></div>
+          <div><dt>Recording method</dt><dd>{record.method === 'qr' ? 'QR scan' : 'Code entry'}</dd></div>
+          <div><dt>Status</dt><dd><span className="pms-badge completed">Maintained</span></dd></div>
+        </dl>
+      </section></td></tr>}
+    </Fragment>)}</tbody></table></div> : <div className="pms-state"><PmsIcon /><h3>{search ? 'No matching assets' : 'No assets maintained yet'}</h3><p>{search ? 'Try another asset tag, QR number, or room.' : closed ? 'No maintained assets were recorded in this session.' : 'Scan an asset after maintenance to add its record here.'}</p></div>}
     {!closed && <footer className="pms-session-footer"><p>You can leave this session open and resume it from Session history.</p><button type="button" className="primary-action" disabled={saving || recordsQuery.isPending || recordsQuery.isError || !records.length} onClick={() => { setError(''); setScanning(false); setConfirmComplete(true) }}>Complete session</button></footer>}
     <AlertDialog open={confirmComplete} onOpenChange={open => { if (!busyRef.current) setConfirmComplete(open) }}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Complete this PMS session?</AlertDialogTitle><AlertDialogDescription>{records.length} asset{records.length === 1 ? '' : 's'} recorded for {formatPmsDate(session.service_date)}. The history will be kept, and no more assets can be added to this session.</AlertDialogDescription></AlertDialogHeader>{error && <p className="pms-error" role="alert">{error}</p>}<AlertDialogFooter><AlertDialogCancel disabled={saving} /><AlertDialogAction disabled={saving} onClick={event => { event.preventDefault(); void complete() }}>{saving ? 'Completing…' : 'Confirm completion'}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
   </section>
+}
+
+function PmsTimestamp({ value }: { value: string }) {
+  return <time dateTime={value}>{new Date(value).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })}</time>
 }

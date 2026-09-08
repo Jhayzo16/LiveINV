@@ -11,6 +11,19 @@
 .pms-metrics span, .pms-metrics small { font-size: 12px; color: #64786b; }
 .pms-metrics b { font-size: 28px; }
 .pms-layout { display: grid; grid-template-columns: minmax(210px, .7fr) minmax(0, 2fr); gap: 20px; align-items: start; }
+.pms-session-view { min-width: 0; scroll-margin-top: 24px; border-radius: 16px; }
+.pms-session-view:focus-visible { outline: 2px solid #1b6c24; outline-offset: 3px; }
+.pms-history-help { margin: 0 0 16px; color: #64786b; font-size: 12px; line-height: 1.6; }
+.pms-session-list .pms-view-session { color: #1b6c24; font-weight: 700; margin-top: 4px; }
+.pms-session-summary { margin-bottom: 22px; }
+.pms-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 24px; margin: 16px 0 0; }
+.pms-detail-grid dt { font-size: 11px; color: #64786b; margin-bottom: 6px; }
+.pms-detail-grid dd { margin: 0; font-size: 12px; line-height: 1.6; color: #213b29; overflow-wrap: anywhere; white-space: pre-wrap; }
+.pms-detail-wide { grid-column: 1 / -1; }
+.pms-record-toggle { border: 1px solid #cbd9d0; border-radius: 7px; background: #fff; color: #1b6c24; padding: 8px 10px; font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.pms-record-toggle:hover, .pms-record-toggle[aria-expanded="true"] { background: #eef8f0; border-color: #4b9d61; }
+.pms-expanded-record td { background: #f5faf6; padding: 20px; }
+.pms-expanded-record p { color: #64786b; font-size: 12px; line-height: 1.6; }
 .pms-sessions, .pms-session-detail, .pms-new-session { min-width: 0; background: #fff; border: 1px solid var(--pms-border); border-radius: 16px; padding: 20px; }
 .pms-module h2 { margin: 0 0 12px; font-size: 19px; font-family: var(--font-title); }
 .pms-module h3 { margin: 0 0 8px; font-size: 14px; }
@@ -66,8 +79,17 @@
   .pms-heading, .pms-record-toolbar, .pms-session-footer { flex-direction: column; align-items: stretch; }
   .pms-metrics { gap: 8px; } .pms-metrics article { padding: 12px; } .pms-metrics b { font-size: 23px; } .pms-metrics article > svg { display: none; }
   .pms-form-grid, .pms-scan { grid-template-columns: 1fr; }
+  .pms-session-summary .pms-detail-grid { grid-template-columns: 1fr; }
   .pms-scan form { flex-direction: column; align-items: stretch; }
   .pms-scan .export-btn { width: 100%; } .pms-record-toolbar label { max-width: none; }
   .pms-session-detail, .pms-sessions, .pms-new-session { padding: 15px; }
-  .pms-table { min-width: 540px; }
+  .pms-table, .pms-table tbody { display: block; min-width: 0; }
+  .pms-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .pms-table tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-bottom: 1px solid #dce7df; }
+  .pms-table td { min-width: 0; border: 0; overflow-wrap: anywhere; }
+  .pms-table td:first-child { grid-column: 1 / -1; }
+  .pms-table td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 8px; color: #64786b; font-size: 10px; }
+  .pms-table .pms-expanded-record { display: block; }
+  .pms-expanded-record td { display: block; padding: 16px; }
+  .pms-expanded-record .pms-detail-grid { grid-template-columns: 1fr; }
 }
