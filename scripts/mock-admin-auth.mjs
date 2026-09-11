@@ -24,5 +24,5 @@ export async function signInMockAdmin(page) {
   await page.getByLabel('Email address').fill('admin@example.test')
   await page.getByLabel('Password', { exact: true }).fill('test-password')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await page.getByRole('navigation', { name: 'Primary navigation' }).waitFor()
+  await page.locator('.app-shell').waitFor()
 }

@@ -257,7 +257,9 @@ const deviceCategories: DeviceCategory[] = ['Printer', 'Monitor', 'Keyboard', 'S
 const RECENT_PROCESSORS_KEY = 'liveinv-recent-processors'
 
 function DeviceRegistrationDialog({ onClose, onRegister }: { onClose: () => void; onRegister: (asset: InventoryAsset) => Promise<void> }) {
+  const dialogRef = useRef<HTMLElement>(null)
   const [step, setStep] = useState(1)
+  useEffect(() => { if (dialogRef.current) dialogRef.current.scrollTop = 0 }, [step])
   const [saving, setSaving] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState('')
   const [saveError, setSaveError] = useState('')
@@ -331,7 +333,7 @@ function DeviceRegistrationDialog({ onClose, onRegister }: { onClose: () => void
   }
 
   return <div className="device-dialog-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget && !saving) onClose() }}>
-    <section className="device-dialog" role="dialog" aria-modal="true" aria-labelledby="device-registration-title">
+    <section ref={dialogRef} className="device-dialog" role="dialog" aria-modal="true" aria-labelledby="device-registration-title">
       <header className="device-dialog-header"><div><span>DEVICE REGISTRATION</span><h2 id="device-registration-title">Add a new device</h2><p>Record the equipment details now. Its hospital location can be assigned separately.</p></div><button type="button" aria-label="Close device registration" onClick={onClose} disabled={saving}>×</button></header>
       <div className="device-registration-steps" aria-label={`Registration step ${step} of 2`}>
         {['Device details', 'Generate QR'].map((label, index) => <div key={label} className={`${step === index + 1 ? 'current' : ''} ${step > index + 1 ? 'complete' : ''}`}><b>{step > index + 1 ? '✓' : index + 1}</b><span>{label}</span></div>)}

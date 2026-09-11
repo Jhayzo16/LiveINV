@@ -166,11 +166,11 @@ export function App({ adminEmail, onSignOut }: { adminEmail?: string; onSignOut:
 
   return <div className={`app-shell module-${module} ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
     <LiveInvSidebar module={module} expanded={sidebarOpen} onToggle={() => setSidebarOpen(open => !open)} onNavigate={openModule} totalAssets={total} adminEmail={adminEmail} onSignOut={onSignOut} />
-    <main>
+    <main id="main-content">
       {inventoryError && <div className="unresolved-locations" role="alert">Shared inventory could not be refreshed. {inventoryAssets.length ? 'The last loaded records are shown.' : 'Asset counts are unavailable.'} <button type="button" onClick={() => void refetchInventoryAssets()}>Retry inventory</button></div>}
       {inventoryLoading && <p role="status">Loading shared inventory…</p>}
       {unsyncedAssetTags.length > 0 && <div className="unresolved-locations" role="alert">Earlier browser-only edits were not saved to the shared inventory: {unsyncedAssetTags.join(', ')}. Shared records are shown here; review and save these records again to apply your edits.</div>}
-      <header className="topbar"><div className="crumbs">{module === 'topology' ? <><button onClick={resetToFloors}>Live Mapping</button>{selectedFloor && <><span>/</span><button onClick={() => { setRoomId(null); setAssetId(null) }}>Floor {floor}</button></>}{room && <><span>/</span><button onClick={() => setAssetId(null)}>{room.name}</button></>}{asset && <><span>/</span><b>{asset.id}</b></>}</> : <><span>Hospital Inventory</span><span>/</span><b>{module === 'pms' ? 'PMS' : module === 'qr' ? 'QR Scanner' : module === 'network' ? 'Network Registry' : module === 'manual' ? 'System Manual' : module.charAt(0).toUpperCase() + module.slice(1)}</b></>}</div><div className="top-actions"><span className="avatar">AD</span></div></header>
+      <header className="topbar"><MobileNavigation module={module} onNavigate={openModule} totalAssets={total} adminEmail={adminEmail} onSignOut={onSignOut} /><div className="crumbs">{module === 'topology' ? <><button onClick={resetToFloors}>Live Mapping</button>{selectedFloor && <><span>/</span><button onClick={() => { setRoomId(null); setAssetId(null) }}>Floor {floor}</button></>}{room && <><span>/</span><button onClick={() => setAssetId(null)}>{room.name}</button></>}{asset && <><span>/</span><b>{asset.id}</b></>}</> : <><span>Hospital Inventory</span><span>/</span><b>{module === 'pms' ? 'PMS' : module === 'qr' ? 'QR Scanner' : module === 'network' ? 'Network Registry' : module === 'manual' ? 'System Manual' : module.charAt(0).toUpperCase() + module.slice(1)}</b></>}</div><div className="top-actions"><span className="avatar">AD</span></div></header>
       {module !== 'topology' && <SystemModulePage module={module} assignmentTarget={assignmentTarget} assetAction={assetAction} />}
       {module === 'topology' && !floor && <FloorTopology floors={liveFloors} onSelect={setFloor} />}
       {module === 'topology' && floor && !room && <FloorView floor={selectedFloor!} onBack={resetToFloors} rooms={dynamicRoomsByFloor[floor] ?? []} inventoryAssets={inventoryAssets} availableAssets={availableAssets} onAssignAvailableAsset={assignAvailableAssetToRoom} onUnassignAsset={unassignRoomAsset} />}
@@ -225,6 +225,38 @@ function LiveInvSidebar({ module, expanded, onToggle, onNavigate, totalAssets = 
       <button type="button" className="admin-sign-out" title={adminEmail ? `Sign out ${adminEmail}` : 'Sign out'} onClick={() => void onSignOut()}>Sign out</button>
     </footer>
   </aside>
+}
+
+function MobileNavigation({ module, onNavigate, totalAssets, adminEmail, onSignOut }: {
+  module: SystemModule | 'topology'
+  onNavigate: (module: SystemModule | 'topology') => void
+  totalAssets: number
+  adminEmail?: string
+  onSignOut: () => Promise<void>
+}) {
+  const dialog = useRef<HTMLDialogElement>(null)
+  const [open, setOpen] = useState(false)
+  const close = () => { dialog.current?.close(); setOpen(false) }
+
+  useEffect(() => {
+    if (!open) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const desktop = window.matchMedia('(min-width: 1025px)')
+    const onResize = () => { if (desktop.matches) { dialog.current?.close(); setOpen(false) } }
+    desktop.addEventListener('change', onResize)
+    return () => { document.body.style.overflow = previousOverflow; desktop.removeEventListener('change', onResize) }
+  }, [open])
+
+  return <>
+    <button type="button" className="mobile-menu-button" aria-label="Open navigation" aria-haspopup="dialog" aria-expanded={open} aria-controls="mobile-navigation" onClick={() => { dialog.current?.showModal(); setOpen(true) }}><span aria-hidden="true">☰</span></button>
+    {createPortal(<dialog ref={dialog} id="mobile-navigation" className="mobile-navigation" aria-label="Navigation menu" onClose={() => setOpen(false)} onClick={event => { if (event.target === event.currentTarget) close() }}>
+      <div className="mobile-navigation-content">
+        <button type="button" className="mobile-menu-close" aria-label="Close navigation" onClick={close}>×</button>
+        <LiveInvSidebar module={module} expanded onToggle={close} onNavigate={next => { close(); onNavigate(next) }} totalAssets={totalAssets} adminEmail={adminEmail} onSignOut={async () => { close(); await onSignOut() }} />
+      </div>
+    </dialog>, document.body)}
+  </>
 }
 
 function StatusRow({ color, label, value }: { color: string; label: string; value: string }) { return <div className="status-row"><span><i className={color}/>{label}</span><b>{value}</b></div> }

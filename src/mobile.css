@@ -1,212 +1,224 @@
+/* Responsive application layouts. Keep data visible; constrain scrolling to maps and tables. */
+.mobile-menu-button { display: none; }
+.mobile-navigation { padding: 0; border: 0; background: transparent; color: #24352d; }
+.mobile-navigation:not([open]) { display: none; }
+.mobile-navigation::backdrop { background: #10201899; backdrop-filter: blur(4px); }
 
-/* Mobile Responsive Overrides */
+@media (max-width: 1200px) {
+  .app-shell, .app-shell.module-assets { grid-template-columns: 210px minmax(0, 1fr); }
+  .app-shell.sidebar-collapsed, .app-shell.module-assets.sidebar-collapsed { grid-template-columns: 78px minmax(0, 1fr); }
+  .app-shell > .insights-panel { display: none; }
+  .scanner-layout, .dashboard-grid { grid-template-columns: minmax(0, 1fr); }
+  .workspace.module-workspace { padding: 28px 24px; }
+}
+
+@media (max-width: 1024px) {
+  body:has([aria-modal="true"]), body:has(.mobile-navigation[open]) { overflow: hidden; }
+  .workspace :is(input, select, textarea), .device-dialog :is(input, select, textarea), .equipment-dialog :is(input, select, textarea), .admin-login-form input { min-width: 0; max-width: 100%; font-size: 16px; min-height: 44px; }
+  .workspace :is(button, a.primary-action), .device-dialog :is(button, a.primary-action), .device-record-dialog button, .equipment-dialog button, .alert-dialog-content button { min-height: 44px; }
+  .app-shell, .app-shell.sidebar-collapsed, .app-shell.module-assets { display: block; height: auto; min-height: 100dvh; overflow: visible; }
+  .app-shell > .liveinv-sidebar { display: none; }
+  .app-shell > main { width: 100%; min-width: 0; height: auto; min-height: 100dvh; margin: 0; overflow: visible; }
+  .app-shell .topbar { position: sticky; top: 0; z-index: 40; height: auto; min-height: 64px; gap: 12px; padding: 8px max(16px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left)); }
+  .topbar .crumbs { min-width: 0; flex: 1; flex-wrap: wrap; gap: 5px 8px; font-size: 12px; overflow-wrap: anywhere; }
+  .topbar .crumbs button { min-height: 32px; text-align: left; }
+  .topbar .top-actions { flex: 0 0 auto; }
+  .mobile-menu-button, .mobile-menu-close { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; border: 1px solid #dce5df; border-radius: 10px; background: #fff; color: #244b33; font-size: 22px; padding: 0; }
+  .mobile-navigation[open] { position: fixed; inset: 0 auto 0 0; width: min(340px, 90vw); max-width: none; max-height: none; height: 100dvh; margin: 0; overflow: auto; overscroll-behavior: contain; background: #fff; border-radius: 0 20px 20px 0; }
+  .mobile-navigation-content { position: relative; min-height: 100%; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+  .mobile-menu-close { position: absolute; top: max(12px, env(safe-area-inset-top)); right: 12px; z-index: 2; }
+  .mobile-navigation .liveinv-sidebar { display: flex; flex-direction: column; position: static; width: 100%; height: auto; min-height: 100dvh; max-height: none; padding: 16px; box-shadow: none; }
+  .mobile-navigation .sidebar-toggle { display: none; }
+  .mobile-navigation .liveinv-sidebar-header { padding-right: 44px; }
+  .mobile-navigation .brand { padding: 4px 4px 18px; }
+  .mobile-navigation .brand-logo { max-width: 160px; }
+  .mobile-navigation .liveinv-sidebar-body { overflow: visible; padding-top: 8px; }
+  .mobile-navigation .liveinv-sidebar-body nav { --nav-row-height: 46px; --nav-row-gap: 5px; }
+  .mobile-navigation .nav-item { min-height: 46px; padding: 10px 12px; gap: 12px; justify-content: flex-start; }
+  .mobile-navigation .sidebar-item-label { display: block; max-width: none; font-size: 14px; }
+  .mobile-navigation .sidebar-profile-copy, .mobile-navigation .sidebar-section-label, .mobile-navigation .nav-count { display: block; }
+  .mobile-navigation .nav-count { font-size: 11px; }
+  .mobile-navigation .nav-item.active { background: #edf6ef; color: #1b6c24; }
+  .mobile-navigation .liveinv-sidebar-body nav::before { display: none; }
+  .mobile-navigation .liveinv-sidebar-footer { margin-top: 20px; }
+  .mobile-navigation .admin-sign-out { min-height: 44px; font-size: 14px; }
+  .workspace, .workspace.module-workspace { padding: 24px; }
+  .assignment-layout, .maintenance-layout, .users-layout, .reports-layout, .device-assignment-layout { grid-template-columns: minmax(0, 1fr); }
+  .move-summary, .maintenance-schedule, .role-panel { display: block; }
+  .floor-map-layout, .floor-map-layout.directory-collapsed { grid-template-columns: minmax(0, 1fr); }
+  .floor-room-directory { height: auto; min-height: 0; max-height: 460px; }
+  .floor-map-card { min-height: 480px; height: min(700px, 75dvh); }
+  .room-stage, .asset-detail-grid { grid-template-columns: minmax(0, 1fr); }
+  .room-side { display: block; }
+}
+
 @media (max-width: 768px) {
-  /* Global Shell & Workspace */
-  .app-shell,
-  .app-shell.sidebar-collapsed {
-    display: flex !important;
-    flex-direction: column !important;
-  }
-  
-  .liveinv-sidebar {
-    width: 100% !important;
-    height: 100px;
-    min-height: 0;
-    max-height: 100px;
-    flex-direction: row;
-    position: fixed;
-    top: auto;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1000;
-    padding: 0 !important;
-    background: #fff;
-    border-top: 1px solid #edf0f2;
-    border-right: none;
-    box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
-  }
-
-  .liveinv-sidebar-header, .sidebar-spacer, .liveinv-sidebar-footer, .sidebar-section-label {
-    display: none !important;
-  }
-
-  .liveinv-sidebar-body {
-    width: 100%;
-    margin: 0;
-    display: flex;
-  }
-
-  .liveinv-sidebar nav[aria-label="Primary navigation"] {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-around;
-    padding: 0 5px;
-    width: 100%;
-    overflow-x: auto;
-  }
-
-  .liveinv-sidebar .nav-item {
-    padding: 16px 12px;
-    flex-direction: column;
-    gap: 8px;
-    font-size: 15px;
-    width: auto;
-    background: transparent !important;
-    white-space: nowrap;
-    align-items: center;
-    justify-content: center;
-    min-height: 80px;
-    flex-shrink: 0;
-  }
-
-  .liveinv-sidebar .sidebar-item-label {
-    display: block;
-    max-width: none;
-    opacity: 1;
-    font-size: 10px;
-  }
-
-  .liveinv-sidebar .nav-icon {
-    width: 28px;
-    height: 28px;
-  }
-
-  .liveinv-sidebar .nav-item.active {
-    color: #1b6c24;
-  }
-
-  .liveinv-sidebar .nav-count {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    font-size: 14px;
-    padding: 4px 10px;
-  }
-
-  main {
-    margin-bottom: 100px; /* Space for bottom nav */
-  }
-
-  /* Bigger Buttons for Touch */
-  button.quick, 
-  button.primary-action, 
-  button.ghost-btn {
-    font-size: 16px !important;
-    padding: 18px 24px !important;
-    min-height: 56px;
-  }
-
-  button.outline-full {
-    font-size: 16px !important;
-    padding: 18px !important;
-    min-height: 56px;
-  }
-
-  /* Typography & Spacing */
-  .module-workspace {
-    padding: 16px !important;
-  }
-  
-  .page-heading h1 {
-    font-size: 24px;
-  }
-  
-  .page-heading p {
-    font-size: 12px;
-  }
-
-  /* Grids */
-  .metric-grid, 
-  .dashboard-grid, 
-  .network-summary, 
-  .report-catalog, 
-  .reports-layout,
-  .assignment-layout,
-  .maintenance-layout,
-  .users-layout {
-    display: flex !important;
-    flex-direction: column;
-    gap: 16px;
-  }
-  
-  /* Tables */
-  .data-table {
-    overflow-x: auto;
-  }
-
-  .table-row {
-    grid-template-columns: minmax(120px, 1fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(100px, 1fr) 20px !important;
-    font-size: 11px;
-  }
-
-  .network-table .table-row {
-    grid-template-columns: minmax(140px, 1fr) minmax(120px, 1fr) minmax(100px, 1fr) minmax(100px, 1fr) !important;
-  }
-
-  .ticket-row, .ticket-head {
-    grid-template-columns: minmax(100px, 1fr) minmax(150px, 2fr) minmax(80px, 1fr) !important;
-  }
-  
-  .ticket-row > span:nth-child(4), 
-  .ticket-head > span:nth-child(4),
-  .ticket-row > span:nth-child(5), 
-  .ticket-head > span:nth-child(5) {
-    display: none;
-  }
-
-  /* Modals */
-  .dialog-content {
-    width: 95% !important;
-    max-width: 400px;
-    padding: 16px;
-  }
-  
-  .form-grid {
-    grid-template-columns: 1fr !important;
-  }
-  
-  .spec-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* QR Scanner */
-  .scanner-camera {
-    height: 300px;
-  }
-  
-  /* Specific Fixes */
-  .qr-fallback-row {
-    flex-direction: column;
-  }
-  
-  .filter-pills {
-    overflow-x: auto;
-    white-space: nowrap;
-    padding-bottom: 8px;
-  }
+  /* Shared controls and text. 16px form text avoids iOS focus zoom. */
+  .workspace, .workspace.module-workspace { padding: 22px max(16px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+  .workspace :is(.primary-action, .export-btn, .ghost-btn, .outline-full), .device-dialog :is(.primary-action, .export-btn), .device-record-dialog :is(.primary-action, .export-btn) { height: auto; padding: 11px 14px; font-size: 13px; line-height: 1.4; white-space: normal; }
+  .workspace :is(h1, h2, h3, p, b, small), .device-dialog :is(h2, h3, p, b, dd), .device-record-dialog :is(h2, h3, p, b, dd) { overflow-wrap: anywhere; }
+  .module-heading, .asset-gallery-heading, .consumables-heading { flex-direction: column; align-items: stretch; gap: 16px; }
+  .module-heading h1, .section-heading h1, .page-heading h1, .asset-gallery-heading h1, .consumables-heading h1 { font-size: 28px; line-height: 1.2; }
+  .module-heading p, .section-heading p, .asset-gallery-heading p, .consumables-heading p { font-size: 13px; }
+  .asset-gallery-actions, .consumables-heading-actions { flex-wrap: wrap; gap: 8px; }
+  .module-heading > button { align-self: flex-start; }
+  .module-card, .metric-card, .consumable-metric, .report-tile, .workspace label, .workspace fieldset { min-width: 0; }
+  .metric-grid, .consumable-metric-grid, .network-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .metric-card { min-height: 130px; padding: 16px; }
+  .metric-card .metric-card-icon { width: 28px; height: 28px; flex: 0 0 28px; }
+  .metric-card > b { font-size: 28px; }
+  .metric-card > small, .metric-card-top > span { font-size: 12px; }
+  .dashboard-grid, .scanner-layout, .reports-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .health-layout { flex-wrap: wrap; gap: 20px; }
+  .health-legend { min-width: 0; flex: 1; }
+  .activity-row > span { min-width: 0; }
+  .card-title { gap: 12px; flex-wrap: wrap; }
+  .asset-health, .floor-coverage, .activity-card, .attention-card, .transfer-card, .move-summary, .reports-layout > .module-card { padding: 18px; }
+  .toolbar, .asset-gallery-toolbar { flex-wrap: wrap; gap: 10px; }
+  .toolbar .search-field, .asset-gallery-toolbar .search-field { flex: 1 1 100%; min-width: 0; height: 46px; }
+  .search-field { max-width: 100%; }
+  .filter-pills { display: flex; max-width: 100%; flex-wrap: wrap; gap: 6px; }
+  .asset-gallery-toolbar .filter-pills { flex: 1 1 100%; overflow: visible; }
+  .filter-pills button, .asset-gallery-toolbar .filter-pills button { height: auto; min-height: 44px; font-size: 12px; padding: 8px 12px; }
+  .asset-category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .asset-category-card { padding: 10px; gap: 8px; }
+  .asset-category-card > span { width: 30px; height: 30px; flex-basis: 30px; }
+  .asset-category-card b { white-space: normal; font-size: 12px; }
+  .asset-category-card small { font-size: 11px; }
+  .asset-device-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .asset-device-copy { padding: 14px; }
+  .asset-device-copy dl { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .asset-device-copy p, .asset-device-copy dd { white-space: normal; }
+  .asset-device-copy small, .asset-device-copy dd, .asset-device-copy footer { font-size: 12px; }
+  .asset-list-view .asset-device-card { grid-template-columns: 100px minmax(0, 1fr); }
+  .asset-device-copy footer { flex-wrap: wrap; }
+  /* Wide registries scroll inside their cards without dropping columns. */
+  .data-table { min-width: 0; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
+  .data-table .table-row { min-width: 860px; grid-template-columns: 1.3fr .8fr 1fr 1fr .8fr .8fr 24px; }
+  .data-table .table-row > span { display: block; }
+  .network-table .table-row { min-width: 760px; grid-template-columns: 1.25fr .85fr 1.15fr 1.1fr .75fr .65fr; }
+  .work-orders { overflow-x: auto; }
+  .ticket-head, .ticket-row { min-width: 620px; }
+  .form-grid, .device-form-grid, .spec-grid, .pms-form-grid, .details { grid-template-columns: minmax(0, 1fr); }
+  .form-grid .wide { grid-column: 1 / -1; }
+  .form-actions, .device-form-actions, .device-qr-actions, .device-record-actions, .pms-actions { flex-wrap: wrap; gap: 10px; }
+  .form-actions > *, .device-form-actions > *, .device-qr-actions > *, .device-record-actions > * { flex: 1 1 140px; text-align: center; justify-content: center; }
+  .assignment-form-heading { flex-wrap: wrap; }
+  .assigned-transfer-filters { flex-wrap: wrap; padding: 14px; }
+  .assigned-transfer-filters label { flex: 1 1 100%; min-width: 0; }
+  .assigned-transfer-row { grid-template-columns: 36px minmax(0, 1fr); padding: 16px; gap: 10px; }
+  .assigned-transfer-location, .assigned-transfer-row > .assignment-badge, .assigned-transfer-row > button { grid-column: 2; }
+  .queue-device, .selected-asset, .move-row { min-width: 0; }
+  .queue-device > div, .selected-asset p { min-width: 0; overflow-wrap: anywhere; }
+  .report-catalog { grid-template-columns: minmax(0, 1fr); }
+  .report-tile { min-height: 96px; }
+  .bar-chart { padding-inline: 0; gap: 6px; }
+  .bar-chart span { width: clamp(16px, 5vw, 32px); }
+  .manual-intro, .manual-step-grid, .manual-notes { grid-template-columns: minmax(0, 1fr); }
+  .manual-flow { width: 100%; flex-wrap: wrap; }
+  .manual-step { grid-template-columns: 42px minmax(0, 1fr); padding: 16px; gap: 12px; }
+  .manual-step p, .manual-notes p, .manual-intro p { font-size: 13px; }
+  .manual-step-number span { width: 38px; height: 38px; }
+  .scanner-card { min-height: 0; padding: 24px 16px; }
+  .scanner-frame { width: min(270px, 100%); height: auto; aspect-ratio: 1; }
+  .scanner-card p { text-align: center; }
+  .manual-scan-form { grid-template-columns: minmax(0, 1fr); }
+  .qr-information-panel { min-height: 0; padding: 16px; }
+  .qr-asset-result { grid-template-columns: minmax(0, 1fr); }
+  .qr-asset-result header { flex-wrap: wrap; }
+  .qr-device-preview { justify-self: center; }
+  .qr-result-labels { justify-content: flex-start; }
+  .qr-asset-result dd { overflow-wrap: anywhere; }
+  .qr-asset-result dt, .qr-asset-result dd, .qr-asset-result header p, .scan-row small, .privacy-note p, .scan-message { font-size: 12px; line-height: 1.5; }
+  .qr-asset-result dl > div { flex-wrap: wrap; gap: 5px 12px; padding-block: 10px; }
+  .qr-asset-result dd { max-width: 100%; }
+  .qr-result-actions > button { flex: 1 1 140px; }
+  .pms-layout { grid-template-columns: minmax(0, 1fr); }
+  .pms-session-list { grid-template-columns: minmax(0, 1fr); max-height: 320px; }
+  .pms-session-heading { flex-wrap: wrap; }
+  .pms-count { min-width: 0; text-align: left; }
+  .pms-heading, .pms-record-toolbar, .pms-session-footer { flex-wrap: wrap; }
+  .consumable-metric { padding: 14px; }
+  .consumable-usage { padding: 16px; }
+  /* Dialog headers/footers scroll too, keeping forms usable with a phone keyboard. */
+  .device-dialog-backdrop, .device-record-backdrop, .equipment-dialog-backdrop, .alert-dialog-overlay { padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
+  .device-dialog-backdrop { z-index: 1150; }
+  .device-dialog, .device-record-dialog, .equipment-dialog, .alert-dialog-content { width: 100%; max-width: 100%; max-height: calc(100dvh - 24px); min-height: 0; border-radius: 16px; overflow-y: auto; overscroll-behavior: contain; }
+  .device-dialog-header, .device-record-header, .equipment-dialog-header { flex: 0 0 auto; gap: 10px; padding: 16px; }
+  .device-dialog-header > div, .device-record-header > div, .equipment-dialog-header > div { min-width: 0; }
+  .device-dialog-header > button, .device-record-header > button, .equipment-dialog-close { width: 44px; height: 44px; flex: 0 0 44px; }
+  .device-dialog-header h2, .device-record-header h2, .equipment-dialog-header h2 { font-size: 21px; }
+  .device-dialog-header p, .device-record-header p, .equipment-dialog-header p { font-size: 12px; line-height: 1.5; }
+  .device-form, .device-qr-complete, .device-record-content { flex-shrink: 0; overflow: visible; padding: 16px; }
+  .device-registration-steps { flex-shrink: 0; padding: 14px 16px; }
+  .device-registration-steps > div:not(:last-child)::after { display: none; }
+  .device-form-grid label, .device-form-grid label small, .device-spec-heading p, .registration-assignment-note p, .asset-edit-assignment-note p { font-size: 12px; line-height: 1.5; }
+  .device-form fieldset { min-width: 0; }
+  .device-qr-complete, .device-record-content, .device-record-preview-card { grid-template-columns: minmax(0, 1fr); }
+  .device-record-preview { width: 100%; max-width: 240px; justify-self: center; }
+  .device-record-status { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .device-record-status > div { min-width: 0; }
+  .device-record-content dt, .device-record-content dd { font-size: 12px; }
+  .device-record-content dl > div { flex-wrap: wrap; padding-block: 9px; }
+  .device-record-content dd { max-width: 100%; }
+  .generated-qr { min-height: 0; width: min(260px, 100%); justify-self: center; }
+  .device-qr-summary > p, .device-qr-summary dt, .device-qr-summary dd, .qr-security-note :is(b, p, code) { font-size: 12px; line-height: 1.5; }
+  .registration-assignment-note, .asset-edit-assignment-note { flex-wrap: wrap; }
+  .alert-dialog-description { font-size: 13px; }
+  .alert-dialog-action, .alert-dialog-cancel { font-size: 13px; }
+  /* Floor exploration remains touch accessible through the floor and room directories. */
+  .hospital-topology-workspace .section-heading { position: static; max-width: none; margin-bottom: 16px; }
+  .hospital-3d-shell { margin: 0; min-height: 480px; height: 70dvh; max-height: 720px; }
+  .floor-workspace { padding: 16px; }
+  .floor-map-card { display: flex; flex-direction: column; min-height: 460px; height: 70dvh; }
+  .map-toolbar { position: relative; flex: 0 0 auto; height: auto; min-height: 96px; flex-wrap: wrap; gap: 8px; padding: 10px; }
+  .floor-map-card .map-viewport { position: relative; inset: auto; flex: 1; min-height: 0; width: 100%; }
+  .map-status { position: relative; inset: auto; flex: 0 0 auto; height: auto; min-height: 37px; flex-wrap: wrap; gap: 10px; padding: 10px; }
+  .map-toolbar-leading, .map-toolbar-actions { flex-wrap: wrap; gap: 8px; }
+  .map-toolbar-leading { width: 100%; }
+  .map-toolbar-actions { width: 100%; justify-content: flex-end; }
+  .map-toolbar-back { font-size: 12px; }
+  .room-focus-layout { display: block; flex: 0 0 auto; overflow: visible; }
+  .equipment-dialog { height: auto; }
+  .room-focus-visual, .room-focus-details { padding: 16px; overflow: visible; }
+  .room-focus-plan { min-height: 280px; }
+  .room-focus-heading, .room-focus-selected-heading { flex-wrap: wrap; }
+  .room-focus-selected-grid { grid-template-columns: minmax(0, 1fr); }
+  .room-focus-selected-grid .detail { border-right: 0; }
+  .room-focus-selected-grid .detail span, .room-focus-selected-grid .detail b { font-size: 12px; }
+  .room-focus-device-list button b, .room-focus-device-list button small { font-size: 12px; }
+  .equipment-filter-tabs { flex-wrap: wrap; }
+  .equipment-summary-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); flex-shrink: 0; }
+  .equipment-summary-strip > div:first-child { display: grid; }
+  .equipment-dialog-header-actions { flex-wrap: wrap; }
+  .room-inline-assignment { flex-shrink: 0; }
+  .room-hover-card { max-width: calc(100vw - 24px); }
+  .resolve-room-assignment select { min-width: 0; flex-basis: 100%; }
+  .asset-qr-label { max-width: 100%; }
 }
 
 @media (max-width: 480px) {
-  /* Even tighter tables on very small screens */
-  .table-row {
-    grid-template-columns: minmax(120px, 1fr) minmax(100px, 1fr) 20px !important;
-  }
-  .table-row > span:nth-child(3),
-  .table-row > span:nth-child(4),
-  .table-head > span:nth-child(3),
-  .table-head > span:nth-child(4) {
-    display: none;
-  }
-
-  .network-table .table-row {
-    grid-template-columns: minmax(140px, 1fr) minmax(100px, 1fr) !important;
-  }
-  .network-table .table-row > span:nth-child(3),
-  .network-table .table-row > span:nth-child(4),
-  .network-table .table-head > span:nth-child(3),
-  .network-table .table-head > span:nth-child(4) {
-    display: none;
-  }
+  .asset-device-grid { grid-template-columns: minmax(0, 1fr); }
+  .asset-list-view .asset-device-card { grid-template-columns: minmax(0, 1fr); }
+  .asset-list-view .asset-device-visual { height: 160px; }
+  .health-layout { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .health-legend { width: 100%; }
+  .pms-metrics { grid-template-columns: minmax(0, 1fr); }
+  .pms-metrics article { padding: 16px; }
+  .pms-metrics article > svg { display: block; }
+  .pms-session-heading { align-items: flex-start; flex-direction: column; }
+  .consumables-heading-actions > button { flex: 1 1 100%; }
+  .mobile-floor-selector { gap: 4px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .mobile-floor-selector button { aspect-ratio: auto; min-height: 44px; }
+  .mobile-selected-floor { padding: 12px; }
+  .mobile-selected-floor button { position: static; width: 100%; margin-top: 10px; font-size: 13px; }
+  .network-summary { grid-template-columns: minmax(0, 1fr); }
+  .device-record-status { grid-template-columns: minmax(0, 1fr); }
+  .equipment-dialog-header { flex-wrap: wrap; }
+  .equipment-dialog-header-actions { width: 100%; justify-content: space-between; }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .mobile-navigation, .mobile-navigation * { scroll-behavior: auto; transition: none; }
+  .device-dialog-backdrop, .device-dialog, .equipment-dialog-backdrop, .equipment-dialog { animation: none; }
+}
