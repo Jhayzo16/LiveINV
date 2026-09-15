@@ -22,5 +22,5 @@
 .hospital-canvas-wrap.is-loading { opacity: 0; pointer-events: none; }
 @keyframes ui-spinner-rotate { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
-  .ui-spinner { animation: none; }
+  .ui-spinner { animation-duration: 2s; }
 }
