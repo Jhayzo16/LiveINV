@@ -7,14 +7,14 @@ beforeEach(() => vi.useFakeTimers())
 afterEach(() => vi.useRealTimers())
 
 describe('minimum initial loading time', () => {
-  it('keeps fast loads visible for two seconds, including in Strict Mode', () => {
+  it('keeps fast loads visible for one second, including in Strict Mode', () => {
     const { result, rerender } = renderHook(({ pending }) => useMinimumLoading(pending), {
       initialProps: { pending: true },
       wrapper: StrictMode,
     })
     act(() => vi.advanceTimersByTime(100))
     rerender({ pending: false })
-    act(() => vi.advanceTimersByTime(1899))
+    act(() => vi.advanceTimersByTime(899))
     expect(result.current).toBe(true)
     act(() => vi.advanceTimersByTime(1))
     expect(result.current).toBe(false)
@@ -34,7 +34,7 @@ describe('minimum initial loading time', () => {
     rerender({ pending: true })
     rerender({ pending: false })
     expect(result.current).toBe(true)
-    act(() => vi.advanceTimersByTime(2000))
+    act(() => vi.advanceTimersByTime(1000))
     expect(result.current).toBe(false)
   })
 
