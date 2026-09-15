@@ -1,0 +1,9 @@
+import type { ComponentProps } from 'react'
+import { cn } from '@/lib/utils'
+import './loading-state.css'
+
+export function Spinner({ className, ...props }: ComponentProps<'svg'>) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" className={cn('ui-spinner', className)} {...props}>
+    <path d="M12 3a9 9 0 1 1-9 9" />
+  </svg>
+}

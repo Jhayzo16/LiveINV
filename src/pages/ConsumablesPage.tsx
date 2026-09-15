@@ -6,6 +6,7 @@ import { ConsumableRepository } from '../lib/repositories'
 import { consumableReceiptSchema, type ConsumableReceiptData } from '../lib/schemas'
 import type { ConsumableCategory, ConsumableReceipt } from '../lib/types'
 import { EquipmentEmptyState } from '../components/ui/equipment-empty-state'
+import { LoadingState } from '../components/ui/loading-state'
 import '../consumables.css'
 
 const categories: ConsumableCategory[] = ['RAM', 'SSD', 'HDD', 'Network Cable', 'Ink / Toner', 'Battery', 'Other']
@@ -73,6 +74,8 @@ export function ConsumablesPage() {
     URL.revokeObjectURL(url)
   }
 
+  if (receiptsQuery.isPending) return <LoadingState label="Loading received stock…" />
+
   return <>
     <header className="consumables-heading">
       <div><span className="eyebrow">STOCK RECEIVING</span><h1>Consumables</h1><p>Track received supplies, available stock, and RAM or SSD parts used in system units.</p></div>
@@ -96,8 +99,7 @@ export function ConsumablesPage() {
         <span className="consumable-result-count">{visibleReceipts.length} record{visibleReceipts.length === 1 ? '' : 's'}</span>
       </div>
 
-      {receiptsQuery.isLoading ? <div className="consumable-state"><span>◌</span><h3>Loading received stock</h3><p>Getting the latest consumable receipt records.</p></div>
-        : receiptsQuery.isError ? <div className="consumable-state error"><span>!</span><h3>Consumables could not be loaded</h3><p>{receiptsQuery.error instanceof Error && receiptsQuery.error.message.includes('consumable_receipts') ? 'Apply the consumable receipts Supabase migration, then try again.' : 'Check the Supabase connection and your access permission, then retry.'}</p><button type="button" className="primary-action" onClick={() => receiptsQuery.refetch()}>Retry</button></div>
+      {receiptsQuery.isError ? <div className="consumable-state error"><span>!</span><h3>Consumables could not be loaded</h3><p>{receiptsQuery.error instanceof Error && receiptsQuery.error.message.includes('consumable_receipts') ? 'Apply the consumable receipts Supabase migration, then try again.' : 'Check the Supabase connection and your access permission, then retry.'}</p><button type="button" className="primary-action" onClick={() => receiptsQuery.refetch()}>Retry</button></div>
         : visibleReceipts.length ? <div className="consumable-table" role="table" aria-label="Consumable receipt records">
           <div className="consumable-row consumable-row-head" role="row"><span>Date received</span><span>Item and specification</span><span>Stock balance</span><span>Supplier / reference</span><span>Received by</span></div>
           {visibleReceipts.map(receipt => <article className="consumable-row" role="row" key={receipt.id}>
@@ -112,7 +114,7 @@ export function ConsumablesPage() {
 
     <section className="module-card consumable-usage" aria-label="Consumable usage history">
       <h2>System unit stock usage</h2><p>Installed, returned, and removed parts, with the system unit recorded for each change.</p>
-      {movementsQuery.isPending ? <p role="status">Loading stock usage…</p> : movementsQuery.isError ? <p role="alert">{movementsQuery.error.message} <button className="export-btn" type="button" onClick={() => void movementsQuery.refetch()}>Retry usage</button></p> : visibleMovements.length ? <div className="consumable-usage-list">{visibleMovements.map(movement => <article key={movement.id}>
+      {movementsQuery.isPending ? <LoadingState label="Loading stock usage…" /> : movementsQuery.isError ? <p role="alert">{movementsQuery.error.message} <button className="export-btn" type="button" onClick={() => void movementsQuery.refetch()}>Retry usage</button></p> : visibleMovements.length ? <div className="consumable-usage-list">{visibleMovements.map(movement => <article key={movement.id}>
         <div><b>{movement.asset_tag}</b><small>{receipts.find(row => row.id === movement.receipt_id)?.itemName || movement.category}</small></div>
         <div><b>{movement.action}</b><small>{movement.quantity} {movement.category} {movement.quantity === 1 ? 'piece' : 'pieces'}</small></div>
         <time dateTime={movement.created_at}>{new Date(movement.created_at).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })}</time>

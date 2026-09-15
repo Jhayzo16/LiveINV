@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AssetRepository } from './lib/repositories'
@@ -15,12 +15,13 @@ import assignmentsIcon from './assets/sidebar/assignments.png'
 import qrScannerIcon from './assets/sidebar/qr-scanner.png'
 import reportsIcon from './assets/sidebar/reports.png'
 import { EquipmentEmptyState, EquipmentIcon } from './components/ui/equipment-empty-state'
-import { HospitalBuilding3D } from './components/ui/hospital-building-3d'
+import { LoadingState } from './components/ui/loading-state'
 import { Toaster } from './components/ui/toast'
 import { PmsIcon } from './pages/PmsPage'
 import { FullDeviceRecordDialog, SystemModulePage, type AssignmentTarget, type SystemModule } from './pages/SystemPages'
 
 type Status = AssetState
+const HospitalBuilding3D = lazy(() => import('./components/ui/hospital-building-3d').then(module => ({ default: module.HospitalBuilding3D })))
 type AssetKind = DeviceCategory | 'Other'
 type Asset = { id: string; qrId: string; name: string; kind: AssetKind; status: Status; detail: string; owner: string; ip?: string }
 type Room = { shapeId: string; legacyIds: string[]; id: string; floor: number; name: string; code: string; department: string; assets: Asset[]; x: number; y: number; w: number; h: number }
@@ -65,7 +66,7 @@ export function App({ adminEmail, onSignOut }: { adminEmail?: string; onSignOut:
   const [floor, setFloor] = useState<number | null>(null)
   const [roomId, setRoomId] = useState<string | null>(null)
   const [assetId, setAssetId] = useState<string | null>(null)
-  const { data: inventoryAssets = [], error: inventoryError, isLoading: inventoryLoading, refetch: refetchInventoryAssets } = useQuery({
+  const { data: inventoryAssets = [], error: inventoryError, isPending: inventoryLoading, refetch: refetchInventoryAssets } = useQuery({
     queryKey: ['assets'],
     queryFn: () => AssetRepository.getAll(),
   })
@@ -168,14 +169,15 @@ export function App({ adminEmail, onSignOut }: { adminEmail?: string; onSignOut:
     <LiveInvSidebar module={module} expanded={sidebarOpen} onToggle={() => setSidebarOpen(open => !open)} onNavigate={openModule} totalAssets={total} adminEmail={adminEmail} onSignOut={onSignOut} />
     <main id="main-content">
       {inventoryError && <div className="unresolved-locations" role="alert">Shared inventory could not be refreshed. {inventoryAssets.length ? 'The last loaded records are shown.' : 'Asset counts are unavailable.'} <button type="button" onClick={() => void refetchInventoryAssets()}>Retry inventory</button></div>}
-      {inventoryLoading && <p role="status">Loading shared inventory…</p>}
       {unsyncedAssetTags.length > 0 && <div className="unresolved-locations" role="alert">Earlier browser-only edits were not saved to the shared inventory: {unsyncedAssetTags.join(', ')}. Shared records are shown here; review and save these records again to apply your edits.</div>}
       <header className="topbar"><MobileNavigation module={module} onNavigate={openModule} totalAssets={total} adminEmail={adminEmail} onSignOut={onSignOut} /><div className="crumbs">{module === 'topology' ? <><button onClick={resetToFloors}>Live Mapping</button>{selectedFloor && <><span>/</span><button onClick={() => { setRoomId(null); setAssetId(null) }}>Floor {floor}</button></>}{room && <><span>/</span><button onClick={() => setAssetId(null)}>{room.name}</button></>}{asset && <><span>/</span><b>{asset.id}</b></>}</> : <><span>Hospital Inventory</span><span>/</span><b>{module === 'pms' ? 'PMS' : module === 'qr' ? 'QR Scanner' : module === 'network' ? 'Network Registry' : module === 'manual' ? 'System Manual' : module.charAt(0).toUpperCase() + module.slice(1)}</b></>}</div><div className="top-actions"><span className="avatar">AD</span></div></header>
       {module !== 'topology' && <SystemModulePage module={module} assignmentTarget={assignmentTarget} assetAction={assetAction} />}
+      {module === 'topology' && inventoryLoading ? <section className="workspace" aria-busy="true"><LoadingState label="Loading shared inventory…" /></section> : <>
       {module === 'topology' && !floor && <FloorTopology floors={liveFloors} onSelect={setFloor} />}
       {module === 'topology' && floor && !room && <FloorView floor={selectedFloor!} onBack={resetToFloors} rooms={dynamicRoomsByFloor[floor] ?? []} inventoryAssets={inventoryAssets} availableAssets={availableAssets} onAssignAvailableAsset={assignAvailableAssetToRoom} onUnassignAsset={unassignRoomAsset} />}
       {module === 'topology' && floor && room && !asset && <RoomView room={room} floor={floor} onBack={() => setRoomId(null)} onAsset={setAssetId} onAssignEquipment={() => openRoomAssignment(floor, room)} />}
       {module === 'topology' && floor && room && asset && <AssetView room={room} floor={floor} asset={asset} onBack={() => setAssetId(null)} onEdit={() => openAsset(asset.id, true)} />}
+      </>}
     </main>
     <aside className="insights-panel"><h3>Live status</h3><p className="muted">Hospital inventory at a glance</p><div className="stat"><span>Total assets</span><b>{total}</b><small>Across 7 floors</small></div><div className="status-list"><StatusRow color="green" label="Active" value={String(active)} /><StatusRow color="amber" label="Maintenance" value={String(maintenance)} /><StatusRow color="red" label="Broken" value={String(broken)} /><StatusRow color="gray" label="Inactive" value={String(inventoryAssets.filter(asset => asset.state === 'Inactive').length)} /></div><div className="divider"/><h4>Quick actions</h4><button className="quick primary" onClick={() => openAsset()}>＋ Add new asset</button><button className="quick" onClick={() => openModule('qr')}>▣ Scan QR code</button><button className="quick" onClick={() => openModule('assignments')}>⇄ Assign an item</button><div className="recent"><h4>Recently added</h4>{recentAssets.map(item => <button key={item.tag} onClick={() => openAsset(item.tag)}><span className={`dot ${item.state.toLowerCase()}`} />{item.tag}<small>{item.category}</small></button>)}</div></aside>
     <Toaster />
@@ -263,7 +265,7 @@ function StatusRow({ color, label, value }: { color: string; label: string; valu
 
 function FloorTopology({ floors, onSelect }: { floors: Floor[]; onSelect:(id:number)=>void }) {
   const modelFloors = floors.map(floorItem => ({ ...floorItem, rooms: floorRoomCounts[floorItem.id] ?? 0 }))
-  return <section className="workspace topology-workspace hospital-topology-workspace" aria-label={`${floors.length} hospital floors available`}><div className="section-heading"><span className="eyebrow">VISUAL INVENTORY</span><h1>Hospital topology</h1><p>Rotate the 3D hospital, inspect each floor, and explore its rooms and assigned inventory.</p></div><HospitalBuilding3D floors={modelFloors} onExplore={onSelect} /></section>
+  return <section className="workspace topology-workspace hospital-topology-workspace" aria-label={`${floors.length} hospital floors available`}><div className="section-heading"><span className="eyebrow">VISUAL INVENTORY</span><h1>Hospital topology</h1><p>Rotate the 3D hospital, inspect each floor, and explore its rooms and assigned inventory.</p></div><Suspense fallback={<div className="hospital-3d-shell" aria-busy="true"><LoadingState className="hospital-loading-state" label="Loading hospital 3D model…" /></div>}><HospitalBuilding3D floors={modelFloors} onExplore={onSelect} /></Suspense></section>
 }
 
 function FloorView({ floor, onBack, rooms, inventoryAssets, availableAssets, onAssignAvailableAsset, onUnassignAsset }: { floor:Floor;onBack:()=>void;rooms:Room[];inventoryAssets:InventoryAsset[];availableAssets:InventoryAsset[];onAssignAvailableAsset:(asset:InventoryAsset,room:Room)=>Promise<void>;onUnassignAsset:(tag:string,room:Room)=>Promise<void> }) {

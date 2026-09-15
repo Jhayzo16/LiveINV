@@ -29,6 +29,7 @@ import '../device-workflow.css'
 import { SystemUnitStockFields, stockChanges } from '../components/SystemUnitStockFields'
 import { ConsumablesPage } from './ConsumablesPage'
 import { PmsPage } from './PmsPage'
+import { LoadingState } from '@/components/ui/loading-state'
 
 export type SystemModule = 'dashboard' | 'assets' | 'consumables' | 'pms' | 'assignments' | 'qr' | 'network' | 'maintenance' | 'reports' | 'users' | 'manual'
 type AssetAction = { id: number; tag?: string; edit?: boolean }
@@ -64,7 +65,7 @@ const moduleNames: Record<SystemModule, string> = {
 export function SystemModulePage({ module, assignmentTarget, assetAction }: { module: SystemModule; assignmentTarget?: AssignmentTarget | null; assetAction?: AssetAction | null }) {
   const queryClient = useQueryClient()
   
-  const { data: inventoryAssets = [], isLoading, error, refetch } = useQuery({
+  const { data: inventoryAssets = [], isPending, error, refetch } = useQuery({
     queryKey: ['assets'],
     queryFn: () => AssetRepository.getAll(),
   })
@@ -88,7 +89,7 @@ export function SystemModulePage({ module, assignmentTarget, assetAction }: { mo
     return queryClient.getQueryData<InventoryAsset[]>(['assets'])?.find(row => row.tag === asset.tag)
   }
 
-  if (isLoading) return <section className="workspace module-workspace"><div style={{ padding: '40px', color: '#666' }}>Loading inventory...</div></section>
+  if (isPending) return <section className="workspace module-workspace" aria-label={moduleNames[module]} aria-busy="true"><LoadingState label="Loading inventory…" /></section>
   if (error && !inventoryAssets.length) return <section className="workspace module-workspace"><p role="alert">Shared inventory could not be loaded.</p><button type="button" onClick={() => void refetch()}>Retry</button></section>
   const page = {
     dashboard: <DashboardPage inventoryAssets={inventoryAssets} />,

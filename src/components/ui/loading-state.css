@@ -1,0 +1,26 @@
+.ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #8b1d24;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+}
+.ui-button-outline { border-color: #dce2e5; background: #fff; color: #38434a; }
+.ui-button-icon { width: 36px; padding: 8px; }
+.ui-button:disabled { opacity: .65; pointer-events: none; }
+.ui-spinner { width: 16px; height: 16px; flex-shrink: 0; animation: ui-spinner-rotate 1s linear infinite; }
+.loading-state { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 16px; min-height: 220px; padding: 32px 16px; }
+.hospital-loading-state { position: absolute; inset: 0; z-index: 6; background: #eef3f4; }
+.hospital-canvas-wrap.is-loading { opacity: 0; pointer-events: none; }
+@keyframes ui-spinner-rotate { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .ui-spinner { animation: none; }
+}

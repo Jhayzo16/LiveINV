@@ -1,10 +1,11 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { ContactShadows, OrbitControls, RoundedBox } from '@react-three/drei'
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef, type MutableRefObject } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef, type MutableRefObject } from 'react'
 import { MathUtils, Object3D, Quaternion, Spherical, Vector3 } from 'three'
 import { createFloorAnchorStore, type FloorAnchorStore } from '../topology/floor-anchor-store'
 import { FloorTopologyOverlay } from '../topology/FloorTopologyOverlay'
 import type { FloorAnchorSnapshot, HospitalFloorModel } from '../topology/topology-types'
+import { LoadingState } from './loading-state'
 
 export type { HospitalFloorModel } from '../topology/topology-types'
 
@@ -23,6 +24,8 @@ const HOSPITAL_GLASS = '#11191f'
 const HOSPITAL_METAL = '#657178'
 
 export function HospitalBuilding3D({ floors, onExplore }: HospitalBuilding3DProps) {
+  const [sceneReady, setSceneReady] = useState(false)
+  const handleSceneReady = useCallback(() => setSceneReady(true), [])
   const [selectedFloorId, setSelectedFloorId] = useState<number | null>(null)
   const [hoveredFloorId, setHoveredFloorId] = useState<number | null>(null)
   const [resetToken, setResetToken] = useState(0)
@@ -52,9 +55,11 @@ export function HospitalBuilding3D({ floors, onExplore }: HospitalBuilding3DProp
   }, [])
   useEffect(() => () => { if (hoverClearTimer.current) clearTimeout(hoverClearTimer.current) }, [])
 
-  return <div className="hospital-3d-shell">
-    <div className="hospital-canvas-wrap" aria-label="Seven-floor 3D hospital building">
+  return <div className="hospital-3d-shell" aria-busy={!sceneReady}>
+    {!sceneReady && <LoadingState className="hospital-loading-state" label="Loading hospital 3D model…" />}
+    <div className={`hospital-canvas-wrap${sceneReady ? '' : ' is-loading'}`} aria-hidden={!sceneReady} aria-label="Seven-floor 3D hospital building">
       <Canvas shadows camera={{ position: [9.2, 6.9, 9.8], fov: 37, near: 0.1, far: 80 }} dpr={[1, 1.6]}>
+        <Suspense fallback={null}>
         <color attach="background" args={['#eef3f4']} />
         <fog attach="fog" args={['#eef3f4', 20, 34]} />
         <ambientLight intensity={0.58} />
@@ -64,12 +69,26 @@ export function HospitalBuilding3D({ floors, onExplore }: HospitalBuilding3DProp
         <HospitalModel floors={floors} selectedFloorId={selectedFloorId} hoveredFloorId={hoveredFloorId} anchorStore={anchorStore} />
         <ContactShadows position={[0, -0.31, 0]} opacity={0.26} scale={13} blur={2.6} far={8} color="#52625a" />
         <CameraControls resetToken={resetToken} rotationHandlerRef={panelRotateRef} />
+        <SceneReady onReady={handleSceneReady} />
+        </Suspense>
       </Canvas>
     </div>
+    {sceneReady && <>
     <FloorTopologyOverlay floors={floors} anchorStore={anchorStore} selectedFloorId={selectedFloorId} hoveredFloorId={hoveredFloorId} resetToken={resetToken} onSelect={handleFloorSelect} onHover={handleFloorHover} onExplore={onExplore} onRotate={deltaX => panelRotateRef.current(deltaX)} />
     <button className="hospital-reset-view" type="button" onClick={() => setResetToken(token => token + 1)}><span aria-hidden="true">↻</span> Reset view</button>
     <div className="hospital-controls-hint"><span>↔</span> Drag to rotate <i /> Scroll to zoom <i /> Hover a floor panel to highlight it</div>
+    </>}
   </div>
+}
+
+function SceneReady({ onReady }: { onReady: () => void }) {
+  const frames = useRef(0)
+  useFrame(() => {
+    // Frame callbacks run before drawing. The second callback confirms that
+    // the complete scene has already rendered once behind the loading cover.
+    if (++frames.current === 2) onReady()
+  })
+  return null
 }
 
 function CameraControls({ resetToken, rotationHandlerRef }: { resetToken: number; rotationHandlerRef: MutableRefObject<(deltaX: number) => void> }) {
