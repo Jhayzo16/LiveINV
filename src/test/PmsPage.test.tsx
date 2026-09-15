@@ -5,6 +5,8 @@ import { PmsPage } from '../pages/PmsPage'
 import { PmsRepository, localDate, type PmsSession, type PmsRecord } from '../lib/pms'
 
 const scanner = vi.hoisted(() => ({ decode: vi.fn(), stop: vi.fn() }))
+// Exercise PMS workflows without wall-clock delays; minimum timing has its own tests.
+vi.mock('../lib/use-minimum-loading', () => ({ useMinimumLoading: (pending: boolean) => pending }))
 vi.mock('@zxing/browser', () => ({ BrowserQRCodeReader: class { decodeFromVideoDevice = scanner.decode } }))
 vi.mock('../lib/pms', async importOriginal => ({ ...await importOriginal<typeof import('../lib/pms')>(), PmsRepository: { sessions: vi.fn(), records: vi.fn(), create: vi.fn(), mark: vi.fn(), complete: vi.fn() } }))
 const session: PmsSession = { id: 'session-one', service_date: '2026-08-12', service_type: 'Preventive maintenance', technician: 'IT Team', notes: '', created_by: 'admin', created_at: '2026-09-07T00:00:00Z', completed_at: null, completed_by: null }

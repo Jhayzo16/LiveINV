@@ -1,8 +1,12 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, configure, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, it, expect, vi } from 'vitest'
 import { SystemModulePage } from '../pages/SystemPages'
 import { AssetRepository, ConsumableRepository } from '../lib/repositories'
+
+// Initial inventory and module-specific records can each display a two-second loader.
+configure({ asyncUtilTimeout: 6000 })
+vi.setConfig({ testTimeout: 10000 })
 
 vi.mock('../lib/repositories', () => ({
   AssetRepository: {

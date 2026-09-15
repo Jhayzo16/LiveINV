@@ -16,6 +16,7 @@ import qrScannerIcon from './assets/sidebar/qr-scanner.png'
 import reportsIcon from './assets/sidebar/reports.png'
 import { EquipmentEmptyState, EquipmentIcon } from './components/ui/equipment-empty-state'
 import { LoadingState } from './components/ui/loading-state'
+import { useMinimumLoading } from './lib/use-minimum-loading'
 import { Toaster } from './components/ui/toast'
 import { PmsIcon } from './pages/PmsPage'
 import { FullDeviceRecordDialog, SystemModulePage, type AssignmentTarget, type SystemModule } from './pages/SystemPages'
@@ -66,10 +67,11 @@ export function App({ adminEmail, onSignOut }: { adminEmail?: string; onSignOut:
   const [floor, setFloor] = useState<number | null>(null)
   const [roomId, setRoomId] = useState<string | null>(null)
   const [assetId, setAssetId] = useState<string | null>(null)
-  const { data: inventoryAssets = [], error: inventoryError, isPending: inventoryLoading, refetch: refetchInventoryAssets } = useQuery({
+  const { data: inventoryAssets = [], error: inventoryError, isPending: inventoryPending, refetch: refetchInventoryAssets } = useQuery({
     queryKey: ['assets'],
     queryFn: () => AssetRepository.getAll(),
   })
+  const inventoryLoading = useMinimumLoading(inventoryPending)
   const unsyncedAssetTags = AssetRepository.getUnsyncedAssetTags()
 
   const availableAssets = useMemo(

@@ -7,6 +7,7 @@ import { consumableReceiptSchema, type ConsumableReceiptData } from '../lib/sche
 import type { ConsumableCategory, ConsumableReceipt } from '../lib/types'
 import { EquipmentEmptyState } from '../components/ui/equipment-empty-state'
 import { LoadingState } from '../components/ui/loading-state'
+import { useMinimumLoading } from '../lib/use-minimum-loading'
 import '../consumables.css'
 
 const categories: ConsumableCategory[] = ['RAM', 'SSD', 'HDD', 'Network Cable', 'Ink / Toner', 'Battery', 'Other']
@@ -32,6 +33,8 @@ export function ConsumablesPage() {
     refetchInterval: 15000,
   })
   const movementsQuery = useQuery({ queryKey: ['consumable-movements'], queryFn: ConsumableRepository.movements, retry: 1, refetchInterval: 15000 })
+  const receiptsLoading = useMinimumLoading(receiptsQuery.isPending)
+  const movementsLoading = useMinimumLoading(movementsQuery.isPending)
 
   const saveMutation = useMutation({
     mutationFn: (receipt: Omit<ConsumableReceipt, 'id' | 'createdAt'>) => ConsumableRepository.save(receipt),
@@ -74,7 +77,7 @@ export function ConsumablesPage() {
     URL.revokeObjectURL(url)
   }
 
-  if (receiptsQuery.isPending) return <LoadingState label="Loading received stock…" />
+  if (receiptsLoading) return <LoadingState label="Loading received stock…" />
 
   return <>
     <header className="consumables-heading">
@@ -114,7 +117,7 @@ export function ConsumablesPage() {
 
     <section className="module-card consumable-usage" aria-label="Consumable usage history">
       <h2>System unit stock usage</h2><p>Installed, returned, and removed parts, with the system unit recorded for each change.</p>
-      {movementsQuery.isPending ? <LoadingState label="Loading stock usage…" /> : movementsQuery.isError ? <p role="alert">{movementsQuery.error.message} <button className="export-btn" type="button" onClick={() => void movementsQuery.refetch()}>Retry usage</button></p> : visibleMovements.length ? <div className="consumable-usage-list">{visibleMovements.map(movement => <article key={movement.id}>
+      {movementsLoading ? <LoadingState label="Loading stock usage…" /> : movementsQuery.isError ? <p role="alert">{movementsQuery.error.message} <button className="export-btn" type="button" onClick={() => void movementsQuery.refetch()}>Retry usage</button></p> : visibleMovements.length ? <div className="consumable-usage-list">{visibleMovements.map(movement => <article key={movement.id}>
         <div><b>{movement.asset_tag}</b><small>{receipts.find(row => row.id === movement.receipt_id)?.itemName || movement.category}</small></div>
         <div><b>{movement.action}</b><small>{movement.quantity} {movement.category} {movement.quantity === 1 ? 'piece' : 'pieces'}</small></div>
         <time dateTime={movement.created_at}>{new Date(movement.created_at).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })}</time>

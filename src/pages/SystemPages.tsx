@@ -30,6 +30,7 @@ import { SystemUnitStockFields, stockChanges } from '../components/SystemUnitSto
 import { ConsumablesPage } from './ConsumablesPage'
 import { PmsPage } from './PmsPage'
 import { LoadingState } from '@/components/ui/loading-state'
+import { useMinimumLoading } from '@/lib/use-minimum-loading'
 
 export type SystemModule = 'dashboard' | 'assets' | 'consumables' | 'pms' | 'assignments' | 'qr' | 'network' | 'maintenance' | 'reports' | 'users' | 'manual'
 type AssetAction = { id: number; tag?: string; edit?: boolean }
@@ -69,6 +70,7 @@ export function SystemModulePage({ module, assignmentTarget, assetAction }: { mo
     queryKey: ['assets'],
     queryFn: () => AssetRepository.getAll(),
   })
+  const inventoryLoading = useMinimumLoading(isPending)
 
   const registerMutation = useMutation({
     mutationFn: (asset: InventoryAsset) => AssetRepository.save(asset),
@@ -89,7 +91,7 @@ export function SystemModulePage({ module, assignmentTarget, assetAction }: { mo
     return queryClient.getQueryData<InventoryAsset[]>(['assets'])?.find(row => row.tag === asset.tag)
   }
 
-  if (isPending) return <section className="workspace module-workspace" aria-label={moduleNames[module]} aria-busy="true"><LoadingState label="Loading inventory…" /></section>
+  if (inventoryLoading) return <section className="workspace module-workspace" aria-label={moduleNames[module]} aria-busy="true"><LoadingState label="Loading inventory…" /></section>
   if (error && !inventoryAssets.length) return <section className="workspace module-workspace"><p role="alert">Shared inventory could not be loaded.</p><button type="button" onClick={() => void refetch()}>Retry</button></section>
   const page = {
     dashboard: <DashboardPage inventoryAssets={inventoryAssets} />,

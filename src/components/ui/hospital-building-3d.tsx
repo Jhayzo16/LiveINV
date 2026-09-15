@@ -6,6 +6,7 @@ import { createFloorAnchorStore, type FloorAnchorStore } from '../topology/floor
 import { FloorTopologyOverlay } from '../topology/FloorTopologyOverlay'
 import type { FloorAnchorSnapshot, HospitalFloorModel } from '../topology/topology-types'
 import { LoadingState } from './loading-state'
+import { useMinimumLoading } from '../../lib/use-minimum-loading'
 
 export type { HospitalFloorModel } from '../topology/topology-types'
 
@@ -25,6 +26,7 @@ const HOSPITAL_METAL = '#657178'
 
 export function HospitalBuilding3D({ floors, onExplore }: HospitalBuilding3DProps) {
   const [sceneReady, setSceneReady] = useState(false)
+  const sceneLoading = useMinimumLoading(!sceneReady)
   const handleSceneReady = useCallback(() => setSceneReady(true), [])
   const [selectedFloorId, setSelectedFloorId] = useState<number | null>(null)
   const [hoveredFloorId, setHoveredFloorId] = useState<number | null>(null)
@@ -55,9 +57,9 @@ export function HospitalBuilding3D({ floors, onExplore }: HospitalBuilding3DProp
   }, [])
   useEffect(() => () => { if (hoverClearTimer.current) clearTimeout(hoverClearTimer.current) }, [])
 
-  return <div className="hospital-3d-shell" aria-busy={!sceneReady}>
-    {!sceneReady && <LoadingState className="hospital-loading-state" label="Loading hospital 3D model…" />}
-    <div className={`hospital-canvas-wrap${sceneReady ? '' : ' is-loading'}`} aria-hidden={!sceneReady} aria-label="Seven-floor 3D hospital building">
+  return <div className="hospital-3d-shell" aria-busy={sceneLoading}>
+    {sceneLoading && <LoadingState className="hospital-loading-state" label="Loading hospital 3D model…" />}
+    <div className={`hospital-canvas-wrap${sceneLoading ? ' is-loading' : ''}`} aria-hidden={sceneLoading} aria-label="Seven-floor 3D hospital building">
       <Canvas shadows camera={{ position: [9.2, 6.9, 9.8], fov: 37, near: 0.1, far: 80 }} dpr={[1, 1.6]}>
         <Suspense fallback={null}>
         <color attach="background" args={['#eef3f4']} />
@@ -73,7 +75,7 @@ export function HospitalBuilding3D({ floors, onExplore }: HospitalBuilding3DProp
         </Suspense>
       </Canvas>
     </div>
-    {sceneReady && <>
+    {!sceneLoading && <>
     <FloorTopologyOverlay floors={floors} anchorStore={anchorStore} selectedFloorId={selectedFloorId} hoveredFloorId={hoveredFloorId} resetToken={resetToken} onSelect={handleFloorSelect} onHover={handleFloorHover} onExplore={onExplore} onRotate={deltaX => panelRotateRef.current(deltaX)} />
     <button className="hospital-reset-view" type="button" onClick={() => setResetToken(token => token + 1)}><span aria-hidden="true">↻</span> Reset view</button>
     <div className="hospital-controls-hint"><span>↔</span> Drag to rotate <i /> Scroll to zoom <i /> Hover a floor panel to highlight it</div>
