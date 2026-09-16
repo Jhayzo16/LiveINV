@@ -24,7 +24,7 @@
   box-shadow: 0 12px 28px #21382b0b, inset 0 0 0 1px #eaf5f0;
   transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
 }
-.asset-device-card:hover { transform: translateY(-3px); border-color: #aacbb8; box-shadow: 0 18px 34px #21382b18; }
+.asset-device-card:hover { transform: translateY(-3px); box-shadow: 0 18px 34px #21382b18; }
 .asset-device-card:focus-visible { outline: 3px solid #197c53; outline-offset: 4px; }
 .asset-device-hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; flex: 1; min-height: 214px; padding: 42px 14px 16px; }
 .asset-card-wave { position: absolute; inset: 0; width: 100%; height: 100%; color: #d5eee260; pointer-events: none; z-index: -1; }
