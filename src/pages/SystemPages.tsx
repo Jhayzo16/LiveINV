@@ -159,7 +159,7 @@ function DashboardPage({ inventoryAssets, refreshedAt }: { inventoryAssets: Inve
           <div className="health-ring" role="img" aria-label={total ? `${activePercent}% operational: ${active} of ${total} assets active` : 'No assets registered: 0% operational'}>
             <svg className="health-ring-chart" viewBox="0 0 126 126" aria-hidden="true">
               <circle className="health-ring-track" cx="63" cy="63" r="54" />
-              <circle key={`${refreshedAt}-${activePercent}`} className="health-ring-progress" cx="63" cy="63" r="54" pathLength="100" style={{ '--health-offset': 100 - activePercent } as CSSProperties} />
+              <circle key={`${refreshedAt}-${activePercent}`} className="health-ring-progress" cx="63" cy="63" r="54" pathLength="100" style={{ '--health-offset': 100 - activePercent, visibility: activePercent === 0 ? 'hidden' : 'visible' } as CSSProperties} />
             </svg>
             <strong>{activePercent}%</strong><span>operational</span>
           </div>

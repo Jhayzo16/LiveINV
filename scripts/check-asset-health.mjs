@@ -26,6 +26,7 @@ try {
   const progress = page.locator('.health-ring-progress')
   await expect(ring).toHaveAccessibleName('No assets registered: 0% operational')
   await expect(progress).toHaveCSS('stroke-dashoffset', '100px')
+  await expect(progress).toHaveCSS('visibility', 'hidden')
   await page.locator('.asset-health').screenshot({ path: '.tmp/asset-health/empty.png' })
 
   for (const [label, fixture, percent] of [
@@ -37,6 +38,7 @@ try {
     await page.reload()
     await expect(ring).toContainText(`${percent}%`)
     await expect(progress).toHaveCSS('stroke-dashoffset', `${100 - percent}px`)
+    await expect(progress).toHaveCSS('visibility', percent ? 'visible' : 'hidden')
     if (percent > 0) {
       // Sample the actual browser animation at deterministic positions.
       const offsets = await progress.evaluate(element => {
