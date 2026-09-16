@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -67,7 +67,7 @@ const moduleNames: Record<SystemModule, string> = {
 export function SystemModulePage({ module, assignmentTarget, assetAction }: { module: SystemModule; assignmentTarget?: AssignmentTarget | null; assetAction?: AssetAction | null }) {
   const queryClient = useQueryClient()
   
-  const { data: inventoryAssets = [], isPending, error, refetch } = useQuery({
+  const { data: inventoryAssets = [], dataUpdatedAt, isPending, error, refetch } = useQuery({
     queryKey: ['assets'],
     queryFn: () => AssetRepository.getAll(),
   })
@@ -95,7 +95,7 @@ export function SystemModulePage({ module, assignmentTarget, assetAction }: { mo
   if (inventoryLoading) return <section className="workspace module-workspace" aria-label={moduleNames[module]} aria-busy="true"><LoadingState label="Loading inventory…" /></section>
   if (error && !inventoryAssets.length) return <section className="workspace module-workspace"><p role="alert">Shared inventory could not be loaded.</p><button type="button" onClick={() => void refetch()}>Retry</button></section>
   const page = {
-    dashboard: <DashboardPage inventoryAssets={inventoryAssets} />,
+    dashboard: <DashboardPage inventoryAssets={inventoryAssets} refreshedAt={dataUpdatedAt} />,
     assets: <AssetsPage assetAction={assetAction} inventoryAssets={inventoryAssets} onRegister={registerAsset} onUpdate={updateAsset} />,
     consumables: <ConsumablesPage />,
     pms: <PmsPage inventoryAssets={inventoryAssets} />,
@@ -126,7 +126,7 @@ function Metric({ label, value, note, tone = 'navy', icon }: { label: string; va
   </article>
 }
 
-function DashboardPage({ inventoryAssets }: { inventoryAssets: InventoryAsset[] }) {
+function DashboardPage({ inventoryAssets, refreshedAt }: { inventoryAssets: InventoryAsset[]; refreshedAt: number }) {
   const total = inventoryAssets.length
   const active = inventoryAssets.filter(a => a.state === 'Active').length
   const maintenance = inventoryAssets.filter(a => a.state === 'Maintenance').length
@@ -153,7 +153,19 @@ function DashboardPage({ inventoryAssets }: { inventoryAssets: InventoryAsset[] 
       <Metric label="Assigned to rooms" value={String(assigned)} note={`${total - assigned} awaiting placement`} tone="amber" icon={roomsVerifiedMetricIcon} />
     </div>
     <div className="dashboard-grid">
-      <article className="module-card asset-health"><CardTitle title="Asset health" subtitle="Current equipment condition" /><div className="health-layout"><div className="health-ring"><strong>{activePercent}%</strong><span>operational</span></div><div className="health-legend"><StatusLine label="Active" value={String(active)} color="green" /><StatusLine label="Maintenance" value={String(maintenance)} color="amber" /><StatusLine label="Broken" value={String(broken)} color="red" /></div></div></article>
+      <article className="module-card asset-health">
+        <CardTitle title="Asset health" subtitle="Current equipment condition" />
+        <div className="health-layout">
+          <div className="health-ring" role="img" aria-label={total ? `${activePercent}% operational: ${active} of ${total} assets active` : 'No assets registered: 0% operational'}>
+            <svg className="health-ring-chart" viewBox="0 0 126 126" aria-hidden="true">
+              <circle className="health-ring-track" cx="63" cy="63" r="54" />
+              <circle key={`${refreshedAt}-${activePercent}`} className="health-ring-progress" cx="63" cy="63" r="54" pathLength="100" style={{ '--health-offset': 100 - activePercent } as CSSProperties} />
+            </svg>
+            <strong>{activePercent}%</strong><span>operational</span>
+          </div>
+          <div className="health-legend"><StatusLine label="Active" value={String(active)} color="green" /><StatusLine label="Maintenance" value={String(maintenance)} color="amber" /><StatusLine label="Broken" value={String(broken)} color="red" /></div>
+        </div>
+      </article>
       <article className="module-card floor-coverage"><CardTitle title="Assets by floor" subtitle="Distribution across hospital floors" />{Object.keys(floorCounts).length ? Object.entries(floorCounts).sort(([a],[b]) => a.localeCompare(b)).map(([floor, count]) => <div className="coverage-row" key={floor}><span>Floor {floor}</span><div><i style={{width:`${Math.round((count/maxFloorCount)*100)}%`}} /></div><b>{count}</b></div>) : <EquipmentEmptyState className="dashboard-empty" size="compact" kind="Monitor" title="No floor assignments yet" description="Assigned devices will appear here by floor." />}</article>
       <article className="module-card activity-card"><CardTitle title="Recent inventory" subtitle="Latest registered assets" />{recentAssets.length ? recentAssets.map(item => <div className="activity-row" key={item[0]}><i /><span><b>{item[0]}</b><small>{item[1]}</small></span></div>) : <EquipmentEmptyState className="dashboard-empty" size="compact" title="No recent inventory" description="Newly registered devices will appear here." />}</article>
       <article className="module-card attention-card"><span className="attention-label">PRIORITY</span><h3>{needsAttention > 0 ? `${needsAttention} device${needsAttention !== 1 ? 's need' : ' needs'} attention` : 'All devices are operational'}</h3><p>{needsAttention > 0 ? `${broken} broken and ${maintenance} under maintenance. Review equipment status and update records as needed.` : 'No broken or maintenance-flagged equipment at this time.'}</p></article>
