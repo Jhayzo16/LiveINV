@@ -1,0 +1,50 @@
+.ui-date-picker-trigger {
+  width: 212px;
+  max-width: 100%;
+  min-height: 42px;
+  justify-content: space-between;
+  text-align: left;
+  font-weight: 400;
+  cursor: pointer;
+  border-color: #cbd9d0;
+  color: #263c2d;
+}
+.ui-date-picker-trigger[data-empty="true"] { color: #7b8592; }
+.ui-date-picker-trigger:focus-visible { outline: 2px solid #89bc98; outline-offset: 2px; }
+.ui-date-picker-trigger svg { flex-shrink: 0; }
+.ui-popover-positioner { z-index: 100; }
+.ui-popover-content {
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  max-height: var(--available-height);
+  overflow: auto;
+  padding: 0;
+  border: 1px solid #dce5df;
+  border-radius: 12px;
+  background: #fff;
+  color: #263c2d;
+  box-shadow: 0 12px 36px #172a2326;
+  font-size: 13px;
+  outline: none;
+}
+.ui-calendar {
+  --rdp-accent-color: #1b6c24;
+  --rdp-accent-background-color: #eaf6ee;
+  --rdp-day-width: 38px;
+  --rdp-day-height: 40px;
+  --rdp-day_button-width: 38px;
+  --rdp-day_button-height: 38px;
+  --rdp-day_button-border-radius: 8px;
+  padding: 12px;
+}
+.ui-calendar .rdp-month_caption { font-size: 14px; font-weight: 600; }
+.ui-calendar .rdp-weekday { font-size: 11px; font-weight: 500; }
+.ui-calendar .rdp-day_button { font: inherit; cursor: pointer; }
+.ui-calendar .rdp-selected { font-size: inherit; }
+.ui-calendar .rdp-selected .rdp-day_button { background: #1b6c24; color: white; }
+.ui-calendar .rdp-day:not(.rdp-selected) .rdp-day_button:hover { background: #eaf6ee; }
+.ui-calendar button:focus-visible { outline: 2px solid #1b6c24; outline-offset: 1px; }
+.pms-date-field { display: grid; align-content: start; gap: 7px; }
+@media (max-width: 480px) {
+  .ui-date-picker-trigger { width: 100%; min-height: 44px; }
+}

@@ -10,6 +10,7 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
+    "@base-ui/react": "^1.8.0",
     "@fontsource-variable/montserrat": "^5.3.0",
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
     "@hookform/resolvers": "^5.9.1",
@@ -23,8 +24,11 @@
     "@zxing/browser": "^0.2.1",
     "clsx": "^2.1.1",
     "cobe": "^2.0.1",
+    "date-fns": "^4.4.0",
+    "lucide-react": "^1.46.0",
     "qrcode": "^1.5.4",
     "react": "latest",
+    "react-day-picker": "^9.14.0",
     "react-dom": "latest",
     "react-hook-form": "^7.87.0",
     "tailwind-merge": "^3.6.0",
