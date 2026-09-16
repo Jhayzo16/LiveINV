@@ -244,8 +244,7 @@ function AssetCardGrid({ inventoryAssets, onSelect, searchActive, listView = fal
     <div className="asset-device-hero">
       <img className="asset-card-logo" src={assetCardLogo} alt="" aria-hidden="true" />
       <StatusBadge state={item.state} />
-      <div className="asset-card-category"><span className="asset-category-emblem"><EquipmentIcon kind={deviceCategories.includes(item.category as DeviceCategory) ? item.category as DeviceCategory : 'Other'} /></span><span className="asset-device-category">{item.category}</span></div>
-      <div className="asset-device-identity"><h3>{item.tag}</h3><p>{item.model || item.name}</p></div>
+      <div className="asset-device-identity"><span className="asset-category-emblem"><EquipmentIcon kind={deviceCategories.includes(item.category as DeviceCategory) ? item.category as DeviceCategory : 'Other'} /></span><span className="asset-device-category">{item.category}</span><h3>{item.tag}</h3><p>{item.model || item.name}</p></div>
       <div className="asset-device-visual"><DevicePreview asset={item} className="asset-card-preview" /></div>
     </div>
     <div className="asset-device-copy">
