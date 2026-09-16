@@ -20,6 +20,7 @@ import { AdminAuth } from './components/auth/AdminAuth'
 import type { User } from '@supabase/supabase-js'
 // Responsive rules follow component styles so every module uses the same breakpoints.
 import './mobile.css'
+import './asset-cards.css'
 
 function AdminWorkspace({ user, onSignOut }: { user: User; onSignOut: () => Promise<void> }) {
   const [queryClient] = useState(() => new QueryClient())

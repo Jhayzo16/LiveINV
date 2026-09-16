@@ -24,10 +24,3 @@ button:focus-visible, [role="button"]:focus-visible, a:focus-visible {
 }
 button:not(:disabled):not([aria-disabled="true"]):active { filter: brightness(.86); }
 button:disabled, button[aria-disabled="true"] { cursor: not-allowed; }
-
-.asset-device-grid.asset-list-view { grid-template-columns: minmax(0, 1fr); }
-.asset-list-view .asset-device-card { display: grid; grid-template-columns: 160px minmax(0, 1fr); }
-.asset-list-view .asset-device-visual { height: 100%; min-height: 150px; }
-@media (max-width: 768px) {
-  .asset-list-view .asset-device-card { grid-template-columns: 95px minmax(0, 1fr); }
-}

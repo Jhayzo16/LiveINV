@@ -16,11 +16,11 @@ import { EquipmentEmptyState, EquipmentIcon, type EquipmentKind } from '@/compon
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import keyboardDeviceImage from '@/assets/device-keyboard.png'
 import monitorDeviceImage from '@/assets/device-monitor.png'
-import printerDeviceImage from '@/assets/device-printer.jpeg'
+import printerDeviceImage from '@/assets/device-printer.png'
 import routerDeviceImage from '@/assets/device-router.png'
-import scannerDeviceImage from '@/assets/device-scanner.jpg'
-import systemUnitDeviceImage from '@/assets/device-system-unit.jpg'
-import upsDeviceImage from '@/assets/device-ups.webp'
+import scannerDeviceImage from '@/assets/device-scanner.png'
+import systemUnitDeviceImage from '@/assets/device-system-unit.png'
+import upsDeviceImage from '@/assets/device-ups.png'
 import registeredAssetsMetricIcon from '../assets/metrics/registered-assets.png'
 import activeReadyMetricIcon from '../assets/metrics/active-ready.png'
 import needsAttentionMetricIcon from '../assets/metrics/needs-attention.png'
@@ -240,9 +240,28 @@ function AssetCardGrid({ inventoryAssets, onSelect, searchActive, listView = fal
   if (!inventoryAssets.length) return <EquipmentEmptyState className="module-card asset-gallery-empty" title={searchActive ? 'No matching assets' : 'No assets registered'} description={searchActive ? 'Try another search term or change the selected filter.' : 'Add a device to begin building the hospital inventory.'} />
 
   return <div className={`asset-device-grid ${listView ? 'asset-list-view' : ''}`}>{inventoryAssets.map(item => <button type="button" className="asset-device-card" key={item.tag} onClick={() => onSelect(item)} aria-label={`Open full record for ${item.tag}`}>
-    <div className="asset-device-visual"><DevicePreview asset={item} className="asset-card-preview" /><StatusBadge state={item.state} /></div>
-    <div className="asset-device-copy"><span className="asset-device-category">{item.category}</span><h3>{item.tag}</h3><p>{item.name}</p><dl><div><dt>Location</dt><dd>{item.location}</dd></div><div><dt>Department</dt><dd>{item.owner}</dd></div></dl><footer><span className="mono">{item.ip === '—' ? 'No network' : item.ip}</span><b>View record →</b></footer></div>
+    <div className="asset-device-hero">
+      <svg className="asset-card-wave" viewBox="0 0 600 340" preserveAspectRatio="none" aria-hidden="true"><path d="M70 0C260-35 225 215 375 210S600 210 640 340H600C525 220 425 310 310 260S240 30 70 0Z" fill="currentColor" /></svg>
+      <StatusBadge state={item.state} />
+      <div className="asset-device-identity"><span className="asset-category-emblem"><EquipmentIcon kind={deviceCategories.includes(item.category as DeviceCategory) ? item.category as DeviceCategory : 'Other'} /></span><span className="asset-device-category">{item.category}</span><h3>{item.tag}</h3><p>{item.model || item.name}</p></div>
+      <div className="asset-device-visual"><DevicePreview asset={item} className="asset-card-preview" /></div>
+    </div>
+    <div className="asset-device-copy">
+      <dl className="asset-card-assignment">
+        <div><span className="asset-detail-emblem"><AssetCardDetailIcon kind="location" /></span><div><dt>Location</dt><dd>{item.location}</dd></div></div>
+        <div><span className="asset-detail-emblem"><AssetCardDetailIcon kind="department" /></span><div><dt>Department</dt><dd>{item.owner}</dd></div></div>
+      </dl>
+      <footer><div className="asset-card-network"><span className="asset-detail-emblem"><AssetCardDetailIcon kind="network" /></span><div><span className="asset-card-field-label">IP address</span><span className="asset-card-ip">{!item.ip || item.ip === '—' ? 'No network' : item.ip}</span></div></div><span className="asset-record-action">View record <span aria-hidden="true">⟶</span></span></footer>
+    </div>
   </button>)}</div>
+}
+
+function AssetCardDetailIcon({ kind }: { kind: 'location' | 'department' | 'network' }) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    {kind === 'location' && <><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" /><circle cx="12" cy="10" r="2.3" /></>}
+    {kind === 'department' && <><circle cx="9" cy="7" r="3" /><path d="M3 20v-2a6 6 0 0 1 12 0v2ZM17 4a3 3 0 0 1 0 6M18 13a5 5 0 0 1 3 5v2h-3" /></>}
+    {kind === 'network' && <><rect x="3" y="4" width="18" height="13" rx="1.5" /><path d="M12 17v4M8 21h8" /></>}
+  </svg>
 }
 
 function DevicePreview({ asset, className = '' }: { asset: InventoryAsset; className?: string }) {

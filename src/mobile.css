@@ -85,13 +85,6 @@
   .asset-category-card > span { width: 30px; height: 30px; flex-basis: 30px; }
   .asset-category-card b { white-space: normal; font-size: 12px; }
   .asset-category-card small { font-size: 11px; }
-  .asset-device-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-  .asset-device-copy { padding: 14px; }
-  .asset-device-copy dl { grid-template-columns: minmax(0, 1fr); gap: 10px; }
-  .asset-device-copy p, .asset-device-copy dd { white-space: normal; }
-  .asset-device-copy small, .asset-device-copy dd, .asset-device-copy footer { font-size: 12px; }
-  .asset-list-view .asset-device-card { grid-template-columns: 100px minmax(0, 1fr); }
-  .asset-device-copy footer { flex-wrap: wrap; }
   /* Wide registries scroll inside their cards without dropping columns. */
   .data-table { min-width: 0; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
   .data-table .table-row { min-width: 860px; grid-template-columns: 1.3fr .8fr 1fr 1fr .8fr .8fr 24px; }
@@ -198,9 +191,6 @@
 }
 
 @media (max-width: 480px) {
-  .asset-device-grid { grid-template-columns: minmax(0, 1fr); }
-  .asset-list-view .asset-device-card { grid-template-columns: minmax(0, 1fr); }
-  .asset-list-view .asset-device-visual { height: 160px; }
   .health-layout { grid-template-columns: minmax(0, 1fr); justify-items: center; }
   .health-legend { width: 100%; }
   .pms-metrics { grid-template-columns: minmax(0, 1fr); }

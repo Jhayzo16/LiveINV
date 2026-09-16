@@ -1,0 +1,97 @@
+/* Asset cards share the same layout in the registry and filtered results. */
+.asset-device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+  align-items: stretch;
+  gap: 24px;
+  padding-top: 8px;
+}
+
+.asset-device-card {
+  min-width: 0;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 28px;
+  background: radial-gradient(ellipse at 18% 8%, #e4f3ec90, transparent 48%), linear-gradient(135deg, #f8fcfa, #fff 52%, #f2faf7);
+  color: #17282e;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 16px 36px -18px #276b5147, inset 0 0 0 1px #eaf5f0;
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.asset-device-card:hover { transform: translateY(-3px); border-color: #fff; box-shadow: 0 22px 42px -18px #276b5160; }
+.asset-device-card:focus-visible { outline: 3px solid #197c53; outline-offset: 4px; }
+.asset-device-hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; flex: 1; min-height: 280px; padding: 54px 24px 24px; }
+.asset-card-wave { position: absolute; inset: 0; width: 100%; height: 100%; color: #d5eee260; pointer-events: none; z-index: -1; }
+.asset-device-identity { position: relative; z-index: 2; min-width: 0; }
+.asset-category-emblem { display: grid; place-items: center; width: 62px; height: 62px; margin-bottom: 21px; border: 2px solid #fff; border-radius: 50%; background: linear-gradient(145deg, #ffffffad, #e2f4ed); box-shadow: 0 10px 24px #39745712; }
+.asset-category-emblem img { width: 30px; height: 30px; object-fit: contain; filter: brightness(0) saturate(100%) invert(26%) sepia(33%) saturate(1310%) hue-rotate(111deg) brightness(92%) contrast(94%); }
+.asset-device-category { display: block; margin-bottom: 12px; color: #6c787b; font-size: 11px; font-weight: 650; line-height: 1.5; letter-spacing: .18em; text-transform: uppercase; }
+.asset-device-identity h3 { margin: 0; color: #14212a; font-family: var(--font-ui); font-size: clamp(23px, 2.1vw, 32px); font-weight: 850; letter-spacing: -.045em; line-height: 1.15; overflow-wrap: anywhere; }
+.asset-device-identity p { margin: 10px 0 0; color: #758083; font-size: 17px; font-weight: 400; line-height: 1.45; overflow-wrap: anywhere; }
+.asset-device-hero > .status-badge { position: absolute; z-index: 3; top: 18px; right: 20px; display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 8px 16px; border: 1px solid #ffffffd9; border-radius: 999px; font-size: 12px; font-weight: 750; box-shadow: 0 8px 22px #2565450d; }
+.asset-device-hero > .status-badge.active { color: #117443; background: linear-gradient(135deg, #edfff7, #e0f6eb); }
+.asset-device-hero > .status-badge i { width: 7px; height: 7px; margin: 0; background: currentColor; }
+.asset-device-visual { position: relative; height: 220px; min-width: 0; overflow: visible; background: none; }
+.asset-device-visual::after { content: ''; position: absolute; left: 20%; right: 12%; bottom: 2px; height: 12px; border-radius: 50%; background: #27533e1c; filter: blur(8px); }
+.asset-device-visual .asset-card-preview { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; border: 0; border-radius: 0; background: transparent; z-index: 1; }
+.asset-device-visual .asset-card-preview img { inset: 0; width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
+.asset-device-visual :is(.device-preview-printer, .device-preview-scanner, .device-preview-system-unit, .device-preview-ups) img { mix-blend-mode: normal; }
+.asset-device-copy { padding: 0 20px 20px; }
+.asset-device-copy .asset-card-assignment { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; margin: 0; padding: 18px 0; border-top: 1px solid #d8e9e2; border-bottom: 1px solid #d8e9e2; }
+.asset-card-assignment > div { display: flex; align-items: center; gap: 12px; min-width: 0; padding-right: 14px; }
+.asset-card-assignment > div + div { border-left: 1px solid #d8e9e2; padding: 0 0 0 14px; }
+.asset-card-assignment > div > div { min-width: 0; }
+.asset-detail-emblem { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%; background: #e5f4ed; color: #0f6548; }
+.asset-detail-emblem svg { width: 21px; height: 21px; }
+.asset-device-copy dt, .asset-card-field-label { display: block; margin-bottom: 7px; color: #788285; font-size: 10px; font-weight: 500; letter-spacing: .12em; line-height: 1.4; text-transform: uppercase; }
+.asset-device-copy dd { margin: 0; color: #26353d; font-size: 12px; font-weight: 750; line-height: 1.5; white-space: normal; overflow-wrap: anywhere; }
+.asset-device-copy footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-top: 18px; }
+.asset-card-network { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.asset-card-network > div { min-width: 0; }
+.asset-card-ip { display: block; color: #25353b; font-size: 15px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+.asset-record-action { display: inline-flex; flex: 1 0 auto; max-width: 185px; min-height: 52px; align-items: center; justify-content: center; gap: 12px; padding: 12px 20px; border: 1px solid #d3ebe0; border-radius: 17px; background: linear-gradient(145deg, #f2fcf7, #e2f3eb); color: #0b6346; font-size: 15px; font-weight: 750; box-shadow: inset 0 1px 0 #fff, 0 8px 20px #1e6b4210; transition: background .2s ease; }
+.asset-record-action > span { font-size: 25px; font-weight: 400; line-height: 1; }
+.asset-device-card:hover .asset-record-action { background: #d9efe3; }
+
+.asset-device-grid.asset-list-view { grid-template-columns: minmax(0, 1fr); }
+.asset-list-view .asset-device-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; }
+.asset-list-view .asset-device-hero { min-height: 240px; }
+.asset-list-view .asset-device-visual { height: 190px; min-height: 0; }
+.asset-list-view .asset-device-copy { padding: 20px; }
+
+@media (max-width: 1100px) {
+  .asset-list-view .asset-device-card { display: flex; }
+  .asset-list-view .asset-device-copy { padding-top: 0; }
+}
+@media (max-width: 600px) {
+  .asset-device-grid { gap: 20px; }
+  .asset-device-card { border-radius: 24px; }
+  .asset-device-hero, .asset-list-view .asset-device-hero { min-height: 250px; padding: 58px 18px 20px; }
+  .asset-category-emblem { width: 50px; height: 50px; margin-bottom: 17px; }
+  .asset-category-emblem img { width: 25px; height: 25px; }
+  .asset-device-category { font-size: 10px; letter-spacing: .13em; }
+  .asset-device-identity h3 { font-size: 23px; }
+  .asset-device-identity p { font-size: 14px; }
+  .asset-device-hero > .status-badge { right: 16px; top: 14px; min-height: 32px; padding: 7px 12px; font-size: 11px; }
+  .asset-device-visual, .asset-list-view .asset-device-visual { height: 190px; }
+  .asset-device-copy, .asset-list-view .asset-device-copy { padding: 0 18px 18px; }
+  .asset-device-copy .asset-card-assignment { grid-template-columns: minmax(0, 1fr); gap: 15px; padding: 16px 0; }
+  .asset-card-assignment > div, .asset-card-assignment > div + div { padding: 0; border: 0; }
+  .asset-device-copy dd { font-size: 12px; }
+  .asset-device-copy footer { gap: 16px; }
+  .asset-record-action { flex: 1 1 100%; max-width: none; min-height: 48px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .asset-device-card, .asset-record-action { transition: none; }
+  .asset-device-card:hover { transform: none; }
+}
+@media (max-width: 360px) {
+  .asset-device-hero { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); }
+  .asset-device-identity h3 { font-size: 20px; }
+}
