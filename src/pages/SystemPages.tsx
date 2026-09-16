@@ -21,6 +21,7 @@ import routerDeviceImage from '@/assets/device-router.png'
 import scannerDeviceImage from '@/assets/device-scanner.png'
 import systemUnitDeviceImage from '@/assets/device-system-unit.png'
 import upsDeviceImage from '@/assets/device-ups.png'
+import assetCardLogo from '@/assets/asset-card-logo.png'
 import registeredAssetsMetricIcon from '../assets/metrics/registered-assets.png'
 import activeReadyMetricIcon from '../assets/metrics/active-ready.png'
 import needsAttentionMetricIcon from '../assets/metrics/needs-attention.png'
@@ -241,9 +242,10 @@ function AssetCardGrid({ inventoryAssets, onSelect, searchActive, listView = fal
 
   return <div className={`asset-device-grid ${listView ? 'asset-list-view' : ''}`}>{inventoryAssets.map(item => <button type="button" className="asset-device-card" key={item.tag} onClick={() => onSelect(item)} aria-label={`Open full record for ${item.tag}`}>
     <div className="asset-device-hero">
-      <svg className="asset-card-wave" viewBox="0 0 600 340" preserveAspectRatio="none" aria-hidden="true"><path d="M70 0C260-35 225 215 375 210S600 210 640 340H600C525 220 425 310 310 260S240 30 70 0Z" fill="currentColor" /></svg>
+      <img className="asset-card-logo" src={assetCardLogo} alt="" aria-hidden="true" />
       <StatusBadge state={item.state} />
-      <div className="asset-device-identity"><span className="asset-category-emblem"><EquipmentIcon kind={deviceCategories.includes(item.category as DeviceCategory) ? item.category as DeviceCategory : 'Other'} /></span><span className="asset-device-category">{item.category}</span><h3>{item.tag}</h3><p>{item.model || item.name}</p></div>
+      <div className="asset-card-category"><span className="asset-category-emblem"><EquipmentIcon kind={deviceCategories.includes(item.category as DeviceCategory) ? item.category as DeviceCategory : 'Other'} /></span><span className="asset-device-category">{item.category}</span></div>
+      <div className="asset-device-identity"><h3>{item.tag}</h3><p>{item.model || item.name}</p></div>
       <div className="asset-device-visual"><DevicePreview asset={item} className="asset-card-preview" /></div>
     </div>
     <div className="asset-device-copy">
