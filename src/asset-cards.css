@@ -90,6 +90,6 @@
   .asset-list-view .asset-device-copy { padding: 0 14px 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
+  /* Keep hover feedback visible, but switch states without animating movement. */
   .asset-device-card, .asset-record-action { transition: none; }
-  .asset-device-card:hover { transform: none; }
 }
