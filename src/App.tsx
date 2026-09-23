@@ -17,6 +17,7 @@ import reportsIcon from './assets/sidebar/reports.png'
 import { EquipmentEmptyState, EquipmentIcon } from './components/ui/equipment-empty-state'
 import { LoadingState } from './components/ui/loading-state'
 import { useMinimumLoading } from './lib/use-minimum-loading'
+import { useMapGestures } from './lib/use-map-gestures'
 import { Toaster } from './components/ui/toast'
 import { PmsIcon } from './pages/PmsPage'
 import { FullDeviceRecordDialog, SystemModulePage, type AssignmentTarget, type SystemModule } from './pages/SystemPages'
@@ -271,11 +272,7 @@ function FloorTopology({ floors, onSelect }: { floors: Floor[]; onSelect:(id:num
 }
 
 function FloorView({ floor, onBack, rooms, inventoryAssets, availableAssets, onAssignAvailableAsset, onUnassignAsset }: { floor:Floor;onBack:()=>void;rooms:Room[];inventoryAssets:InventoryAsset[];availableAssets:InventoryAsset[];onAssignAvailableAsset:(asset:InventoryAsset,room:Room)=>Promise<void>;onUnassignAsset:(tag:string,room:Room)=>Promise<void> }) {
-  const [zoom, setZoom] = useState(1)
-  const [pan, setPan] = useState({ x: 0, y: 0 })
-  const [isDragging, setIsDragging] = useState(false)
-  const dragStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
-  const dragMoved = useRef(false)
+  const map = useMapGestures()
   const pressedMapRoomId = useRef<string | null>(null)
   const [directoryOpen, setDirectoryOpen] = useState(false)
   const [hoveredRoom, setHoveredRoom] = useState<string | null>(null)
@@ -307,6 +304,7 @@ function FloorView({ floor, onBack, rooms, inventoryAssets, availableAssets, onA
   }, [])
 
   const handleMapHover = (roomId: string | null, point?: { x: number; y: number }) => {
+    if (map.isInteracting()) return
     if (roomId && point) {
       if (hoverCloseTimer.current) {
         window.clearTimeout(hoverCloseTimer.current)
@@ -370,53 +368,47 @@ function FloorView({ floor, onBack, rooms, inventoryAssets, availableAssets, onA
               aria-expanded={directoryOpen}
               onClick={() => setDirectoryOpen(open => !open)}
             ><span aria-hidden="true">☷</span>{directoryOpen ? 'Hide directory' : 'Show directory'}</button>
-            <div className="zoom-controls"><button onClick={() => setZoom(value => Math.max(.2, value - .2))} aria-label="Zoom out">−</button><button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }} aria-label="Reset zoom">{Math.round(zoom * 100)}%</button><button onClick={() => setZoom(value => Math.min(4, value + .2))} aria-label="Zoom in">＋</button></div>
+            <div className="zoom-controls"><button onClick={() => map.zoomBy(-.2)} disabled={map.zoom <= .2} aria-label="Zoom out">−</button><button onClick={map.reset} aria-label="Reset zoom">{Math.round(map.zoom * 100)}%</button><button onClick={() => map.zoomBy(.2)} disabled={map.zoom >= 4} aria-label="Zoom in">＋</button></div>
           </div>
         </div>
         <div 
           className="map-viewport"
-          style={{ cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none', overflow: 'hidden' }}
+          ref={map.viewportRef}
+          data-dragging={map.isDragging}
+          aria-describedby="map-gesture-hint"
           onPointerDown={e => {
-            if (e.button !== 0 && e.button !== 1) return
+            if (!map.onPointerDown(e)) return
             pressedMapRoomId.current = e.target instanceof Element
               ? e.target.closest('.svg-room-node, .svg-room-hit-target')?.getAttribute('data-room-id') ?? null
               : null
-            setIsDragging(true)
-            dragMoved.current = false
-            dragStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y }
-            e.currentTarget.setPointerCapture(e.pointerId)
+            if (hoverOpenTimer.current) window.clearTimeout(hoverOpenTimer.current)
+            if (hoverCloseTimer.current) window.clearTimeout(hoverCloseTimer.current)
+            hoverOpenTimer.current = null
+            hoverCloseTimer.current = null
+            pendingHoverRoom.current = null
+            visibleHoverRoom.current = null
+            setHoveredRoom(null)
+            setHoverCardPosition(null)
           }}
-          onPointerMove={e => {
-            if (!isDragging) return
-            const dx = e.clientX - dragStart.current.x
-            const dy = e.clientY - dragStart.current.y
-            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragMoved.current = true
-            setPan({ x: dragStart.current.panX + dx, y: dragStart.current.panY + dy })
-          }}
+          onPointerMove={map.onPointerMove}
           onPointerUp={e => {
-            setIsDragging(false)
-            if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId)
-            if (e.button === 0 && !dragMoved.current && pressedMapRoomId.current) openRoomDetails(pressedMapRoomId.current)
+            if (map.finishPointer(e) && pressedMapRoomId.current) openRoomDetails(pressedMapRoomId.current)
             pressedMapRoomId.current = null
           }}
           onPointerCancel={e => {
-            setIsDragging(false)
-            if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId)
+            map.finishPointer(e, true)
             pressedMapRoomId.current = null
           }}
-          onWheel={e => {
-            if (e.ctrlKey || e.metaKey) {
-              setZoom(z => Math.max(0.2, Math.min(4, z - e.deltaY * 0.005)))
-            } else {
-              setPan(p => ({ x: p.x - e.deltaX, y: p.y - e.deltaY }))
-            }
+          onLostPointerCapture={e => {
+            map.finishPointer(e, true)
+            pressedMapRoomId.current = null
           }}
         >
-          <div className="map-canvas figma-floor-map" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, aspectRatio: floorMapAspectRatios[floor.id] }} role="img" aria-label={`Interactive room layout for Floor ${floor.id}`}>
+          <div ref={map.canvasRef} className="map-canvas figma-floor-map" style={{ transform: `translate(${map.pan.x}px, ${map.pan.y}px) scale(${map.zoom})`, aspectRatio: floorMapAspectRatios[floor.id] }} role="img" aria-label={`Interactive room layout for Floor ${floor.id}`}>
             <InteractiveFloorSvg floor={floor} rooms={namedRooms} activeRoomId={hoveredRoom ?? openedRoomId} onSelect={openRoomDetails} onHover={handleMapHover} />
           </div>
         </div>
-        <div className="map-status"><span className="map-status-key"><i className="mapped"/>Mapped room</span><span className="map-status-key"><i className="device"/>Device assigned</span><span>Click a room to enter</span>{selectedRoom && <strong>{selectedRoom.name} · {selectedRoom.assets.length} assets</strong>}</div>
+        <div className="map-status"><span className="map-status-key"><i className="mapped"/>Mapped room</span><span className="map-status-key"><i className="device"/>Device assigned</span><span id="map-gesture-hint">Scroll or pinch to zoom · Drag to move · Tap a room to enter</span>{selectedRoom && <strong>{selectedRoom.name} · {selectedRoom.assets.length} assets</strong>}</div>
       </div>
       <aside id={`floor-${floor.id}-room-directory`} className="floor-room-directory" hidden={!directoryOpen}>
         <div className="directory-heading"><span className="eyebrow">ROOM DIRECTORY</span><h3>Floor {floor.id} spaces</h3><p>Select a room to inspect its inventory.</p></div>
