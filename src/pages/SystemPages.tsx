@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowRight, ClipboardList, FileDown, Network, PackageOpen, Wrench, type LucideIcon } from 'lucide-react'
+import { ArrowRight, Boxes, ChartNoAxesCombined, ClipboardList, ClipboardPlus, FileDown, FileSearch, LayoutDashboard, MapPinned, Network, PackageOpen, QrCode, ScanLine, Waypoints, Wrench, type LucideIcon } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -896,22 +896,22 @@ function UsersPage() {
 }
 
 const manualSteps = [
-  { icon: '▦', title: 'Review the dashboard', text: 'Start on the Dashboard to check asset totals, equipment condition, verification coverage, and recent activity.' },
-  { icon: '＋', title: 'Register a device', text: 'Open Assets, select Add device, enter its category, brand, model, status, and applicable technical specifications.' },
-  { icon: '▧', title: 'Record received consumables', text: 'Receive RAM and SSD stock in pieces in Consumables, then select a stock source when adding or editing a system unit. Saving deducts the installed quantity. When removing parts, choose to return usable parts or keep them counted as used/discarded. Review stock balances and usage history in Consumables.' },
-  { icon: '▣', title: 'Generate and attach its QR label', text: 'After saving a device, download or print its generated QR label. Keep the fallback QR ID available for manual identification.' },
-  { icon: '⇄', title: 'Assign its hospital location', text: 'Open Assignments, choose an unassigned device, then select its floor, department, and room.' },
-  { icon: '⌘', title: 'Find equipment through Topology', text: 'Open Topology, select a floor, then hover or click a room to see its assigned devices and full equipment details.' },
-  { icon: '▤', title: 'Search and update records', text: 'Use the Asset Registry search and filters. Click any device row to open its full record, then select Edit device when changes are needed.' },
-  { icon: '⌗', title: 'Identify a device with QR', text: 'Open QR Scanner and scan the label. If scanning fails, enter the asset tag or QR fallback ID manually.' },
-  { icon: '▥', title: 'Track condition and reports', text: 'Update the device status from its full record, then use Reports for inventory and operational summaries.' },
+  { icon: LayoutDashboard, title: 'Review the dashboard', text: 'Start on the Dashboard to check asset totals, equipment condition, verification coverage, and recent activity.' },
+  { icon: ClipboardPlus, title: 'Register a device', text: 'Open Assets, select Add device, enter its category, brand, model, status, and applicable technical specifications.' },
+  { icon: Boxes, title: 'Record received consumables', text: 'Receive RAM and SSD stock in pieces in Consumables, then select a stock source when adding or editing a system unit. Saving deducts the installed quantity. When removing parts, choose to return usable parts or keep them counted as used/discarded. Review stock balances and usage history in Consumables.' },
+  { icon: QrCode, title: 'Generate and attach its QR label', text: 'After saving a device, download or print its generated QR label. Keep the fallback QR ID available for manual identification.' },
+  { icon: MapPinned, title: 'Assign its hospital location', text: 'Open Assignments, choose an unassigned device, then select its floor, department, and room.' },
+  { icon: Waypoints, title: 'Find equipment through Topology', text: 'Open Topology, select a floor, then hover or click a room to see its assigned devices and full equipment details.' },
+  { icon: FileSearch, title: 'Search and update records', text: 'Use the Asset Registry search and filters. Click any device row to open its full record, then select Edit device when changes are needed.' },
+  { icon: ScanLine, title: 'Identify a device with QR', text: 'Open QR Scanner and scan the label. If scanning fails, enter the asset tag or QR fallback ID manually.' },
+  { icon: ChartNoAxesCombined, title: 'Track condition and reports', text: 'Update the device status from its full record, then use Reports for inventory and operational summaries.' },
 ]
 
 function ManualPage() {
   return <>
     <ModuleHeading eyebrow="USER GUIDE" title="How to use liveINV" description="Follow this workflow to register, assign, locate, identify, and maintain hospital equipment records." />
-    <article className="manual-intro module-card"><div><span>QUICK START</span><h2>From registration to daily inventory control</h2><p>Each device receives one permanent asset record and QR identification ID. Location assignment is handled separately so newly registered equipment can remain clearly marked as unassigned.</p></div><div className="manual-flow"><span>Register</span><i>→</i><span>Generate QR</span><i>→</i><span>Assign</span><i>→</i><span>Track</span></div></article>
-    <div className="manual-step-grid">{manualSteps.map((step, index) => <article className="manual-step module-card" key={step.title}><div className="manual-step-number"><b>{String(index + 1).padStart(2, '0')}</b><span>{step.icon}</span></div><div><h3>{step.title}</h3><p>{step.text}</p></div></article>)}</div>
+    <article className="manual-intro module-card"><div><span>QUICK START</span><h2>From registration to daily inventory control</h2><p>Each device receives one permanent asset record and QR identification ID. Location assignment is handled separately so newly registered equipment can remain clearly marked as unassigned.</p></div><div className="manual-flow"><span>Register</span><i><ArrowRight aria-hidden="true" /></i><span>Generate QR</span><i><ArrowRight aria-hidden="true" /></i><span>Assign</span><i><ArrowRight aria-hidden="true" /></i><span>Track</span></div></article>
+    <div className="manual-step-grid">{manualSteps.map((step, index) => <article className="manual-step module-card" key={step.title}><div className="manual-step-number"><b>{String(index + 1).padStart(2, '0')}</b><span><step.icon aria-hidden="true" /></span></div><div><h3>{step.title}</h3><p>{step.text}</p></div></article>)}</div>
     <div className="manual-notes"><article className="module-card"><span>SECURITY REMINDER</span><h3>QR labels contain only an identification token</h3><p>Passwords, IP addresses, and hospital information remain inside liveINV and are never stored directly in the printed QR code.</p></article><article className="module-card"><span>ASSIGNMENT RULE</span><h3>Register first, assign when the destination is confirmed</h3><p>Use the Unassigned label and the Assignments page to avoid recording an incorrect floor, department, or room.</p></article></div>
   </>
 }

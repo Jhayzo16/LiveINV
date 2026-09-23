@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
+import { BookOpen } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AssetRepository } from './lib/repositories'
 import { type AssetState, type DeviceCategory, type InventoryAsset } from './lib/types'
@@ -222,7 +223,7 @@ function LiveInvSidebar({ module, expanded, onToggle, onNavigate, totalAssets = 
         <button className={`nav-item ${module === 'pms' ? 'active' : ''}`} title="Preventive Maintenance Service" onClick={() => navigate('pms')}><span className="icon"><PmsIcon /></span><span className="sidebar-item-label">PMS</span></button>
         <button className={`nav-item ${module === 'qr' ? 'active' : ''}`} onClick={() => navigate('qr')}><Icon src={qrScannerIcon} /><span className="sidebar-item-label">QR Scanner</span></button>
         <button className={`nav-item ${module === 'reports' ? 'active' : ''}`} onClick={() => navigate('reports')}><Icon src={reportsIcon} /><span className="sidebar-item-label">Reports</span></button>
-        <button className={`nav-item ${module === 'manual' ? 'active' : ''}`} onClick={() => navigate('manual')}><Icon name="?" /><span className="sidebar-item-label">Manual</span></button>
+        <button className={`nav-item ${module === 'manual' ? 'active' : ''}`} onClick={() => navigate('manual')}><span className="icon" aria-hidden="true"><BookOpen size={18} strokeWidth={1.8} /></span><span className="sidebar-item-label">Manual</span></button>
       </nav>
       <div className="sidebar-spacer" />
     </div>
