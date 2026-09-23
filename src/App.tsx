@@ -12,6 +12,7 @@ import dashboardIcon from './assets/sidebar/dashboard.png'
 import liveMappingIcon from './assets/sidebar/live-mapping.png'
 import assetsIcon from './assets/sidebar/assets.png'
 import assignmentsIcon from './assets/sidebar/assignments.png'
+import consumablesIcon from './assets/sidebar/consumables.png'
 import qrScannerIcon from './assets/sidebar/qr-scanner.png'
 import reportsIcon from './assets/sidebar/reports.png'
 import { EquipmentEmptyState, EquipmentIcon } from './components/ui/equipment-empty-state'
@@ -216,7 +217,7 @@ function LiveInvSidebar({ module, expanded, onToggle, onNavigate, totalAssets = 
         <button className={`nav-item ${module === 'dashboard' ? 'active' : ''}`} onClick={() => navigate('dashboard')}><Icon src={dashboardIcon} /><span className="sidebar-item-label">Dashboard</span></button>
         <button className={`nav-item ${module === 'topology' ? 'active' : ''}`} onClick={() => navigate('topology')}><Icon src={liveMappingIcon} /><span className="sidebar-item-label">Live Mapping</span></button>
         <button className={`nav-item ${module === 'assets' ? 'active' : ''}`} onClick={() => navigate('assets')}><Icon src={assetsIcon} /><span className="sidebar-item-label">Assets</span>{totalAssets > 0 && <span className="nav-count">{totalAssets}</span>}</button>
-        <button className={`nav-item ${module === 'consumables' ? 'active' : ''}`} onClick={() => navigate('consumables')}><Icon name="▧" /><span className="sidebar-item-label">Consumables</span></button>
+        <button className={`nav-item ${module === 'consumables' ? 'active' : ''}`} onClick={() => navigate('consumables')}><Icon src={consumablesIcon} /><span className="sidebar-item-label">Consumables</span></button>
         <button className={`nav-item ${module === 'assignments' ? 'active' : ''}`} onClick={() => navigate('assignments')}><Icon src={assignmentsIcon} /><span className="sidebar-item-label">Assignments</span></button>
         <button className={`nav-item ${module === 'pms' ? 'active' : ''}`} title="Preventive Maintenance Service" onClick={() => navigate('pms')}><span className="icon"><PmsIcon /></span><span className="sidebar-item-label">PMS</span></button>
         <button className={`nav-item ${module === 'qr' ? 'active' : ''}`} onClick={() => navigate('qr')}><Icon src={qrScannerIcon} /><span className="sidebar-item-label">QR Scanner</span></button>

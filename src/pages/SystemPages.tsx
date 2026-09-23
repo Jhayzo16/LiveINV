@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
+import { ArrowRight, ClipboardList, FileDown, Network, PackageOpen, Wrench, type LucideIcon } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -872,7 +873,22 @@ function ReportsPage({ inventoryAssets }: { inventoryAssets: InventoryAsset[] })
     URL.revokeObjectURL(url)
   }
 
-  return <><ModuleHeading eyebrow="ANALYTICS" title="Reports and exports" description="Turn inventory records into operational summaries for IT and hospital management." /><div className="report-catalog"><ReportTile icon="▦" title="Inventory master list" onClick={() => downloadCsv('Inventory Master List')} note={`${inventoryAssets.length} assets total`} /><ReportTile icon="⌁" title="Network assignment" onClick={() => downloadCsv('Network Devices')} note={`${reportAssets['Network Devices'].length} network devices`} /><ReportTile icon="⚒" title="Maintenance status" onClick={() => downloadCsv('Maintenance Report')} note={`${inventoryAssets.filter(a => a.state === 'Maintenance' || a.state === 'Broken').length} needing attention`} /><ReportTile icon="⇄" title="Unassigned devices" onClick={() => downloadCsv('Unassigned Devices')} note={`${unassigned} awaiting placement`} /></div><div className="reports-layout"><article className="module-card"><CardTitle title="Assets by floor" subtitle="Current registered inventory" /><div className="bar-chart">{floorCounts.map((value, index) => <div key={index}><span style={{height:`${Math.round((value / maxBar) * 87)}px`}}/><b>F{index+1}</b><small>{value}</small></div>)}</div></article><article className="module-card exports-card"><CardTitle title="Export inventory data" subtitle="Download current records as CSV" />{Object.entries(reportAssets).map(([title, assets]) => [title, `${assets.length} devices`]).map(item => <button key={item[0]} onClick={() => downloadCsv(item[0])}><span>⇩</span><div><b>{item[0]}</b><small>{item[1]}</small></div><i>Download</i></button>)}</article></div></>
+  return <>
+    <ModuleHeading eyebrow="ANALYTICS" title="Reports and exports" description="Turn inventory records into operational summaries for IT and hospital management." />
+    <div className="report-catalog">
+      <ReportTile icon={ClipboardList} title="Inventory master list" onClick={() => downloadCsv('Inventory Master List')} note={`${inventoryAssets.length} assets total`} />
+      <ReportTile icon={Network} title="Network assignment" onClick={() => downloadCsv('Network Devices')} note={`${reportAssets['Network Devices'].length} network devices`} />
+      <ReportTile icon={Wrench} title="Maintenance status" onClick={() => downloadCsv('Maintenance Report')} note={`${inventoryAssets.filter(a => a.state === 'Maintenance' || a.state === 'Broken').length} needing attention`} />
+      <ReportTile icon={PackageOpen} title="Unassigned devices" onClick={() => downloadCsv('Unassigned Devices')} note={`${unassigned} awaiting placement`} />
+    </div>
+    <div className="reports-layout">
+      <article className="module-card"><CardTitle title="Assets by floor" subtitle="Current registered inventory" /><div className="bar-chart">{floorCounts.map((value, index) => <div key={index}><span style={{height:`${Math.round((value / maxBar) * 87)}px`}}/><b>F{index+1}</b><small>{value}</small></div>)}</div></article>
+      <article className="module-card exports-card">
+        <CardTitle title="Export inventory data" subtitle="Download current records as CSV" />
+        {Object.entries(reportAssets).map(([title, assets]) => <button key={title} onClick={() => downloadCsv(title)}><span className="report-icon"><FileDown aria-hidden="true" /></span><div><b>{title}</b><small>{assets.length} devices</small></div><i>Download</i></button>)}
+      </article>
+    </div>
+  </>
 }
 
 function UsersPage() {
@@ -904,4 +920,4 @@ function CardTitle({ title, subtitle }: { title: string; subtitle: string }) { r
 function StatusLine({label,value,color}:{label:string;value:string;color:string}) { return <div><span><i className={color}/>{label}</span><b>{value}</b></div> }
 function StatusBadge({state}:{state:AssetState}) { return <span className={`status-badge ${state.toLowerCase()}`}><i/>{state}</span> }
 function AssignmentBadge({ assigned }: { assigned: boolean }) { return <span className={`assignment-badge ${assigned ? 'assigned' : 'unassigned'}`}><i />{assigned ? 'Assigned' : 'Unassigned'}</span> }
-function ReportTile({icon,title,note,onClick}:{icon:string;title:string;note:string;onClick:()=>void}) { return <button type="button" className="report-tile" onClick={onClick} title={`Download ${title} CSV`}><span>{icon}</span><div><b>{title}</b><small>{note}</small></div><i>→</i></button> }
+function ReportTile({icon: ReportIcon,title,note,onClick}:{icon:LucideIcon;title:string;note:string;onClick:()=>void}) { return <button type="button" className="report-tile" onClick={onClick} title={`Download ${title} CSV`}><span className="report-icon"><ReportIcon aria-hidden="true" /></span><div><b>{title}</b><small>{note}</small></div><i><ArrowRight aria-hidden="true" /></i></button> }

@@ -264,5 +264,10 @@ body {
 @media (max-width: 620px) {
   .toast-viewport { top: 14px; right: 16px; left: 16px; width: auto; }
 }
+.report-icon svg { display: block; width: 22px; height: 22px; stroke-width: 1.8; }
+.report-tile > i { display: flex; align-items: center; justify-content: center; }
+.report-tile > i svg { width: 18px; height: 18px; stroke-width: 1.8; }
+.exports-card > button > .report-icon { color: #8b1d24; }
+.exports-card .report-icon svg { width: 20px; height: 20px; }
 .app-shell.sidebar-collapsed{grid-template-columns:78px minmax(650px,1fr) 274px}
 @media(max-width:1300px){.app-shell.sidebar-collapsed{grid-template-columns:78px minmax(600px,1fr) 240px}}
