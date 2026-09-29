@@ -15,7 +15,11 @@ LiveINV is a visual hospital inventory tracking system designed for Tagum Global
 - Consumable receiving records with RAM/SSD stock deductions, returns, and usage history linked to system units
 - Inventory reports and a built-in system manual
 
-## Technology
+## React Native mobile companion
+
+The Expo application is in [`mobile/`](mobile/README.md). It shares the existing Supabase backend and room identifiers, with native floor maps, QR scanning, equipment details, assignments, and encrypted offline updates. See the mobile guide for phone setup, APK builds, supported workflows, and remaining device checks.
+
+## Web technology
 
 - React
 - TypeScript

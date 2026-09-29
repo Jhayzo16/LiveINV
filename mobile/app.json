@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "LiveINV",
+    "slug": "liveinv-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/liveinv-logo.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.liveinv.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/liveinv-logo.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.liveinv.mobile",
+      "allowBackup": false
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-sqlite",
+      "expo-sharing",
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow LiveINV to scan equipment QR labels.",
+          "recordAudioAndroid": false
+        }
+      ],
+      "expo-asset"
+    ],
+    "scheme": "liveinv-mobile"
+  }
+}
