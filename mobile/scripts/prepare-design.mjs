@@ -1,7 +1,10 @@
 import { readFile, writeFile, copyFile, mkdir } from 'node:fs/promises'
 const root = new URL('../../', import.meta.url)
 const assets = new URL('../assets/', import.meta.url)
-for (const folder of ['', 'metrics/', 'sidebar/']) await mkdir(new URL(folder, assets), { recursive: true })
+for (const folder of ['', 'metrics/', 'sidebar/', 'room-icons/']) await mkdir(new URL(folder, assets), { recursive: true })
+for (const name of ['system-unit', 'printer', 'monitor', 'keyboard', 'ups', 'scanner', 'router']) {
+  await copyFile(new URL(`src/assets/room-icons/${name}.png`, root), new URL(`room-icons/${name}.png`, assets))
+}
 for (const name of ['liveinv-logo.png', 'asset-card-logo.png', 'device-system-unit.png', 'device-printer.png', 'device-monitor.png', 'device-keyboard.png', 'device-ups.png', 'device-scanner.png', 'device-router.png', 'floor-panel-building.png', 'metrics/registered-assets.png', 'metrics/active-ready.png', 'metrics/needs-attention.png', 'metrics/rooms-verified.png', 'sidebar/dashboard.png', 'sidebar/live-mapping.png', 'sidebar/assets.png', 'sidebar/qr-scanner.png']) {
   await copyFile(new URL(`src/assets/${name}`, root), new URL(name, assets))
 }

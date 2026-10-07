@@ -68,7 +68,6 @@ export default function AddDevice() {
       else router.back()
     }} />,
     headerShadowVisible: false,
-    statusBarStyle: 'light',
   }} />
   if (saved) return <>{header}<Page>
     <Text style={styles.eyebrow}>DEVICE REGISTERED</Text><Text style={styles.title}>{saved.tag}</Text><Text style={styles.subtitle}>{saved.name} is now in the shared inventory.</Text>

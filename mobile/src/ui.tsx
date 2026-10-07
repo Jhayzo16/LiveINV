@@ -18,9 +18,9 @@ export const styles = StyleSheet.create({
   chip: { minHeight: 36, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 20, backgroundColor: '#FFF' },
   label: { color: colors.muted, fontSize: 11, fontFamily: fonts.medium },
 })
-export function Page({ children }: PropsWithChildren) {
+export function Page({ children, scrollEnabled = true, backgroundColor = colors.paper }: PropsWithChildren<{ scrollEnabled?: boolean; backgroundColor?: string }>) {
   const paddingBottom = useContentBottomInset()
-  return <ScrollView style={styles.page} contentContainerStyle={[styles.content, { paddingBottom }]} keyboardShouldPersistTaps="handled">{children}</ScrollView>
+  return <ScrollView scrollEnabled={scrollEnabled} style={[styles.page, { backgroundColor }]} contentContainerStyle={[styles.content, { paddingBottom }]} keyboardShouldPersistTaps="handled">{children}</ScrollView>
 }
 export function Card({ children }: PropsWithChildren) { return <View style={styles.card}>{children}</View> }
 export function Button({ title, onPress, disabled = false, secondary = false }: { title: string; onPress: () => void; disabled?: boolean; secondary?: boolean }) {

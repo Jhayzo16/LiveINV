@@ -5,6 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons'
 import { hospitalFloors, hospitalRooms } from '../shared/rooms'
 import { fonts } from '../design'
 import { colors, Field, styles } from '../ui'
+import { matchesWordPrefix } from '../search'
 
 type Props = {
   floor: number
@@ -19,8 +20,7 @@ export function RoomDirectory({ floor, selectedRoomId, assetCounts, onSelect, on
   const insets = useSafeAreaInsets()
   const rooms = useMemo(() => hospitalRooms.filter(room => room.floor === floor), [floor])
   const filtered = useMemo(() => {
-    const search = query.trim().toLowerCase()
-    return rooms.filter(room => `${room.name} ${room.id}`.toLowerCase().includes(search))
+    return rooms.filter(room => matchesWordPrefix(query, room.name, room.id))
   }, [rooms, query])
 
   return <Modal transparent visible animationType="fade" statusBarTranslucent onRequestClose={onClose}>

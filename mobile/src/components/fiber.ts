@@ -1,1 +1,1 @@
-export { Canvas, useThree } from '@react-three/fiber/native'
+export { Canvas, useFrame, useThree } from '@react-three/fiber/native'

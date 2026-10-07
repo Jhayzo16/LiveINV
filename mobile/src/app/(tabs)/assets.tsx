@@ -7,6 +7,7 @@ import { useInventory, actions } from '../../store'
 import { AssetCarouselCard } from '../../components/AssetCarouselCard'
 import { Button, Chip, Field, styles, SyncBanner, colors } from '../../ui'
 import type { AssetRow } from '../../domain'
+import { matchesWordPrefix } from '../../search'
 
 export default function Assets() {
   const paddingBottom = useContentBottomInset()
@@ -16,7 +17,7 @@ export default function Assets() {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('All')
   const filtered = useMemo(() => rows.filter(row => (filter === 'All' || row.state === filter) &&
-    `${row.tag} ${row.qr_id} ${row.name} ${row.category} ${row.location} ${row.ip}`.toLowerCase().includes(search.trim().toLowerCase())), [rows, filter, search])
+    matchesWordPrefix(search, row.tag, row.qr_id, row.name, row.category, row.location, row.ip)), [rows, filter, search])
   const categories = useMemo(() => {
     const groups = new Map<string, AssetRow[]>(Object.keys(equipmentImages).map(category => [category, []]))
     for (const row of filtered) {

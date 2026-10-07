@@ -10,6 +10,7 @@ export type AssetRow = {
   assignment_room_name: string | null; assignment_department_id: string | null;
   assigned_at: string | null; assigned_by: string | null; assignment_method: 'qr' | 'manual' | null;
   updated_at: string;
+  ram_receipt_id?: string | null; ssd_receipt_id?: string | null; stock_version?: number;
 }
 // Mobile field updates never replace the full asset or modify stock accounting.
 export type AssetPatch = Partial<Pick<AssetRow, 'state' | 'ip' | 'location' | 'owner' |

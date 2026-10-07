@@ -8,6 +8,10 @@ import type { AssetRow, AssetPatch, PendingChange } from './domain'
 import { applyChange } from './sync'
 import { authErrorMessage } from './auth-errors'
 import { saveRegistration, type DeviceInsert, type StockReceipt } from './registration'
+import { availableRoomDevices } from './room-explorer'
+import { hospitalRooms } from './shared/rooms'
+import { formatAssetLocation } from './shared/assignments'
+import { DeviceEditError, saveDeviceEdit, type DeviceEditRequest } from './device-edit'
 
 export const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1 } } })
 type Snapshot = { rows: AssetRow[]; pending: PendingChange[]; lastSync: string | null; authorizedAt: number }
@@ -63,7 +67,46 @@ async function fetchRows() {
     if (data.length < 500) return rows
   }
 }
+async function enqueueChange(row: AssetRow, patch: AssetPatch) {
+  const state = useInventory.getState()
+  if (!state.userId || state.status !== 'ready') throw new Error('Sign in before editing inventory.')
+  if (Date.now() - state.authorizedAt > maxOfflineAge || state.authorizedAt > Date.now()) throw new Error('Reconnect and refresh to renew your access before editing.')
+  if (state.pending.some(change => change.assetId === row.id)) throw new Error('Sync or discard the pending change for this asset before editing it again.')
+  if (!Object.keys(patch).length) return
+  const change: PendingChange = { id: Crypto.randomUUID(), userId: state.userId, assetId: row.id, tag: row.tag,
+    baseVersion: row.updated_at, patch, createdAt: new Date().toISOString(), status: 'pending' }
+  // Durable storage must succeed before the UI acknowledges the change.
+  await persist({ ...snapshot(), pending: [...state.pending, change] })
+}
+
 export const actions = {
+  async editDevice(request: DeviceEditRequest): Promise<AssetRow> {
+    return serial(async () => {
+      const { userId, status, pending } = useInventory.getState()
+      if (!userId || status !== 'ready') throw new DeviceEditError('Sign in before editing a device.')
+      if (pending.some(change => change.assetId === request.base.id)) throw new DeviceEditError('This device has an unsynced change. Refresh inventory before editing.')
+      if (!await connected()) throw new DeviceEditError('Connect to the internet to save device details.')
+      try { await verifyAccess(userId) }
+      catch (error) { throw new DeviceEditError(message(error)) }
+      const row = await saveDeviceEdit({
+        async get(id) {
+          const { data, error } = await supabase.from('assets').select('*').eq('id', id).maybeSingle()
+          if (error) throw error
+          return data as AssetRow | null
+        },
+        async update({ base, patch }) {
+          const { data, error } = await supabase.from('assets').update(patch).eq('id', base.id).eq('updated_at', base.updated_at).select('*').maybeSingle()
+          if (error) throw error
+          return data as AssetRow | null
+        },
+      }, request)
+      const next = { ...snapshot(), rows: useInventory.getState().rows.map(item => item.id === row.id ? row : item), authorizedAt: Date.now() }
+      try { await persist(next) }
+      catch { useInventory.setState({ ...next, error: 'Device saved online, but the offline copy could not be updated. Refresh inventory when possible.' }) }
+      void queryClient.invalidateQueries({ queryKey: ['registration-stock'] })
+      return row
+    })
+  },
   async loadRegistrationStock(): Promise<StockReceipt[]> {
     if (!await connected()) throw new Error('Connect to load available RAM and SSD stock.')
     const receipts: StockReceipt[] = []
@@ -202,18 +245,29 @@ export const actions = {
     return refreshing
   },
   async queue(row: AssetRow, patch: AssetPatch) {
+    await serial(() => enqueueChange(row, patch))
+    void actions.refresh()
+  },
+  async assignToRoom(assetId: string, roomId: string) {
     await serial(async () => {
       const state = useInventory.getState()
-      if (!state.userId || state.status !== 'ready') throw new Error('Sign in before editing inventory.')
-      if (Date.now() - state.authorizedAt > maxOfflineAge || state.authorizedAt > Date.now()) throw new Error('Reconnect and refresh to renew your access before editing.')
-      if (state.pending.some(change => change.assetId === row.id)) throw new Error('Sync or discard the pending change for this asset before editing it again.')
-      if (!Object.keys(patch).length) return
-      const change: PendingChange = { id: Crypto.randomUUID(), userId: state.userId, assetId: row.id, tag: row.tag,
-        baseVersion: row.updated_at, patch, createdAt: new Date().toISOString(), status: 'pending' }
-      // Durable storage must succeed before the UI acknowledges the change.
-      await persist({ ...snapshot(), pending: [...state.pending, change] })
+      const room = hospitalRooms.find(item => item.id === roomId)
+      if (!room) throw new Error('This room is no longer available. Select it again from the map.')
+      const row = availableRoomDevices(state.rows, state.pending).find(item => item.id === assetId)
+      if (!row) throw new Error('This device is already assigned or has a pending change. Choose another device.')
+      await enqueueChange(row, {
+        assignment_floor_id: String(room.floor), assignment_room_id: room.id, assignment_room_name: room.name,
+        assignment_department_id: room.department, assigned_by: state.userId, assigned_at: new Date().toISOString(),
+        assignment_method: 'manual', location: formatAssetLocation(String(room.floor), room.name), owner: room.department,
+      })
     })
-    void actions.refresh()
+    await actions.refresh()
+    const state = useInventory.getState()
+    const pending = state.pending.find(change => change.assetId === assetId)
+    if (pending?.status === 'conflict' || pending?.status === 'error') throw new Error(pending.message || 'Assignment needs review. Open Account → Sync before retrying.')
+    if (pending) return 'pending' as const
+    if (state.rows.find(row => row.id === assetId)?.assignment_room_id === roomId) return 'saved' as const
+    throw new Error('Assignment could not be confirmed. Refresh inventory to check its status.')
   },
   async discard(id: string) {
     await serial(() => persist({ ...snapshot(), pending: useInventory.getState().pending.filter(change => change.id !== id) }))

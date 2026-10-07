@@ -5,11 +5,13 @@ import { Brand } from '../../components/Brand'
 import { fonts } from '../../design'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { FLOATING_TAB_HEIGHT, TabContentInset } from '../../navigation-spacing'
-const icons = { index: 'grid-outline', assets: 'cube-outline', maps: 'business-outline', scan: 'qr-code-outline', sync: 'sync-outline' } as const
+import { View } from 'react-native'
+import { PmsFloatingButton } from '../../components/PmsFloatingButton'
+const icons = { index: 'grid-outline', assets: 'cube-outline', maps: 'business-outline', scan: 'qr-code-outline', sync: 'person-outline' } as const
 export default function TabLayout() {
   const insets = useSafeAreaInsets()
   const bottom = Math.max(insets.bottom, 12)
-  return <TabContentInset.Provider value={FLOATING_TAB_HEIGHT + bottom + 20}><Tabs safeAreaInsets={{ bottom: 0 }} screenOptions={({ route }) => ({ headerStyle: { backgroundColor: '#FFFFFF' }, headerTitle: () => <Brand />, headerTitleAlign: 'left', headerShadowVisible: false,
+  return <TabContentInset.Provider value={FLOATING_TAB_HEIGHT + bottom + 84}><View style={{ flex: 1 }}><Tabs safeAreaInsets={{ bottom: 0 }} screenOptions={({ route }) => ({ headerStyle: { backgroundColor: '#FFFFFF' }, headerTitle: () => <Brand />, headerTitleAlign: 'left', headerShadowVisible: false,
     tabBarActiveTintColor: colors.red, tabBarInactiveTintColor: '#53605A',
     tabBarHideOnKeyboard: true, tabBarLabelPosition: 'below-icon',
     tabBarActiveBackgroundColor: '#F2E5E5', tabBarInactiveBackgroundColor: 'transparent',
@@ -26,6 +28,6 @@ export default function TabLayout() {
     <Tabs.Screen name="assets" options={{ title: 'Asset registry', tabBarLabel: 'Assets' }} />
     <Tabs.Screen name="maps" options={{ title: 'Live mapping', tabBarLabel: 'Live Map' }} />
     <Tabs.Screen name="scan" options={{ title: 'QR scanner', tabBarLabel: 'Scan' }} />
-    <Tabs.Screen name="sync" options={{ title: 'Sync & account', tabBarLabel: 'Account' }} />
-  </Tabs></TabContentInset.Provider>
+    <Tabs.Screen name="sync" options={{ title: 'Account', tabBarLabel: 'Account' }} />
+  </Tabs><PmsFloatingButton bottom={FLOATING_TAB_HEIGHT + bottom + 12} /></View></TabContentInset.Provider>
 }

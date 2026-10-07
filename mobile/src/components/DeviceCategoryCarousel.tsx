@@ -6,6 +6,7 @@ import { deviceCategories } from '../registration'
 import { fonts } from '../design'
 import { colors, styles } from '../ui'
 import { EquipmentImage } from './AssetCard'
+import { HeaderBackButton, headerTitleStyle } from './HeaderBackButton'
 
 const descriptions: Record<string, string> = {
   'System Unit': 'Desktop computers, processors, memory and storage.',
@@ -41,7 +42,7 @@ export function RegistrationHeader({ step, onBack, disabled }: { step?: 1 | 2; o
   const insets = useSafeAreaInsets()
   return <View style={[card.progress, { paddingTop: insets.top + 4, paddingLeft: Math.max(insets.left, 16), paddingRight: Math.max(insets.right, 16) }]}>
     <View style={card.progressHeading}>
-      <View style={card.headerSide}><Pressable accessibilityRole="button" accessibilityLabel={step === 2 ? 'Back to device type' : 'Back to assets'} accessibilityState={{ disabled }} disabled={disabled} onPress={onBack} style={({ pressed }) => [card.backButton, { opacity: disabled ? 0.4 : pressed ? 0.65 : 1 }]}><Ionicons name="chevron-back" size={23} color="#FFF" /></Pressable></View>
+      <View style={card.headerSide}><HeaderBackButton label={step === 2 ? 'Back to device type' : 'Back to assets'} disabled={disabled} onPress={onBack} color="#FFF" /></View>
       <Text accessibilityRole="header" style={card.progressTitle}>{step ? 'Register device' : 'Device registered'}</Text>
       <View style={card.headerSide}>{step && <Text style={card.stepCount}>Step {step} of 2</Text>}</View>
     </View>
@@ -62,8 +63,7 @@ const card = StyleSheet.create({
   progress: { backgroundColor: '#173F2C', paddingBottom: 16, gap: 9 },
   progressHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 4, minHeight: 44 },
   headerSide: { width: 64 },
-  backButton: { width: 44, height: 44, alignItems: 'flex-start', justifyContent: 'center' },
-  progressTitle: { fontFamily: fonts.title, fontSize: 15, color: '#FFF', flex: 1, textAlign: 'center' },
+  progressTitle: { ...headerTitleStyle, color: '#FFF', flex: 1, textAlign: 'center' },
   stepCount: { fontFamily: fonts.medium, fontSize: 10, color: '#D2E4D7', textAlign: 'right' },
   steps: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 18 },
   step: { alignItems: 'center', gap: 7, width: 86 },
